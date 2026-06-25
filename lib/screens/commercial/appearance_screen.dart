@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../auth/current_user_session.dart';
 import '../../settings/app_appearance_controller.dart';
@@ -509,11 +509,11 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
       Theme.of(context).brightness == Brightness.dark;
 
   Color _surfaceBg(BuildContext context) {
-    return _isDark(context) ? const Color(0xFF0F172A) : surfaceBg;
+    return _isDark(context) ? Colors.black : surfaceBg;
   }
 
   Color _cardBg(BuildContext context) {
-    return _isDark(context) ? const Color(0xFF111827) : Colors.white;
+    return _isDark(context) ? const Color(0xFF111111) : Colors.white;
   }
 
   Color _borderColor(BuildContext context) {
@@ -529,7 +529,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
   }
 
   Color _bottomNavBg(BuildContext context) {
-    return _isDark(context) ? const Color(0xFF111827) : Colors.white;
+    return _isDark(context) ? const Color(0xFF111111) : Colors.white;
   }
 
   Color _bottomNavInactive(BuildContext context) {

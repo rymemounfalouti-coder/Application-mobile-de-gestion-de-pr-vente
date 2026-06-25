@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../l10n/app_locale_controller.dart';
 import '../../l10n/app_localizations.dart';
@@ -7,7 +7,25 @@ Color _primaryBlue = Color(0xFF2563EB);
 Color _textDark = Color(0xFF0F172A);
 Color _textMuted = Color(0xFF64748B);
 Color _surfaceBg = Color(0xFFF8FAFC);
+Color _cardBg = Colors.white;
 Color _borderColor = Color(0xFFE2E8F0);
+
+void _syncLanguageTheme(BuildContext context) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  _textDark = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+  _textMuted = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+  _surfaceBg = isDark ? Colors.black : const Color(0xFFF8FAFC);
+  _cardBg = isDark ? const Color(0xFF111111) : Colors.white;
+  _borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+}
+
+bool _isLanguageDarkMode() => _cardBg != Colors.white;
+
+Color _languageShadowColor([double lightAlpha = .06]) {
+  return _isLanguageDarkMode()
+      ? Colors.black.withValues(alpha: .22)
+      : _textDark.withValues(alpha: lightAlpha);
+}
 
 class LanguagePreferencesScreen extends StatefulWidget {
   LanguagePreferencesScreen({super.key});
@@ -32,6 +50,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _syncLanguageTheme(context);
     final l10n = context.l10n;
     return Scaffold(
       backgroundColor: _surfaceBg,
@@ -48,11 +67,11 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _surfaceBg,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: 0.08),
+                        color: _languageShadowColor(0.08),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -110,7 +129,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
           onPressed: () => Navigator.pop(context),
           icon: Icon(Icons.arrow_back_rounded),
           color: _primaryBlue,
-          style: IconButton.styleFrom(backgroundColor: Colors.white),
+          style: IconButton.styleFrom(backgroundColor: _cardBg),
         ),
         SizedBox(width: 14),
         Expanded(
@@ -199,7 +218,11 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
             child: Stack(
               children: [
                 Positioned(top: 8, left: 4, child: _translationBubble('A')),
-                Positioned(right: 0, bottom: 4, child: _translationBubble('æ–‡')),
+                Positioned(
+                  right: 0,
+                  bottom: 4,
+                  child: _translationBubble('æ–‡'),
+                ),
                 Positioned(
                   right: 0,
                   bottom: 1,
@@ -340,7 +363,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: Color(0xFFDCFCE7),
+                            color: Color(0xFF22C55E).withValues(alpha: 0.16),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
@@ -384,6 +407,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
       decoration: BoxDecoration(
         color: _primaryBlue.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _primaryBlue.withValues(alpha: 0.16)),
       ),
       child: Row(
         children: [
@@ -501,7 +525,13 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
   List<String> _previewLabels(Locale locale) {
     return switch (locale.languageCode) {
       'en' => ['Home', 'Clients', 'Orders', 'Activities', 'Profile'],
-      'ar' => ['Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©', 'Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡', 'Ø§Ù„Ø·Ù„Ø¨Ø§Øª', 'Ø§Ù„Ø£Ù†Ø´Ø·Ø©', 'Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ'],
+      'ar' => [
+        'Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©',
+        'Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡',
+        'Ø§Ù„Ø·Ù„Ø¨Ø§Øª',
+        'Ø§Ù„Ø£Ù†Ø´Ø·Ø©',
+        'Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ',
+      ],
       _ => ['Accueil', 'Clients', 'Commandes', 'Activités', 'Profil'],
     };
   }
@@ -560,11 +590,12 @@ class _LanguageBottomNav extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cardBg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        border: Border(top: BorderSide(color: _borderColor)),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: 0.09),
+            color: _languageShadowColor(0.09),
             blurRadius: 20,
             offset: Offset(0, -8),
           ),
@@ -618,12 +649,12 @@ class _LanguageBottomNav extends StatelessWidget {
 
 BoxDecoration _cardDecoration(double radius) {
   return BoxDecoration(
-    color: Colors.white,
+    color: _cardBg,
     borderRadius: BorderRadius.circular(radius),
     border: Border.all(color: _borderColor.withValues(alpha: 0.55)),
     boxShadow: [
       BoxShadow(
-        color: _textDark.withValues(alpha: 0.06),
+        color: _languageShadowColor(0.06),
         blurRadius: 18,
         offset: Offset(0, 8),
       ),

@@ -3,6 +3,7 @@ import '../../l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../auth/current_user_session.dart';
+import '../../api_service.dart';
 import '../../data/mock_presales_data.dart';
 
 class HomeCommercial extends StatefulWidget {
@@ -3190,6 +3191,12 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
     }
 
     final order = _buildOrder('En attente');
+    try {
+      await ApiService.createCommande(_orderPayload(order));
+    } catch (_) {
+      _showMessage("Impossible d'envoyer la commande au manager.");
+      return;
+    }
     _showMessage('Commande envoyée au manager avec succès');
     await Future<void>.delayed(Duration(milliseconds: 650));
     if (!mounted) return;
@@ -3228,6 +3235,32 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
       status: status,
       items: items,
     );
+  }
+
+  Map<String, dynamic> _orderPayload(ValidatedOrder order) {
+    final session = CurrentUserSession.currentUser;
+    return {
+      'order_number': order.orderNumber,
+      'client_id': widget.client.id,
+      'commercial_id': session?.id,
+      'commercial_name': widget.currentUserName,
+      'date': order.date.toIso8601String(),
+      'created_at': DateTime.now().toIso8601String(),
+      'delivery_date': (order.deliveryDate ?? _deliveryDate).toIso8601String(),
+      'status': 'en_attente',
+      'total': order.total,
+      'notes': '',
+      'lines': order.items
+          .map(
+            (item) => {
+              'product_id': item.product.id,
+              'quantity': item.quantity,
+              'unit_price': item.product.unitPrice,
+              'total': item.lineTotal,
+            },
+          )
+          .toList(),
+    };
   }
 
   DateTime _dateOnly(DateTime date) =>

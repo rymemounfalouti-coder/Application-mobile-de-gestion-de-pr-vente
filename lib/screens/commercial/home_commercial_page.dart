@@ -140,8 +140,8 @@ class _HomeCommercialState extends State<HomeCommercial> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     textDark = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF14204A);
     textMuted = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6F7A90);
-    surface = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    cardBg = isDark ? const Color(0xFF111827) : Colors.white;
+    surface = isDark ? Colors.black : const Color(0xFFF8FAFC);
+    cardBg = isDark ? const Color(0xFF111111) : Colors.white;
   }
 
   void _loadObjectiveIfNeeded(int commercialId) {
@@ -935,11 +935,12 @@ class _OrderFilterSheet extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.fromLTRB(20, 20, 20, 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _HomeCommercialState.cardBg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: _activityBorderColor())),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .16),
+            color: _activityShadowColor(),
             blurRadius: 28,
             offset: Offset(0, -8),
           ),
@@ -955,7 +956,7 @@ class _OrderFilterSheet extends StatelessWidget {
               Text(
                 AppLocalizations.globalText('Filtres commandes'),
                 style: TextStyle(
-                  color: _DashboardTab._navy,
+                  color: _HomeCommercialState.textDark,
                   fontSize: 21,
                   fontWeight: FontWeight.w900,
                 ),
@@ -966,7 +967,7 @@ class _OrderFilterSheet extends StatelessWidget {
                   'Affichez uniquement les commandes correspondant au filtre sélectionné.',
                 ),
                 style: TextStyle(
-                  color: Color(0xFF64748B),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 13,
                   height: 1.4,
                   fontWeight: FontWeight.w600,
@@ -989,7 +990,7 @@ class _OrderFilterSheet extends StatelessWidget {
                             border: Border.all(
                               color: selectedFilter == filter
                                   ? _DashboardTab._blue
-                                  : Color(0xFFCBD5E1),
+                                  : _activityBorderColor(),
                               width: 2,
                             ),
                           ),
@@ -1012,7 +1013,7 @@ class _OrderFilterSheet extends StatelessWidget {
                             _orderQuickFilterLabel(filter),
                             softWrap: true,
                             style: TextStyle(
-                              color: _DashboardTab._navy,
+                              color: _HomeCommercialState.textDark,
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                             ),
@@ -1050,7 +1051,7 @@ class _OrdersHeader extends StatelessWidget {
               Text(
                 AppLocalizations.globalText('Commandes'),
                 style: TextStyle(
-                  color: Color(0xFF0F172A),
+                  color: _HomeCommercialState.textDark,
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
                 ),
@@ -1061,7 +1062,7 @@ class _OrdersHeader extends StatelessWidget {
                   'Suivez et g\u00E9rez vos commandes',
                 ),
                 style: TextStyle(
-                  color: Color(0xFF64748B),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -1092,11 +1093,19 @@ class _OrdersSearchBar extends StatelessWidget {
           child: TextField(
             controller: controller,
             textInputAction: TextInputAction.search,
+            style: TextStyle(
+              color: _HomeCommercialState.textDark,
+              fontWeight: FontWeight.w600,
+            ),
             decoration: InputDecoration(
               hintText: AppLocalizations.globalText('Rechercher une commande'),
+              hintStyle: TextStyle(
+                color: _HomeCommercialState.textMuted,
+                fontWeight: FontWeight.w500,
+              ),
               prefixIcon: Icon(
                 Icons.search_rounded,
-                color: Color(0xFF64748B),
+                color: _HomeCommercialState.textMuted,
                 size: 27,
               ),
               filled: true,
@@ -1116,9 +1125,9 @@ class _OrdersSearchBar extends StatelessWidget {
           child: OutlinedButton(
             onPressed: onFilterTap,
             style: OutlinedButton.styleFrom(
-              foregroundColor: Color(0xFF475569),
+              foregroundColor: _HomeCommercialState.textMuted,
               backgroundColor: _HomeCommercialState.cardBg,
-              side: BorderSide(color: Color(0xFFE3E8F2)),
+              side: BorderSide(color: _activityBorderColor()),
               padding: EdgeInsets.zero,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
@@ -1177,24 +1186,13 @@ class _OrdersKpiSummary extends StatelessWidget {
     return Container(
       constraints: BoxConstraints(minHeight: 106),
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Color(0xFFE8EEF7)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .055),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(20),
       child: Row(
         children: [
           for (var i = 0; i < items.length; i++) ...[
             Expanded(child: _OrderKpiMini(data: items[i])),
             if (i != items.length - 1)
-              Container(width: 1, height: 72, color: Color(0xFFE8EEF7)),
+              Container(width: 1, height: 72, color: _activityBorderColor()),
           ],
         ],
       ),
@@ -1250,7 +1248,7 @@ class _OrderKpiMini extends StatelessWidget {
                   maxLines: 1,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Color(0xFF475569),
+                    color: _HomeCommercialState.textMuted,
                     fontSize: 12,
                     height: 1,
                     fontWeight: FontWeight.w600,
@@ -1301,14 +1299,16 @@ class _OrderQuickFilters extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 15),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: selected ? Color(0xFF2563EB) : Colors.white,
+                color: selected
+                    ? Color(0xFF2563EB)
+                    : _HomeCommercialState.cardBg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: selected ? Color(0xFF2563EB) : Color(0xFFE8EEF7),
+                  color: selected ? Color(0xFF2563EB) : _activityBorderColor(),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0xFF0F172A).withValues(alpha: .055),
+                    color: _activityShadowColor(),
                     blurRadius: 14,
                     offset: Offset(0, 7),
                   ),
@@ -1317,7 +1317,9 @@ class _OrderQuickFilters extends StatelessWidget {
               child: Text(
                 _orderQuickFilterLabel(filter),
                 style: TextStyle(
-                  color: selected ? Colors.white : Color(0xFF475569),
+                  color: selected
+                      ? Colors.white
+                      : _HomeCommercialState.textMuted,
                   fontSize: 12.5,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                 ),
@@ -1346,18 +1348,7 @@ class _OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           padding: EdgeInsets.fromLTRB(14, 14, 12, 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Color(0xFFE8EEF7)),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0xFF0F172A).withValues(alpha: .045),
-                blurRadius: 18,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
+          decoration: _activityCardDecoration(18),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -1387,7 +1378,7 @@ class _OrderCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Color(0xFF0F172A),
+                              color: _HomeCommercialState.textDark,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1403,7 +1394,7 @@ class _OrderCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Color(0xFF334155),
+                        color: _HomeCommercialState.textDark,
                         fontSize: 13,
                         height: 1.15,
                         fontWeight: FontWeight.w600,
@@ -1415,7 +1406,7 @@ class _OrderCard extends StatelessWidget {
                         Icon(
                           Icons.calendar_today_outlined,
                           size: 13,
-                          color: Color(0xFF64748B).withValues(alpha: .85),
+                          color: _HomeCommercialState.textMuted,
                         ),
                         SizedBox(width: 5),
                         Expanded(
@@ -1424,7 +1415,7 @@ class _OrderCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Color(0xFF64748B),
+                              color: _HomeCommercialState.textMuted,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1433,7 +1424,7 @@ class _OrderCard extends StatelessWidget {
                         Text(
                           '${_money(order.total)} DH',
                           style: TextStyle(
-                            color: Color(0xFF0F172A),
+                            color: _HomeCommercialState.textDark,
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1488,17 +1479,7 @@ class _EmptyOrdersState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(24, 30, 24, 26),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .06),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(22),
       child: Column(
         children: [
           Container(
@@ -1519,7 +1500,7 @@ class _EmptyOrdersState extends StatelessWidget {
             AppLocalizations.globalText('Aucune commande disponible'),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF0F172A),
+              color: _HomeCommercialState.textDark,
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
@@ -1579,11 +1560,11 @@ class DetailCommande extends StatelessWidget {
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _HomeCommercialState.surface,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: _activityShadowColor(),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -2897,11 +2878,12 @@ class _CommercialNotificationButton extends StatelessWidget {
           children: [
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: _HomeCommercialState.cardBg,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _activityBorderColor()),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: _activityShadowColor(),
                     blurRadius: 8,
                     offset: Offset(0, 2),
                   ),
@@ -3083,7 +3065,7 @@ class _ProfileMenuRow extends StatelessWidget {
           border: Border(
             bottom: isLast
                 ? BorderSide.none
-                : BorderSide(color: Color(0xFFE8EDF5)),
+                : BorderSide(color: _activityBorderColor()),
           ),
         ),
         child: Row(
@@ -3715,6 +3697,43 @@ String _activityMonthLabel(DateTime date) {
   return months[date.month - 1];
 }
 
+bool _isCommercialDarkMode() {
+  return _HomeCommercialState.cardBg != Colors.white;
+}
+
+Color _activityBorderColor() {
+  return _isCommercialDarkMode()
+      ? const Color(0xFF334155)
+      : const Color(0xFFE8EEF7);
+}
+
+Color _activitySoftSurface() {
+  return _isCommercialDarkMode()
+      ? const Color(0xFF1E293B)
+      : const Color(0xFFF1F5F9);
+}
+
+Color _activityShadowColor() {
+  return _isCommercialDarkMode()
+      ? Colors.black.withValues(alpha: .22)
+      : const Color(0xFF0F172A).withValues(alpha: .055);
+}
+
+BoxDecoration _activityCardDecoration(double radius) {
+  return BoxDecoration(
+    color: _HomeCommercialState.cardBg,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: _activityBorderColor()),
+    boxShadow: [
+      BoxShadow(
+        color: _activityShadowColor(),
+        blurRadius: 22,
+        offset: const Offset(0, 10),
+      ),
+    ],
+  );
+}
+
 class _ActivitiesHeader extends StatelessWidget {
   _ActivitiesHeader({
     required this.onNotificationsTap,
@@ -3771,17 +3790,7 @@ class _ActivityDateSelector extends StatelessWidget {
     final dates = List.generate(7, (index) => today.add(Duration(days: index)));
     return Container(
       padding: EdgeInsets.fromLTRB(8, 10, 8, 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .055),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(20),
       child: Row(
         children: [
           for (final date in dates)
@@ -3796,7 +3805,7 @@ class _ActivityDateSelector extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Color(0xFFF1F5F9),
+              color: _activitySoftSurface(),
               borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(
@@ -3944,23 +3953,13 @@ class _ActivityKpiCard extends StatelessWidget {
     ];
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .055),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(20),
       child: Row(
         children: [
           for (var i = 0; i < items.length; i++) ...[
             Expanded(child: _ActivityKpiMini(data: items[i])),
             if (i != items.length - 1)
-              Container(width: 1, height: 74, color: Color(0xFFE8EEF7)),
+              Container(width: 1, height: 74, color: _activityBorderColor()),
           ],
         ],
       ),
@@ -4029,17 +4028,7 @@ class _ActivityFilterTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: 48,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
-      boxShadow: [
-        BoxShadow(
-          color: Color(0xFF0F172A).withValues(alpha: .045),
-          blurRadius: 18,
-          offset: Offset(0, 8),
-        ),
-      ],
-    ),
+    decoration: _activityCardDecoration(15),
     child: Row(
       children: [
         for (final filter in _ActivityFilter.values)
@@ -4081,17 +4070,7 @@ class _ActivitiesListCard extends StatelessWidget {
   final ValueChanged<_CommercialActivityItem> onTap;
   @override
   Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Color(0xFF0F172A).withValues(alpha: .055),
-          blurRadius: 22,
-          offset: Offset(0, 10),
-        ),
-      ],
-    ),
+    decoration: _activityCardDecoration(20),
     child: Column(
       children: [
         for (var i = 0; i < activities.length; i++) ...[
@@ -4100,7 +4079,7 @@ class _ActivitiesListCard extends StatelessWidget {
             onTap: () => onTap(activities[i]),
           ),
           if (i != activities.length - 1)
-            Divider(height: 1, color: Color(0xFFE8EEF7)),
+            Divider(height: 1, color: _activityBorderColor()),
         ],
       ],
     ),
@@ -4252,17 +4231,7 @@ class _EmptyActivitiesCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: double.infinity,
     padding: EdgeInsets.fromLTRB(22, 34, 22, 30),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Color(0xFF0F172A).withValues(alpha: .045),
-          blurRadius: 18,
-          offset: Offset(0, 8),
-        ),
-      ],
-    ),
+    decoration: _activityCardDecoration(20),
     child: Column(
       children: [
         Icon(
@@ -4849,7 +4818,7 @@ class _NewActivityPageState extends State<NewActivityPage> {
                           key: _formKey,
                           child: Container(
                             padding: EdgeInsets.all(18),
-                            decoration: _premiumCardDecoration(22),
+                            decoration: _activityCardDecoration(22),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -5876,7 +5845,7 @@ class _TourVisitRow extends StatelessWidget {
           border: Border(
             bottom: isLast
                 ? BorderSide.none
-                : BorderSide(color: Color(0xFFE8EDF5)),
+                : BorderSide(color: _activityBorderColor()),
           ),
         ),
         child: Row(
@@ -6121,11 +6090,11 @@ class _DetailClientState extends State<DetailClient> {
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _HomeCommercialState.surface,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: _activityShadowColor(),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -6376,11 +6345,11 @@ class _NouvelleCommandeClientSelectionState
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _HomeCommercialState.surface,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: _activityShadowColor(),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -6406,20 +6375,31 @@ class _NouvelleCommandeClientSelectionState
                               TextField(
                                 controller: _searchController,
                                 textInputAction: TextInputAction.search,
+                                style: TextStyle(
+                                  color: _HomeCommercialState.textDark,
+                                  fontWeight: FontWeight.w600,
+                                ),
                                 decoration: InputDecoration(
                                   hintText: AppLocalizations.globalText(
                                     'Rechercher un client...',
                                   ),
+                                  hintStyle: TextStyle(
+                                    color: _HomeCommercialState.textMuted,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                   prefixIcon: Icon(
                                     Icons.search_rounded,
                                     size: 24,
+                                    color: _HomeCommercialState.textMuted,
                                   ),
                                   filled: true,
                                   fillColor: _HomeCommercialState.cardBg,
                                   contentPadding: EdgeInsets.symmetric(
                                     vertical: 16,
                                   ),
-                                  enabledBorder: _searchBorder(),
+                                  enabledBorder: _searchBorder(
+                                    color: _activityBorderColor(),
+                                  ),
                                   focusedBorder: _searchBorder(
                                     color: _DashboardTab._blue,
                                   ),
@@ -6637,11 +6617,12 @@ class _OrderDecisionSheetShell extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _HomeCommercialState.cardBg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: _activityBorderColor())),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .16),
+            color: _activityShadowColor(),
             blurRadius: 28,
             offset: Offset(0, -8),
           ),
@@ -6666,7 +6647,7 @@ class _OrderDecisionSheetShell extends StatelessWidget {
             Text(
               AppLocalizations.globalText(title),
               style: TextStyle(
-                color: _DashboardTab._navy,
+                color: _HomeCommercialState.textDark,
                 fontSize: 21,
                 fontWeight: FontWeight.w900,
               ),
@@ -6675,7 +6656,7 @@ class _OrderDecisionSheetShell extends StatelessWidget {
             Text(
               AppLocalizations.globalText(message),
               style: TextStyle(
-                color: Color(0xFF64748B),
+                color: _HomeCommercialState.textMuted,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 height: 1.45,
@@ -6702,7 +6683,7 @@ class _OrderSheetOutlinedButton extends StatelessWidget {
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         foregroundColor: _DashboardTab._blue,
-        backgroundColor: Colors.white,
+        backgroundColor: _HomeCommercialState.cardBg,
         side: BorderSide(color: _DashboardTab._blue, width: 1.3),
         padding: EdgeInsets.symmetric(vertical: 15, horizontal: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -7128,11 +7109,11 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _HomeCommercialState.surface,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: _activityShadowColor(),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -7378,11 +7359,11 @@ class _OrderDraftsPageState extends State<OrderDraftsPage> {
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _HomeCommercialState.surface,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: _activityShadowColor(),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -7481,10 +7462,10 @@ class _DraftsHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded),
-          color: _DashboardTab._navy,
+          color: _HomeCommercialState.textDark,
           style: IconButton.styleFrom(
             backgroundColor: _HomeCommercialState.cardBg,
-            shadowColor: Color(0xFF0F172A).withValues(alpha: .08),
+            shadowColor: _activityShadowColor(),
             elevation: 5,
           ),
         ),
@@ -7497,7 +7478,7 @@ class _DraftsHeader extends StatelessWidget {
               Text(
                 AppLocalizations.globalText('Mes brouillons'),
                 style: TextStyle(
-                  color: _DashboardTab._navy,
+                  color: _HomeCommercialState.textDark,
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
                 ),
@@ -7510,7 +7491,7 @@ class _DraftsHeader extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Color(0xFF64748B),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -7533,7 +7514,7 @@ class _EmptyDraftsCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(22, 30, 22, 24),
-      decoration: _premiumCardDecoration(22),
+      decoration: _activityCardDecoration(22),
       child: Column(
         children: [
           Container(
@@ -7553,7 +7534,7 @@ class _EmptyDraftsCard extends StatelessWidget {
           Text(
             AppLocalizations.globalText('Aucun brouillon'),
             style: TextStyle(
-              color: _DashboardTab._navy,
+              color: _HomeCommercialState.textDark,
               fontSize: 20,
               fontWeight: FontWeight.w900,
             ),
@@ -7565,7 +7546,7 @@ class _EmptyDraftsCard extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF64748B),
+              color: _HomeCommercialState.textMuted,
               fontSize: 13,
               height: 1.35,
               fontWeight: FontWeight.w600,
@@ -7620,7 +7601,7 @@ class _OrderDraftCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: EdgeInsets.all(16),
-          decoration: _premiumCardDecoration(20),
+          decoration: _activityCardDecoration(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -7648,7 +7629,7 @@ class _OrderDraftCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: _DashboardTab._navy,
+                            color: _HomeCommercialState.textDark,
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
                           ),
@@ -7659,7 +7640,7 @@ class _OrderDraftCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Color(0xFF64748B),
+                            color: _HomeCommercialState.textMuted,
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                           ),
@@ -7667,7 +7648,10 @@ class _OrderDraftCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: _HomeCommercialState.textMuted,
+                  ),
                 ],
               ),
               SizedBox(height: 14),
@@ -7740,13 +7724,13 @@ class _DraftInfoLine extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, color: Color(0xFF64748B), size: 17),
+          Icon(icon, color: _HomeCommercialState.textMuted, size: 17),
           SizedBox(width: 8),
           Expanded(
             child: Text(
               AppLocalizations.globalText(label),
               style: TextStyle(
-                color: Color(0xFF64748B),
+                color: _HomeCommercialState.textMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -7755,7 +7739,7 @@ class _DraftInfoLine extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: _DashboardTab._navy,
+              color: _HomeCommercialState.textDark,
               fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
@@ -7835,10 +7819,10 @@ class _NewOrderHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded),
-          color: _DashboardTab._navy,
+          color: _HomeCommercialState.textDark,
           style: IconButton.styleFrom(
             backgroundColor: _HomeCommercialState.cardBg,
-            shadowColor: Color(0xFF0F172A).withValues(alpha: .08),
+            shadowColor: _activityShadowColor(),
             elevation: 5,
           ),
         ),
@@ -7851,7 +7835,7 @@ class _NewOrderHeader extends StatelessWidget {
               Text(
                 AppLocalizations.globalText('Nouvelle commande'),
                 style: TextStyle(
-                  color: _DashboardTab._navy,
+                  color: _HomeCommercialState.textDark,
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
                 ),
@@ -7862,7 +7846,7 @@ class _NewOrderHeader extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Color(0xFF64748B),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -7874,10 +7858,10 @@ class _NewOrderHeader extends StatelessWidget {
         IconButton(
           onPressed: onHistory,
           icon: Icon(Icons.description_outlined),
-          color: _DashboardTab._navy,
+          color: _HomeCommercialState.textDark,
           style: IconButton.styleFrom(
             backgroundColor: _HomeCommercialState.cardBg,
-            shadowColor: Color(0xFF0F172A).withValues(alpha: .08),
+            shadowColor: _activityShadowColor(),
             elevation: 5,
           ),
         ),
@@ -7901,7 +7885,7 @@ class _SelectedOrderClientCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Ink(
           padding: EdgeInsets.fromLTRB(14, 15, 12, 15),
-          decoration: _premiumCardDecoration(20),
+          decoration: _activityCardDecoration(20),
           child: Row(
             children: [
               Container(
@@ -7921,7 +7905,7 @@ class _SelectedOrderClientCard extends StatelessWidget {
                     Text(
                       AppLocalizations.globalText('Client'),
                       style: TextStyle(
-                        color: Color(0xFF64748B),
+                        color: _HomeCommercialState.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -7935,7 +7919,7 @@ class _SelectedOrderClientCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: _DashboardTab._navy,
+                              color: _HomeCommercialState.textDark,
                               fontSize: 18,
                               height: 1.1,
                               fontWeight: FontWeight.w700,
@@ -7952,7 +7936,7 @@ class _SelectedOrderClientCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Color(0xFF475569),
+                        color: _HomeCommercialState.textMuted,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -7963,13 +7947,13 @@ class _SelectedOrderClientCard extends StatelessWidget {
                         Icon(
                           Icons.location_on_outlined,
                           size: 16,
-                          color: Color(0xFF64748B),
+                          color: _HomeCommercialState.textMuted,
                         ),
                         SizedBox(width: 4),
                         Text(
                           data.client.city,
                           style: TextStyle(
-                            color: Color(0xFF64748B),
+                            color: _HomeCommercialState.textMuted,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -7986,7 +7970,7 @@ class _SelectedOrderClientCard extends StatelessWidget {
                   Text(
                     '${data.orderCount} ${AppLocalizations.globalText(data.orderCount > 1 ? 'commandes' : 'commande')}',
                     style: TextStyle(
-                      color: Color(0xFF475569),
+                      color: _HomeCommercialState.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -7995,7 +7979,7 @@ class _SelectedOrderClientCard extends StatelessWidget {
                   Text(
                     '${_money(data.revenue)} DH',
                     style: TextStyle(
-                      color: _DashboardTab._navy,
+                      color: _HomeCommercialState.textDark,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -8004,7 +7988,7 @@ class _SelectedOrderClientCard extends StatelessWidget {
                   Text(
                     AppLocalizations.globalText('CA total'),
                     style: TextStyle(
-                      color: Color(0xFF64748B),
+                      color: _HomeCommercialState.textMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
                     ),
@@ -8027,7 +8011,10 @@ class _SelectedOrderClientCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Icon(Icons.chevron_right_rounded, color: Color(0xFF64748B)),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: _HomeCommercialState.textMuted,
+              ),
             ],
           ),
         ),
@@ -8081,12 +8068,18 @@ class _OrderInfoCard extends StatelessWidget {
             controller: remarkController,
             minLines: 2,
             maxLines: 3,
+            style: TextStyle(
+              color: _HomeCommercialState.textDark,
+              fontWeight: FontWeight.w600,
+            ),
             decoration: InputDecoration(
               labelText: AppLocalizations.globalText('Remarque (optionnel)'),
               hintText: AppLocalizations.globalText('Ajouter une remarque...'),
+              labelStyle: TextStyle(color: _HomeCommercialState.textMuted),
+              hintStyle: TextStyle(color: _HomeCommercialState.textMuted),
               filled: true,
               fillColor: _HomeCommercialState.cardBg,
-              enabledBorder: _searchBorder(),
+              enabledBorder: _searchBorder(color: _activityBorderColor()),
               focusedBorder: _searchBorder(color: _DashboardTab._blue),
             ),
           ),
@@ -8116,7 +8109,7 @@ class _DateField extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Color(0xFF64748B),
+              color: _HomeCommercialState.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
@@ -8126,9 +8119,9 @@ class _DateField extends StatelessWidget {
             height: 48,
             padding: EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _HomeCommercialState.cardBg,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Color(0xFFE2E8F0)),
+              border: Border.all(color: _activityBorderColor()),
             ),
             child: Row(
               children: [
@@ -8138,7 +8131,7 @@ class _DateField extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: _DashboardTab._navy,
+                      color: _HomeCommercialState.textDark,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -8146,7 +8139,7 @@ class _DateField extends StatelessWidget {
                 ),
                 Icon(
                   Icons.calendar_today_outlined,
-                  color: Color(0xFF64748B),
+                  color: _HomeCommercialState.textMuted,
                   size: 18,
                 ),
               ],
@@ -8169,7 +8162,7 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(16),
-      decoration: _premiumCardDecoration(20),
+      decoration: _activityCardDecoration(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -8180,7 +8173,7 @@ class _SectionCard extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  color: _DashboardTab._navy,
+                  color: _HomeCommercialState.textDark,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -8223,13 +8216,25 @@ class _ProductSearchBar extends StatelessWidget {
           child: TextField(
             controller: controller,
             textInputAction: TextInputAction.search,
+            style: TextStyle(
+              color: _HomeCommercialState.textDark,
+              fontWeight: FontWeight.w600,
+            ),
             decoration: InputDecoration(
               hintText: AppLocalizations.globalText('Rechercher un produit...'),
-              prefixIcon: Icon(Icons.search_rounded, size: 21),
+              hintStyle: TextStyle(
+                color: _HomeCommercialState.textMuted,
+                fontWeight: FontWeight.w500,
+              ),
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                size: 21,
+                color: _HomeCommercialState.textMuted,
+              ),
               filled: true,
               fillColor: _HomeCommercialState.cardBg,
               contentPadding: EdgeInsets.symmetric(vertical: 13),
-              enabledBorder: _searchBorder(),
+              enabledBorder: _searchBorder(color: _activityBorderColor()),
               focusedBorder: _searchBorder(
                 color: _HomeCommercialState.primaryBlue,
               ),
@@ -8244,7 +8249,8 @@ class _ProductSearchBar extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               padding: EdgeInsets.symmetric(horizontal: 12),
               foregroundColor: _DashboardTab._blue,
-              side: BorderSide(color: Color(0xFFE3E8F2)),
+              backgroundColor: _HomeCommercialState.cardBg,
+              side: BorderSide(color: _activityBorderColor()),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -8299,7 +8305,7 @@ class _OrderProductTile extends StatelessWidget {
           border: Border(
             bottom: isLast
                 ? BorderSide.none
-                : BorderSide(color: Color(0xFFE8EDF5)),
+                : BorderSide(color: _activityBorderColor()),
           ),
         ),
         child: Row(
@@ -8345,7 +8351,7 @@ class _OrderProductTile extends StatelessWidget {
                   Text(
                     'Prix appliqué : ${_dh(pricing.appliedUnitPrice)}',
                     style: TextStyle(
-                      color: _DashboardTab._navy,
+                      color: _HomeCommercialState.textDark,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -8421,7 +8427,7 @@ class _OrderProductTile extends StatelessWidget {
                 Text(
                   _dh(lineTotal),
                   style: TextStyle(
-                    color: _DashboardTab._navy,
+                    color: _HomeCommercialState.textDark,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -8485,9 +8491,9 @@ class _QuantityStepper extends StatelessWidget {
     return Container(
       height: 34,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _HomeCommercialState.cardBg,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Color(0xFFE3E8F2)),
+        border: Border.all(color: _activityBorderColor()),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -8555,11 +8561,12 @@ class _ScannerSimulationSheet extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.fromLTRB(20, 20, 20, 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _HomeCommercialState.cardBg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: _activityBorderColor())),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .16),
+            color: _activityShadowColor(),
             blurRadius: 28,
             offset: Offset(0, -8),
           ),
@@ -8578,7 +8585,7 @@ class _ScannerSimulationSheet extends StatelessWidget {
                   'Simulation de scan de code-barres',
                 ),
                 style: TextStyle(
-                  color: _DashboardTab._navy,
+                  color: _HomeCommercialState.textDark,
                   fontSize: 21,
                   fontWeight: FontWeight.w900,
                 ),
@@ -8589,7 +8596,7 @@ class _ScannerSimulationSheet extends StatelessWidget {
                   'Sélectionnez un produit pour simuler un scan.',
                 ),
                 style: TextStyle(
-                  color: Color(0xFF475569),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 14,
                   height: 1.35,
                   fontWeight: FontWeight.w700,
@@ -8601,7 +8608,7 @@ class _ScannerSimulationSheet extends StatelessWidget {
                   "Cette fonctionnalité simule le comportement d'un lecteur de code-barres avant l'intégration du scan réel.",
                 ),
                 style: TextStyle(
-                  color: Color(0xFF64748B),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 12,
                   height: 1.35,
                   fontWeight: FontWeight.w600,
@@ -8614,7 +8621,7 @@ class _ScannerSimulationSheet extends StatelessWidget {
                   physics: BouncingScrollPhysics(),
                   itemCount: products.length,
                   separatorBuilder: (context, index) =>
-                      Divider(height: 16, color: Color(0xFFE8EEF7)),
+                      Divider(height: 16, color: _activityBorderColor()),
                   itemBuilder: (context, index) {
                     final product = products[index];
                     return _ScannerProductRow(client: client, product: product);
@@ -8659,7 +8666,7 @@ class _ScannerProductRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: _DashboardTab._navy,
+                        color: _HomeCommercialState.textDark,
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
                       ),
@@ -8670,7 +8677,7 @@ class _ScannerProductRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Color(0xFF64748B),
+                        color: _HomeCommercialState.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -8681,7 +8688,7 @@ class _ScannerProductRow extends StatelessWidget {
                         Text(
                           _dh(pricing.appliedUnitPrice),
                           style: TextStyle(
-                            color: _DashboardTab._navy,
+                            color: _HomeCommercialState.textDark,
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
                           ),
@@ -8699,7 +8706,7 @@ class _ScannerProductRow extends StatelessWidget {
                         Text(
                           'Stock : $stock',
                           style: TextStyle(
-                            color: Color(0xFF64748B),
+                            color: _HomeCommercialState.textMuted,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -8749,9 +8756,9 @@ class _OrderTotals extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _HomeCommercialState.cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE2E8F0)),
+        border: Border.all(color: _activityBorderColor()),
       ),
       child: Column(
         children: [
@@ -8787,7 +8794,7 @@ class _OrderTotals extends StatelessWidget {
             value: _dh(subtotal),
           ),
           SizedBox(height: 15),
-          Divider(color: Color(0xFFE2E8F0)),
+          Divider(color: _activityBorderColor()),
           SizedBox(height: 12),
           _TotalRow(
             label: AppLocalizations.globalText('Total TTC'),
@@ -8819,6 +8826,7 @@ class _NewOrderActions extends StatelessWidget {
               label: Text(AppLocalizations.globalText('Enregistrer brouillon')),
               style: OutlinedButton.styleFrom(
                 foregroundColor: _DashboardTab._blue,
+                backgroundColor: _HomeCommercialState.cardBg,
                 side: BorderSide(color: _DashboardTab._blue),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(13),
@@ -8868,7 +8876,9 @@ class _TotalRow extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: large ? _DashboardTab._navy : _HomeCommercialState.textMuted,
+            color: large
+                ? _HomeCommercialState.textDark
+                : _HomeCommercialState.textMuted,
             fontSize: large ? 16 : 12,
             fontWeight: large ? FontWeight.w700 : FontWeight.w500,
           ),
@@ -8877,7 +8887,7 @@ class _TotalRow extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            color: large ? _DashboardTab._blue : _DashboardTab._navy,
+            color: large ? _DashboardTab._blue : _HomeCommercialState.textDark,
             fontSize: large ? 22 : 12,
             fontWeight: large ? FontWeight.w700 : FontWeight.w600,
           ),
@@ -9426,7 +9436,7 @@ class _DetailTopBar extends StatelessWidget {
         Spacer(),
         PopupMenuButton<String>(
           onSelected: onOptionSelected,
-          color: Colors.white,
+          color: _HomeCommercialState.cardBg,
           elevation: 12,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -9434,15 +9444,24 @@ class _DetailTopBar extends StatelessWidget {
           itemBuilder: (context) => [
             PopupMenuItem(
               value: 'edit',
-              child: Text(AppLocalizations.globalText('Modifier client')),
+              child: Text(
+                AppLocalizations.globalText('Modifier client'),
+                style: TextStyle(color: _HomeCommercialState.textDark),
+              ),
             ),
             PopupMenuItem(
               value: 'note',
-              child: Text(AppLocalizations.globalText('Ajouter note')),
+              child: Text(
+                AppLocalizations.globalText('Ajouter note'),
+                style: TextStyle(color: _HomeCommercialState.textDark),
+              ),
             ),
             PopupMenuItem(
               value: 'location',
-              child: Text(AppLocalizations.globalText('Voir localisation')),
+              child: Text(
+                AppLocalizations.globalText('Voir localisation'),
+                style: TextStyle(color: _HomeCommercialState.textDark),
+              ),
             ),
           ],
           child: Padding(
@@ -9533,18 +9552,7 @@ class _ClientSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: Color(0xFFE8EDF5)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .05),
-            blurRadius: 14,
-            offset: Offset(0, 7),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(13),
       child: Row(
         children: [
           _SummaryItem(
@@ -9619,7 +9627,7 @@ class _SummaryDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 42, color: Color(0xFFE8EDF5));
+    return Container(width: 1, height: 42, color: _activityBorderColor());
   }
 }
 
@@ -9649,12 +9657,12 @@ class _DetailTabs extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: selectedIndex == i
                         ? _HomeCommercialState.primaryBlue
-                        : Colors.white,
+                        : _HomeCommercialState.cardBg,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: selectedIndex == i
                           ? _HomeCommercialState.primaryBlue
-                          : Color(0xFFE8EDF5),
+                          : _activityBorderColor(),
                     ),
                     boxShadow: selectedIndex == i
                         ? [
@@ -9874,7 +9882,7 @@ class _InfoRowShell extends StatelessWidget {
         border: Border(
           bottom: isLast
               ? BorderSide.none
-              : BorderSide(color: Color(0xFFE8EDF5)),
+              : BorderSide(color: _activityBorderColor()),
         ),
       ),
       child: Row(
@@ -10037,17 +10045,23 @@ class _ClientNoteSheetState extends State<_ClientNoteSheet> {
             minLines: 4,
             maxLines: 5,
             maxLength: 300,
+            style: TextStyle(
+              color: _HomeCommercialState.textDark,
+              fontWeight: FontWeight.w600,
+            ),
             decoration: InputDecoration(
               hintText: 'Saisissez votre note...',
               filled: true,
-              fillColor: Color(0xFFF8FAFC),
+              fillColor: _HomeCommercialState.cardBg,
+              hintStyle: TextStyle(color: _HomeCommercialState.textMuted),
+              counterStyle: TextStyle(color: _HomeCommercialState.textMuted),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: BorderSide(color: _activityBorderColor()),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+                borderSide: BorderSide(color: _activityBorderColor()),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -10067,6 +10081,7 @@ class _ClientNoteSheetState extends State<_ClientNoteSheet> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _HomeCommercialState.primaryBlue,
                     side: BorderSide(color: _HomeCommercialState.primaryBlue),
+                    backgroundColor: _HomeCommercialState.cardBg,
                     minimumSize: Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -10162,7 +10177,7 @@ class _DocumentDetailRow extends StatelessWidget {
         border: Border(
           bottom: isLast
               ? BorderSide.none
-              : BorderSide(color: Color(0xFFE8EDF5)),
+              : BorderSide(color: _activityBorderColor()),
         ),
       ),
       child: Row(
@@ -10233,7 +10248,7 @@ class _EmptyDocumentsState extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: Color(0xFFEFF6FF),
+              color: _activitySoftSurface(),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Icon(
@@ -10357,7 +10372,7 @@ class _SimpleDetailRow extends StatelessWidget {
         border: Border(
           bottom: isLast
               ? BorderSide.none
-              : BorderSide(color: Color(0xFFE8EDF5)),
+              : BorderSide(color: _activityBorderColor()),
         ),
       ),
       child: Row(
@@ -10438,18 +10453,7 @@ class _DetailCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: Color(0xFFE8EDF5)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .05),
-            blurRadius: 14,
-            offset: Offset(0, 7),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(13),
       child: child,
     );
   }
@@ -10481,17 +10485,7 @@ class _LegacyDetailClient extends StatelessWidget {
               width: double.infinity,
               constraints: BoxConstraints(maxWidth: 360),
               padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0xFF18315E).withValues(alpha: .08),
-                    blurRadius: 24,
-                    offset: Offset(0, 12),
-                  ),
-                ],
-              ),
+              decoration: _activityCardDecoration(22),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -10554,7 +10548,7 @@ class _ClientsPremiumHeader extends StatelessWidget {
               Text(
                 AppLocalizations.globalText('Clients'),
                 style: TextStyle(
-                  color: _DashboardTab._navy,
+                  color: _HomeCommercialState.textDark,
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
                 ),
@@ -10565,7 +10559,7 @@ class _ClientsPremiumHeader extends StatelessWidget {
                   'G\u00E9rez et consultez vos clients',
                 ),
                 style: TextStyle(
-                  color: Color(0xFF64748B),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -10605,15 +10599,27 @@ class _ClientsSearchAndFilter extends StatelessWidget {
               child: TextField(
                 controller: controller,
                 textInputAction: TextInputAction.search,
+                style: TextStyle(
+                  color: _HomeCommercialState.textDark,
+                  fontWeight: FontWeight.w600,
+                ),
                 decoration: InputDecoration(
                   hintText: AppLocalizations.globalText(
                     'Rechercher un client...',
                   ),
-                  prefixIcon: Icon(Icons.search_rounded, size: 24),
+                  hintStyle: TextStyle(
+                    color: _HomeCommercialState.textMuted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: 24,
+                    color: _HomeCommercialState.textMuted,
+                  ),
                   filled: true,
                   fillColor: _HomeCommercialState.cardBg,
                   contentPadding: EdgeInsets.symmetric(vertical: 16),
-                  enabledBorder: _searchBorder(),
+                  enabledBorder: _searchBorder(color: _activityBorderColor()),
                   focusedBorder: _searchBorder(color: _DashboardTab._blue),
                 ),
               ),
@@ -10625,9 +10631,9 @@ class _ClientsSearchAndFilter extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: onFilterTap,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: _DashboardTab._navy,
+                  foregroundColor: _HomeCommercialState.textMuted,
                   backgroundColor: _HomeCommercialState.cardBg,
-                  side: BorderSide(color: Color(0xFFE2E8F0)),
+                  side: BorderSide(color: _activityBorderColor()),
                   padding: EdgeInsets.symmetric(horizontal: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
@@ -10675,11 +10681,12 @@ class _ClientFilterSheet extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.fromLTRB(20, 20, 20, 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _HomeCommercialState.cardBg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: _activityBorderColor())),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .16),
+            color: _activityShadowColor(),
             blurRadius: 28,
             offset: Offset(0, -8),
           ),
@@ -10694,7 +10701,7 @@ class _ClientFilterSheet extends StatelessWidget {
             Text(
               AppLocalizations.globalText('Filtrer les clients'),
               style: TextStyle(
-                color: _DashboardTab._navy,
+                color: _HomeCommercialState.textDark,
                 fontSize: 21,
                 fontWeight: FontWeight.w900,
               ),
@@ -10705,7 +10712,7 @@ class _ClientFilterSheet extends StatelessWidget {
                 'Affichez uniquement les clients correspondant à la catégorie sélectionnée.',
               ),
               style: TextStyle(
-                color: Color(0xFF64748B),
+                color: _HomeCommercialState.textMuted,
                 fontSize: 13,
                 height: 1.4,
                 fontWeight: FontWeight.w600,
@@ -10728,7 +10735,7 @@ class _ClientFilterSheet extends StatelessWidget {
                           border: Border.all(
                             color: selectedCategory == category
                                 ? _DashboardTab._blue
-                                : Color(0xFFCBD5E1),
+                                : _activityBorderColor(),
                             width: 2,
                           ),
                         ),
@@ -10752,7 +10759,7 @@ class _ClientFilterSheet extends StatelessWidget {
                             _clientFilterOptionLabel(category),
                           ),
                           style: TextStyle(
-                            color: _DashboardTab._navy,
+                            color: _HomeCommercialState.textDark,
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                           ),
@@ -10873,17 +10880,7 @@ class _ClientKpiCard extends StatelessWidget {
     final isNegative = data.variation.startsWith('-');
     return Container(
       padding: EdgeInsets.fromLTRB(9, 10, 8, 9),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .055),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -10904,7 +10901,7 @@ class _ClientKpiCard extends StatelessWidget {
               data.label == 'CA potentiel' ? '${data.value} DH' : data.value,
               maxLines: 1,
               style: TextStyle(
-                color: _DashboardTab._navy,
+                color: _HomeCommercialState.textDark,
                 fontSize: 21,
                 fontWeight: FontWeight.w700,
               ),
@@ -10919,7 +10916,7 @@ class _ClientKpiCard extends StatelessWidget {
               child: Text(
                 AppLocalizations.globalText(data.label),
                 style: TextStyle(
-                  color: Color(0xFF475569),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),
@@ -10988,12 +10985,12 @@ class _ClientTabs extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: selectedCategory == categories[i]
                         ? _DashboardTab._blue
-                        : Colors.white,
+                        : _HomeCommercialState.cardBg,
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: selectedCategory == categories[i]
                           ? _DashboardTab._blue
-                          : Color(0xFFE2E8F0),
+                          : _activityBorderColor(),
                     ),
                   ),
                   child: Text(
@@ -11005,7 +11002,7 @@ class _ClientTabs extends StatelessWidget {
                     style: TextStyle(
                       color: selectedCategory == categories[i]
                           ? Colors.white
-                          : _DashboardTab._navy,
+                          : _HomeCommercialState.textDark,
                       fontSize: 12,
                       fontWeight: selectedCategory == categories[i]
                           ? FontWeight.w700
@@ -11047,13 +11044,16 @@ class _ClientCard extends StatelessWidget {
           child: Ink(
             padding: EdgeInsets.fromLTRB(14, 15, 12, 15),
             decoration: BoxDecoration(
-              color: inactive ? Color(0xFFF8FAFC) : Colors.white,
+              color: inactive
+                  ? _activitySoftSurface()
+                  : _HomeCommercialState.cardBg,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _activityBorderColor()),
               boxShadow: inactive
                   ? null
                   : [
                       BoxShadow(
-                        color: Color(0xFF0F172A).withValues(alpha: .055),
+                        color: _activityShadowColor(),
                         blurRadius: 22,
                         offset: Offset(0, 10),
                       ),
@@ -11072,7 +11072,7 @@ class _ClientCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: _DashboardTab._navy,
+                          color: _HomeCommercialState.textDark,
                           fontSize: 16,
                           height: 1.12,
                           fontWeight: FontWeight.w700,
@@ -11084,7 +11084,7 @@ class _ClientCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Color(0xFF475569),
+                          color: _HomeCommercialState.textMuted,
                           fontSize: 13,
                           height: 1.12,
                           fontWeight: FontWeight.w600,
@@ -11095,14 +11095,14 @@ class _ClientCard extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.location_on_outlined,
-                            color: Color(0xFF64748B),
+                            color: _HomeCommercialState.textMuted,
                             size: 14,
                           ),
                           SizedBox(width: 4),
                           Text(
                             data.client.city,
                             style: TextStyle(
-                              color: Color(0xFF64748B),
+                              color: _HomeCommercialState.textMuted,
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
@@ -11125,7 +11125,7 @@ class _ClientCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Color(0xFF475569),
+                          color: _HomeCommercialState.textMuted,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -11137,7 +11137,7 @@ class _ClientCard extends StatelessWidget {
                           Text(
                             _money(data.revenue),
                             style: TextStyle(
-                              color: _DashboardTab._navy,
+                              color: _HomeCommercialState.textDark,
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
                             ),
@@ -11148,7 +11148,7 @@ class _ClientCard extends StatelessWidget {
                             child: Text(
                               AppLocalizations.globalText('DH'),
                               style: TextStyle(
-                                color: _DashboardTab._navy,
+                                color: _HomeCommercialState.textDark,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -11160,7 +11160,7 @@ class _ClientCard extends StatelessWidget {
                       Text(
                         AppLocalizations.globalText('CA total'),
                         style: TextStyle(
-                          color: Color(0xFF64748B),
+                          color: _HomeCommercialState.textMuted,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -11169,7 +11169,10 @@ class _ClientCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 4),
-                Icon(Icons.chevron_right_rounded, color: Color(0xFF64748B)),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: _HomeCommercialState.textMuted,
+                ),
               ],
             ),
           ),
@@ -14207,7 +14210,7 @@ class _CommercialHomeHeader extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: _DashboardTab._navy,
+                      color: _HomeCommercialState.textDark,
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0,
@@ -14221,7 +14224,7 @@ class _CommercialHomeHeader extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Color(0xFF475569),
+                      color: _HomeCommercialState.textMuted,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -14245,11 +14248,14 @@ class _CommercialHomeHeader extends StatelessWidget {
                     height: 54,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0xFFE2E8F0),
-                      border: Border.all(color: Colors.white, width: 3),
+                      color: _activitySoftSurface(),
+                      border: Border.all(
+                        color: _activityBorderColor(),
+                        width: 3,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Color(0xFF0F172A).withValues(alpha: .08),
+                          color: _activityShadowColor(),
                           blurRadius: 16,
                           offset: Offset(0, 8),
                         ),
@@ -14257,7 +14263,7 @@ class _CommercialHomeHeader extends StatelessWidget {
                     ),
                     child: Icon(
                       Icons.person_rounded,
-                      color: _DashboardTab._navy,
+                      color: _HomeCommercialState.textDark,
                       size: 31,
                     ),
                   ),
@@ -14270,7 +14276,10 @@ class _CommercialHomeHeader extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: _DashboardTab._green,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(
+                          color: _HomeCommercialState.cardBg,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -14314,10 +14323,10 @@ class _HeaderMetaPill extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: Color(0xFFEFF4FF),
+              color: _activitySoftSurface(),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: Color(0xFF64748B), size: 17),
+            child: Icon(icon, color: _HomeCommercialState.textMuted, size: 17),
           ),
           SizedBox(width: 8),
           Flexible(
@@ -14326,7 +14335,7 @@ class _HeaderMetaPill extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Color(0xFF475569),
+                color: _HomeCommercialState.textMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -14966,17 +14975,7 @@ class _QuickStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(13, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .06),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -15002,7 +15001,7 @@ class _QuickStatCard extends StatelessWidget {
               data.value,
               maxLines: 1,
               style: TextStyle(
-                color: _DashboardTab._navy,
+                color: _HomeCommercialState.textDark,
                 fontSize: 26,
                 height: .95,
                 fontWeight: FontWeight.w900,
@@ -15017,7 +15016,7 @@ class _QuickStatCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.clip,
               style: TextStyle(
-                color: Color(0xFF64748B),
+                color: _HomeCommercialState.textMuted,
                 fontSize: 11.5,
                 height: 1.05,
                 fontWeight: FontWeight.w800,
@@ -15045,17 +15044,7 @@ class _SalesEvolutionCard extends StatelessWidget {
       return Container(
         width: double.infinity,
         padding: EdgeInsets.fromLTRB(16, 16, 16, 18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0xFF0F172A).withValues(alpha: .055),
-              blurRadius: 22,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
+        decoration: _activityCardDecoration(22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -15064,7 +15053,7 @@ class _SalesEvolutionCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: _DashboardTab._navy,
+                color: _HomeCommercialState.textDark,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -15077,7 +15066,7 @@ class _SalesEvolutionCard extends StatelessWidget {
                     width: 58,
                     height: 58,
                     decoration: BoxDecoration(
-                      color: Color(0xFFEFF6FF),
+                      color: _activitySoftSurface(),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Icon(
@@ -15093,7 +15082,7 @@ class _SalesEvolutionCard extends StatelessWidget {
                     ),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: _DashboardTab._navy,
+                      color: _HomeCommercialState.textDark,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
@@ -15105,7 +15094,7 @@ class _SalesEvolutionCard extends StatelessWidget {
                     ),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Color(0xFF64748B),
+                      color: _HomeCommercialState.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -15120,17 +15109,7 @@ class _SalesEvolutionCard extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .055),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -15142,7 +15121,7 @@ class _SalesEvolutionCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: _DashboardTab._navy,
+                    color: _HomeCommercialState.textDark,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -15151,7 +15130,7 @@ class _SalesEvolutionCard extends StatelessWidget {
               Text(
                 AppLocalizations.globalText('7 derniers jours'),
                 style: TextStyle(
-                  color: Color(0xFF64748B),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -15181,7 +15160,7 @@ class _SalesEvolutionCard extends StatelessWidget {
                     Text(
                       AppLocalizations.globalText('CA 7 derniers jours'),
                       style: TextStyle(
-                        color: Color(0xFF64748B),
+                        color: _HomeCommercialState.textMuted,
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
@@ -15196,7 +15175,7 @@ class _SalesEvolutionCard extends StatelessWidget {
                         ),
                         maxLines: 1,
                         style: TextStyle(
-                          color: _DashboardTab._navy,
+                          color: _HomeCommercialState.textDark,
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
                         ),
@@ -15217,7 +15196,7 @@ class _SalesEvolutionCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Color(0xFF64748B),
+                        color: _HomeCommercialState.textMuted,
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
                       ),
@@ -15277,10 +15256,10 @@ class _SalesChartPainter extends CustomPainter {
     final maxValue = _maxChartValue(chartValues);
     final days = ['Ven', 'Sam', 'Dim', 'Lun', 'Mar', 'Mer', 'Jeu'];
     final gridPaint = Paint()
-      ..color = const Color(0xFFE2E8F0)
+      ..color = _activityBorderColor()
       ..strokeWidth = 1;
     final labelStyle = TextStyle(
-      color: Color(0xFF475569),
+      color: _HomeCommercialState.textMuted,
       fontSize: 9,
       fontWeight: FontWeight.w500,
     );
@@ -15353,7 +15332,7 @@ class _SalesChartPainter extends CustomPainter {
     );
 
     for (final point in points) {
-      canvas.drawCircle(point, 5, Paint()..color = Colors.white);
+      canvas.drawCircle(point, 5, Paint()..color = _HomeCommercialState.cardBg);
       canvas.drawCircle(
         point,
         5,
@@ -15491,10 +15470,13 @@ class _QuickActionCard extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(11, 11, 10, 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: inverted ? color : Colors.white,
+            color: inverted ? color : _HomeCommercialState.cardBg,
+            border: Border.all(
+              color: inverted ? color : _activityBorderColor(),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF0F172A).withValues(alpha: .06),
+                color: _activityShadowColor(),
                 blurRadius: 22,
                 offset: Offset(0, 10),
               ),
@@ -15518,7 +15500,9 @@ class _QuickActionCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: inverted ? Colors.white : _DashboardTab._navy,
+                  color: inverted
+                      ? Colors.white
+                      : _HomeCommercialState.textDark,
                   fontSize: 11,
                   height: 1.15,
                   fontWeight: FontWeight.w700,
@@ -15532,7 +15516,7 @@ class _QuickActionCard extends StatelessWidget {
                 style: TextStyle(
                   color: inverted
                       ? Colors.white.withValues(alpha: .90)
-                      : Color(0xFF475569),
+                      : _HomeCommercialState.textMuted,
                   fontSize: 8.8,
                   height: 1.15,
                   fontWeight: FontWeight.w500,
@@ -15543,7 +15527,9 @@ class _QuickActionCard extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: Icon(
                   Icons.chevron_right_rounded,
-                  color: inverted ? Colors.white : Color(0xFF64748B),
+                  color: inverted
+                      ? Colors.white
+                      : _HomeCommercialState.textMuted,
                   size: 18,
                 ),
               ),
@@ -15570,7 +15556,7 @@ class _SectionTitle extends StatelessWidget {
           child: Text(
             title,
             style: TextStyle(
-              color: _DashboardTab._navy,
+              color: _HomeCommercialState.textDark,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -15610,17 +15596,7 @@ class _RecentOrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           padding: EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0xFF0F172A).withValues(alpha: .055),
-                blurRadius: 18,
-                offset: Offset(0, 9),
-              ),
-            ],
-          ),
+          decoration: _activityCardDecoration(18),
           child: Row(
             children: [
               Container(
@@ -15640,7 +15616,7 @@ class _RecentOrderCard extends StatelessWidget {
                     Text(
                       order.orderNumber,
                       style: TextStyle(
-                        color: _DashboardTab._navy,
+                        color: _HomeCommercialState.textDark,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
@@ -15651,7 +15627,7 @@ class _RecentOrderCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Color(0xFF64748B),
+                        color: _HomeCommercialState.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -15662,7 +15638,7 @@ class _RecentOrderCard extends StatelessWidget {
                         Text(
                           '${_money(order.total)} DH',
                           style: TextStyle(
-                            color: _DashboardTab._navy,
+                            color: _HomeCommercialState.textDark,
                             fontSize: 13,
                             height: 1.1,
                             fontWeight: FontWeight.w800,
@@ -15673,7 +15649,7 @@ class _RecentOrderCard extends StatelessWidget {
                           width: 4,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: Color(0xFFCBD5E1),
+                            color: _activityBorderColor(),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -15684,7 +15660,7 @@ class _RecentOrderCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Color(0xFF64748B),
+                              color: _HomeCommercialState.textMuted,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
@@ -15701,7 +15677,10 @@ class _RecentOrderCard extends StatelessWidget {
                 children: [
                   _DashboardStatusBadge(status: order.status),
                   SizedBox(height: 14),
-                  Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: _HomeCommercialState.textMuted,
+                  ),
                 ],
               ),
             ],
@@ -15723,17 +15702,7 @@ class _DashboardEmptyCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .055),
-            blurRadius: 18,
-            offset: Offset(0, 9),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(18),
       child: Row(
         children: [
           Container(
@@ -15750,7 +15719,7 @@ class _DashboardEmptyCard extends StatelessWidget {
             child: Text(
               AppLocalizations.globalText(message),
               style: TextStyle(
-                color: Color(0xFF64748B),
+                color: _HomeCommercialState.textMuted,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -15829,17 +15798,7 @@ class _RecentActivityCard extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .055),
-            blurRadius: 18,
-            offset: Offset(0, 9),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -15863,7 +15822,7 @@ class _RecentActivityCard extends StatelessWidget {
                   child: Text(
                     AppLocalizations.globalText('Aucune activité récente'),
                     style: TextStyle(
-                      color: Color(0xFF64748B),
+                      color: _HomeCommercialState.textMuted,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -15919,7 +15878,7 @@ class _RecentActivityGroup extends StatelessWidget {
         Text(
           AppLocalizations.globalText(label),
           style: TextStyle(
-            color: Color(0xFF64748B),
+            color: _HomeCommercialState.textMuted,
             fontSize: 12,
             fontWeight: FontWeight.w900,
           ),
@@ -15928,7 +15887,7 @@ class _RecentActivityGroup extends StatelessWidget {
         for (var i = 0; i < items.length; i++) ...[
           _ActivityStep(item: items[i], onTap: () => onTap(items[i])),
           if (i != items.length - 1)
-            Divider(height: 18, color: Color(0xFFE8EEF7)),
+            Divider(height: 18, color: _activityBorderColor()),
         ],
       ],
     );
@@ -15959,7 +15918,7 @@ class _ActivityStep extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Color(0xFF475569),
+                    color: _HomeCommercialState.textMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
@@ -15985,7 +15944,7 @@ class _ActivityStep extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: _DashboardTab._navy,
+                        color: _HomeCommercialState.textDark,
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                       ),
@@ -15996,7 +15955,7 @@ class _ActivityStep extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Color(0xFF64748B),
+                        color: _HomeCommercialState.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -16005,7 +15964,10 @@ class _ActivityStep extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: _HomeCommercialState.textMuted,
+              ),
             ],
           ),
         ),
@@ -16145,7 +16107,7 @@ class _CommercialNotificationsPageState
     final notifications = _visibleNotifications;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
+      backgroundColor: _HomeCommercialState.surface,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -16158,11 +16120,11 @@ class _CommercialNotificationsPageState
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _HomeCommercialState.surface,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: _activityShadowColor(),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -16247,7 +16209,7 @@ class _NotificationsHeader extends StatelessWidget {
             onPressed: onBack,
             padding: EdgeInsets.zero,
             icon: Icon(Icons.arrow_back_rounded, size: 28),
-            color: Color(0xFF0F172A),
+            color: _HomeCommercialState.textDark,
           ),
         ),
         SizedBox(width: 10),
@@ -16257,7 +16219,7 @@ class _NotificationsHeader extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Color(0xFF0F172A),
+              color: _HomeCommercialState.textDark,
               fontSize: 28,
               fontWeight: FontWeight.w900,
             ),
@@ -16267,7 +16229,7 @@ class _NotificationsHeader extends StatelessWidget {
           onPressed: unreadCount == 0 ? null : onMarkAllRead,
           style: TextButton.styleFrom(
             foregroundColor: Color(0xFF2563EB),
-            disabledForegroundColor: Color(0xFF94A3B8),
+            disabledForegroundColor: _HomeCommercialState.textMuted,
             padding: EdgeInsets.symmetric(horizontal: 8),
           ),
           child: Text(
@@ -16309,10 +16271,12 @@ class _NotificationFilterTabs extends StatelessWidget {
               alignment: Alignment.center,
               padding: EdgeInsets.symmetric(horizontal: 17),
               decoration: BoxDecoration(
-                color: selected ? Color(0xFF2563EB) : Colors.white,
+                color: selected
+                    ? Color(0xFF2563EB)
+                    : _HomeCommercialState.cardBg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: selected ? Color(0xFF2563EB) : Color(0xFFE2E8F0),
+                  color: selected ? Color(0xFF2563EB) : _activityBorderColor(),
                 ),
                 boxShadow: [
                   if (selected)
@@ -16326,7 +16290,9 @@ class _NotificationFilterTabs extends StatelessWidget {
               child: Text(
                 filter.label,
                 style: TextStyle(
-                  color: selected ? Colors.white : Color(0xFF475569),
+                  color: selected
+                      ? Colors.white
+                      : _HomeCommercialState.textMuted,
                   fontSize: 13,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                 ),
@@ -16348,18 +16314,7 @@ class _NotificationsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Color(0xFFE8EEF7)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .055),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(20),
       child: Column(
         children: [
           for (var i = 0; i < notifications.length; i++) ...[
@@ -16368,7 +16323,7 @@ class _NotificationsCard extends StatelessWidget {
               onTap: () => onTap(notifications[i]),
             ),
             if (i != notifications.length - 1)
-              Divider(height: 1, color: Color(0xFFE8EEF7)),
+              Divider(height: 1, color: _activityBorderColor()),
           ],
         ],
       ),
@@ -16431,7 +16386,7 @@ class _NotificationRow extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Color(0xFF0F172A),
+                              color: _HomeCommercialState.textDark,
                               fontSize: 15,
                               fontWeight: notification.isRead
                                   ? FontWeight.w600
@@ -16443,7 +16398,7 @@ class _NotificationRow extends StatelessWidget {
                         Text(
                           AppLocalizations.globalText(notification.timeLabel),
                           style: TextStyle(
-                            color: Color(0xFF64748B),
+                            color: _HomeCommercialState.textMuted,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -16456,7 +16411,7 @@ class _NotificationRow extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Color(0xFF475569),
+                        color: _HomeCommercialState.textMuted,
                         fontSize: 13,
                         height: 1.28,
                         fontWeight: FontWeight.w500,
@@ -16468,7 +16423,7 @@ class _NotificationRow extends StatelessWidget {
               SizedBox(width: 8),
               Icon(
                 Icons.chevron_right_rounded,
-                color: Color(0xFF64748B),
+                color: _HomeCommercialState.textMuted,
                 size: 26,
               ),
             ],
@@ -16487,18 +16442,7 @@ class _EmptyNotifications extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(24, 38, 24, 30),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Color(0xFFE8EEF7)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .05),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
+      decoration: _activityCardDecoration(22),
       child: Column(
         children: [
           Container(
@@ -16518,7 +16462,7 @@ class _EmptyNotifications extends StatelessWidget {
           Text(
             AppLocalizations.globalText('Aucune notification'),
             style: TextStyle(
-              color: Color(0xFF0F172A),
+              color: _HomeCommercialState.textDark,
               fontSize: 19,
               fontWeight: FontWeight.w700,
             ),
@@ -16530,7 +16474,7 @@ class _EmptyNotifications extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF64748B),
+              color: _HomeCommercialState.textMuted,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -16774,7 +16718,7 @@ class _DailyReportNotificationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
+      backgroundColor: _HomeCommercialState.surface,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -16787,11 +16731,11 @@ class _DailyReportNotificationPage extends StatelessWidget {
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _HomeCommercialState.surface,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: _activityShadowColor(),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -16812,7 +16756,7 @@ class _DailyReportNotificationPage extends StatelessWidget {
                                     IconButton(
                                       onPressed: () => Navigator.pop(context),
                                       icon: Icon(Icons.arrow_back_rounded),
-                                      color: Color(0xFF0F172A),
+                                      color: _HomeCommercialState.textDark,
                                     ),
                                     SizedBox(width: 6),
                                     Expanded(
@@ -16823,7 +16767,7 @@ class _DailyReportNotificationPage extends StatelessWidget {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                          color: Color(0xFF0F172A),
+                                          color: _HomeCommercialState.textDark,
                                           fontSize: 23,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -16835,22 +16779,7 @@ class _DailyReportNotificationPage extends StatelessWidget {
                                 Container(
                                   width: double.infinity,
                                   padding: EdgeInsets.all(22),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(
-                                      color: Color(0xFFE8EEF7),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Color(
-                                          0xFF0F172A,
-                                        ).withValues(alpha: .055),
-                                        blurRadius: 22,
-                                        offset: Offset(0, 10),
-                                      ),
-                                    ],
-                                  ),
+                                  decoration: _activityCardDecoration(22),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -16878,7 +16807,7 @@ class _DailyReportNotificationPage extends StatelessWidget {
                                           'Rapport journalier disponible',
                                         ),
                                         style: TextStyle(
-                                          color: Color(0xFF0F172A),
+                                          color: _HomeCommercialState.textDark,
                                           fontSize: 20,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -16889,7 +16818,7 @@ class _DailyReportNotificationPage extends StatelessWidget {
                                             ? 'Votre rapport journalier du jour est pr\u00EAt.'
                                             : 'Le rapport journalier de $commercialName est pr\u00EAt.',
                                         style: TextStyle(
-                                          color: Color(0xFF64748B),
+                                          color: _HomeCommercialState.textMuted,
                                           fontSize: 14,
                                           height: 1.45,
                                           fontWeight: FontWeight.w500,
@@ -16952,10 +16881,11 @@ class _CommercialBottomNav extends StatelessWidget {
     ];
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _HomeCommercialState.cardBg,
+        border: Border(top: BorderSide(color: _activityBorderColor())),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .09),
+            color: _activityShadowColor(),
             blurRadius: 20,
             offset: Offset(0, -8),
           ),
@@ -17445,11 +17375,11 @@ class _NouveauClientScreenState extends State<NouveauClientScreen> {
                   height: constraints.maxHeight,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: _HomeCommercialState.surface,
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: Color(0xFF18315E).withValues(alpha: .08),
+                          color: _activityShadowColor(),
                           blurRadius: 28,
                           offset: Offset(0, 14),
                         ),
@@ -17892,10 +17822,10 @@ class _NewClientHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded),
-          color: _DashboardTab._navy,
+          color: _HomeCommercialState.textDark,
           style: IconButton.styleFrom(
             backgroundColor: _HomeCommercialState.cardBg,
-            shadowColor: Color(0xFF0F172A).withValues(alpha: .08),
+            shadowColor: _activityShadowColor(),
             elevation: 5,
           ),
         ),
@@ -17910,7 +17840,7 @@ class _NewClientHeader extends StatelessWidget {
                   isEditing ? 'Modifier client' : 'Nouveau client',
                 ),
                 style: TextStyle(
-                  color: _DashboardTab._navy,
+                  color: _HomeCommercialState.textDark,
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
                 ),
@@ -17925,7 +17855,7 @@ class _NewClientHeader extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Color(0xFF64748B),
+                  color: _HomeCommercialState.textMuted,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -17953,7 +17883,7 @@ class _NewClientSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(16, 18, 16, 18),
-      decoration: _premiumCardDecoration(20),
+      decoration: _activityCardDecoration(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -17964,7 +17894,7 @@ class _NewClientSection extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  color: _DashboardTab._navy,
+                  color: _HomeCommercialState.textDark,
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                 ),
@@ -18074,7 +18004,7 @@ class _NewClientLabel extends StatelessWidget {
       text: TextSpan(
         text: cleanLabel,
         style: TextStyle(
-          color: Color(0xFF64748B),
+          color: _HomeCommercialState.textMuted,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
@@ -18122,16 +18052,20 @@ class _NewClientTextField extends StatelessWidget {
           constraints: BoxConstraints(minHeight: 88),
           padding: EdgeInsets.fromLTRB(14, 13, 14, 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _HomeCommercialState.cardBg,
             borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: Color(0xFFE2E8F0)),
+            border: Border.all(color: _activityBorderColor()),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
                 padding: EdgeInsets.only(top: 1),
-                child: Icon(icon, color: Color(0xFF64748B), size: 21),
+                child: Icon(
+                  icon,
+                  color: _HomeCommercialState.textMuted,
+                  size: 21,
+                ),
               ),
               SizedBox(width: 12),
               Expanded(
@@ -18144,14 +18078,14 @@ class _NewClientTextField extends StatelessWidget {
                   minLines: minLines,
                   maxLines: 4,
                   style: TextStyle(
-                    color: _DashboardTab._navy,
+                    color: _HomeCommercialState.textDark,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
                   ),
                   decoration: InputDecoration(
                     hintText: hint,
                     hintStyle: TextStyle(
-                      color: Color(0xFF64748B),
+                      color: _HomeCommercialState.textMuted,
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
                     ),
@@ -18182,7 +18116,7 @@ class _NewClientTextField extends StatelessWidget {
         maxLines: minLines == 1 ? 1 : 4,
         textAlignVertical: TextAlignVertical.center,
         style: TextStyle(
-          color: _DashboardTab._navy,
+          color: _HomeCommercialState.textDark,
           fontSize: 13.5,
           fontWeight: FontWeight.w700,
         ),
@@ -18211,7 +18145,7 @@ class _NewClientLockedField extends StatelessWidget {
         initialValue: value,
         enabled: false,
         style: TextStyle(
-          color: _DashboardTab._navy,
+          color: _HomeCommercialState.textDark,
           fontSize: 13.5,
           fontWeight: FontWeight.w700,
         ),
@@ -18278,7 +18212,7 @@ class _NewClientDropdown extends StatelessWidget {
                     border: Border.all(
                       color: field.hasError
                           ? _HomeCommercialState.error
-                          : Color(0xFFE3E8F2),
+                          : _activityBorderColor(),
                     ),
                   ),
                   child: Row(
@@ -18287,7 +18221,11 @@ class _NewClientDropdown extends StatelessWidget {
                       SizedBox(
                         width: 42,
                         child: Center(
-                          child: Icon(icon, color: Color(0xFF64748B), size: 21),
+                          child: Icon(
+                            icon,
+                            color: _HomeCommercialState.textMuted,
+                            size: 21,
+                          ),
                         ),
                       ),
                       Expanded(
@@ -18300,8 +18238,8 @@ class _NewClientDropdown extends StatelessWidget {
                           overflow: TextOverflow.fade,
                           style: TextStyle(
                             color: value == null
-                                ? Color(0xFF64748B)
-                                : _DashboardTab._navy,
+                                ? _HomeCommercialState.textMuted
+                                : _HomeCommercialState.textDark,
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                           ),
@@ -18310,7 +18248,7 @@ class _NewClientDropdown extends StatelessWidget {
                       SizedBox(width: 8),
                       Icon(
                         Icons.keyboard_arrow_down_rounded,
-                        color: Color(0xFF64748B),
+                        color: _HomeCommercialState.textMuted,
                         size: 22,
                       ),
                     ],
@@ -18356,11 +18294,12 @@ class _NewClientOptionSheet extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.fromLTRB(20, 20, 20, 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _HomeCommercialState.cardBg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: _activityBorderColor())),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF0F172A).withValues(alpha: .16),
+            color: _activityShadowColor(),
             blurRadius: 28,
             offset: Offset(0, -8),
           ),
@@ -18375,7 +18314,7 @@ class _NewClientOptionSheet extends StatelessWidget {
             Text(
               AppLocalizations.globalText(title),
               style: TextStyle(
-                color: _DashboardTab._navy,
+                color: _HomeCommercialState.textDark,
                 fontSize: 21,
                 fontWeight: FontWeight.w900,
               ),
@@ -18384,7 +18323,7 @@ class _NewClientOptionSheet extends StatelessWidget {
             Text(
               AppLocalizations.globalText('Sélectionnez une option.'),
               style: TextStyle(
-                color: Color(0xFF64748B),
+                color: _HomeCommercialState.textMuted,
                 fontSize: 13,
                 height: 1.35,
                 fontWeight: FontWeight.w600,
@@ -18396,7 +18335,7 @@ class _NewClientOptionSheet extends StatelessWidget {
                 shrinkWrap: true,
                 itemCount: options.length,
                 separatorBuilder: (context, index) =>
-                    Divider(height: 1, color: Color(0xFFE2E8F0)),
+                    Divider(height: 1, color: _activityBorderColor()),
                 itemBuilder: (context, index) {
                   final option = options[index];
                   final selected = option == selectedValue;
@@ -18411,7 +18350,9 @@ class _NewClientOptionSheet extends StatelessWidget {
                           vertical: 11,
                         ),
                         decoration: BoxDecoration(
-                          color: selected ? Color(0xFFEFF6FF) : Colors.white,
+                          color: selected
+                              ? _DashboardTab._blue.withValues(alpha: .12)
+                              : _HomeCommercialState.cardBg,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
@@ -18422,14 +18363,14 @@ class _NewClientOptionSheet extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: selected
                                     ? _DashboardTab._blue.withValues(alpha: .12)
-                                    : Color(0xFFF1F5F9),
+                                    : _activitySoftSurface(),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 _newClientOptionIcon(title),
                                 color: selected
                                     ? _DashboardTab._blue
-                                    : Color(0xFF64748B),
+                                    : _HomeCommercialState.textMuted,
                                 size: 18,
                               ),
                             ),
@@ -18440,7 +18381,7 @@ class _NewClientOptionSheet extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Color(0xFF0F172A),
+                                  color: _HomeCommercialState.textDark,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -18591,20 +18532,20 @@ InputDecoration _newClientDecoration(
         widthFactor: 1,
         heightFactor: 1,
         alignment: alignIconTop ? Alignment.topCenter : Alignment.center,
-        child: Icon(icon, color: Color(0xFF64748B), size: 21),
+        child: Icon(icon, color: _HomeCommercialState.textMuted, size: 21),
       ),
     ),
     prefixIconConstraints: BoxConstraints(minWidth: 42, minHeight: 0),
     filled: true,
     fillColor: _HomeCommercialState.cardBg,
     hintStyle: TextStyle(
-      color: Color(0xFF64748B),
+      color: _HomeCommercialState.textMuted,
       fontSize: 13.5,
       fontWeight: FontWeight.w600,
     ),
     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-    enabledBorder: _searchBorder(),
-    disabledBorder: _searchBorder(),
+    enabledBorder: _searchBorder(color: _activityBorderColor()),
+    disabledBorder: _searchBorder(color: _activityBorderColor()),
     focusedBorder: _searchBorder(color: _DashboardTab._blue),
     errorBorder: _searchBorder(color: _HomeCommercialState.error),
     focusedErrorBorder: _searchBorder(color: _HomeCommercialState.error),
@@ -18630,7 +18571,7 @@ class _TemporaryScreen extends StatelessWidget {
       backgroundColor: _HomeCommercialState.surface,
       appBar: AppBar(
         backgroundColor: _HomeCommercialState.cardBg,
-        foregroundColor: _DashboardTab._navy,
+        foregroundColor: _HomeCommercialState.textDark,
         elevation: 0,
         title: Text(title),
       ),

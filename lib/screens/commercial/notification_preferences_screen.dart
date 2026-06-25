@@ -11,10 +11,32 @@ Color _primaryBlue = Color(0xFF2563EB);
 Color _textDark = Color(0xFF0F172A);
 Color _textMuted = Color(0xFF64748B);
 Color _surfaceBg = Color(0xFFF8FAFC);
+Color _cardBg = Colors.white;
 Color _successGreen = Color(0xFF22C55E);
 Color _dangerRed = Color(0xFFEF4444);
 Color _warningOrange = Color(0xFFF59E0B);
 Color _borderColor = Color(0xFFE2E8F0);
+
+void _syncNotificationTheme(BuildContext context) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  _textDark = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+  _textMuted = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+  _surfaceBg = isDark ? Colors.black : const Color(0xFFF8FAFC);
+  _cardBg = isDark ? const Color(0xFF111111) : Colors.white;
+  _borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+}
+
+bool _isNotificationDarkMode() => _cardBg != Colors.white;
+
+Color _notificationShadowColor([double lightAlpha = .06]) {
+  return _isNotificationDarkMode()
+      ? Colors.black.withValues(alpha: .22)
+      : _textDark.withValues(alpha: lightAlpha);
+}
+
+Color _notificationIconBg(Color color, Color fallback) {
+  return _isNotificationDarkMode() ? color.withValues(alpha: .16) : fallback;
+}
 
 class NotificationPreferencesScreen extends StatefulWidget {
   NotificationPreferencesScreen({super.key});
@@ -70,6 +92,7 @@ class _NotificationPreferencesScreenState
 
   @override
   Widget build(BuildContext context) {
+    _syncNotificationTheme(context);
     final l10n = context.l10n;
     return Scaffold(
       backgroundColor: _surfaceBg,
@@ -86,11 +109,11 @@ class _NotificationPreferencesScreenState
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _surfaceBg,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: 0.08),
+                        color: _notificationShadowColor(0.08),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -133,7 +156,10 @@ class _NotificationPreferencesScreenState
                                               icon:
                                                   Icons.shopping_cart_outlined,
                                               iconColor: _primaryBlue,
-                                              iconBg: Color(0xFFEFF6FF),
+                                              iconBg: _notificationIconBg(
+                                                _primaryBlue,
+                                                Color(0xFFEFF6FF),
+                                              ),
                                               title: l10n.orderNotifications,
                                               subtitle: l10n
                                                   .orderNotificationsSubtitle,
@@ -149,7 +175,10 @@ class _NotificationPreferencesScreenState
                                             _PreferenceRow(
                                               icon: Icons.groups_2_outlined,
                                               iconColor: Color(0xFF16A34A),
-                                              iconBg: Color(0xFFECFDF5),
+                                              iconBg: _notificationIconBg(
+                                                Color(0xFF16A34A),
+                                                Color(0xFFECFDF5),
+                                              ),
                                               title: l10n.clientNotifications,
                                               subtitle: l10n
                                                   .clientNotificationsSubtitle,
@@ -166,7 +195,10 @@ class _NotificationPreferencesScreenState
                                             _PreferenceRow(
                                               icon: Icons.settings_outlined,
                                               iconColor: Color(0xFF7C3AED),
-                                              iconBg: Color(0xFFF5F3FF),
+                                              iconBg: _notificationIconBg(
+                                                Color(0xFF7C3AED),
+                                                Color(0xFFF5F3FF),
+                                              ),
                                               title: l10n.systemNotifications,
                                               subtitle: l10n
                                                   .systemNotificationsSubtitle,
@@ -191,7 +223,10 @@ class _NotificationPreferencesScreenState
                                             _PreferenceRow(
                                               icon: Icons.volume_up_outlined,
                                               iconColor: _warningOrange,
-                                              iconBg: Color(0xFFFFF7ED),
+                                              iconBg: _notificationIconBg(
+                                                _warningOrange,
+                                                Color(0xFFFFF7ED),
+                                              ),
                                               title: l10n.sounds,
                                               subtitle: l10n.soundsSubtitle,
                                               value: _settings.soundEnabled,
@@ -205,7 +240,10 @@ class _NotificationPreferencesScreenState
                                             _PreferenceRow(
                                               icon: Icons.vibration_rounded,
                                               iconColor: _dangerRed,
-                                              iconBg: Color(0xFFFEF2F2),
+                                              iconBg: _notificationIconBg(
+                                                _dangerRed,
+                                                Color(0xFFFEF2F2),
+                                              ),
                                               title: l10n.vibration,
                                               subtitle: l10n.vibrationSubtitle,
                                               value: _settings.vibrationEnabled,
@@ -227,7 +265,10 @@ class _NotificationPreferencesScreenState
                                             _ActionRow(
                                               icon: Icons.schedule_rounded,
                                               iconColor: _primaryBlue,
-                                              iconBg: Color(0xFFEFF6FF),
+                                              iconBg: _notificationIconBg(
+                                                _primaryBlue,
+                                                Color(0xFFEFF6FF),
+                                              ),
                                               title: l10n.quietHours,
                                               subtitle: l10n.quietHoursSubtitle,
                                               value:
@@ -238,7 +279,10 @@ class _NotificationPreferencesScreenState
                                               icon:
                                                   Icons.calendar_month_outlined,
                                               iconColor: Color(0xFFD97706),
-                                              iconBg: Color(0xFFFFFBEB),
+                                              iconBg: _notificationIconBg(
+                                                Color(0xFFD97706),
+                                                Color(0xFFFFFBEB),
+                                              ),
                                               title: l10n.activityReminders,
                                               subtitle: l10n
                                                   .activityRemindersSubtitle,
@@ -288,8 +332,8 @@ class _NotificationPreferencesScreenState
           icon: Icon(Icons.arrow_back_rounded),
           color: _textDark,
           style: IconButton.styleFrom(
-            backgroundColor: Colors.white,
-            shadowColor: Colors.black.withValues(alpha: 0.08),
+            backgroundColor: _cardBg,
+            shadowColor: _notificationShadowColor(0.08),
             elevation: 4,
           ),
         ),
@@ -333,7 +377,7 @@ class _NotificationPreferencesScreenState
           _circleIcon(
             Icons.notifications_none_rounded,
             _primaryBlue,
-            Color(0xFFEFF6FF),
+            _notificationIconBg(_primaryBlue, Color(0xFFEFF6FF)),
             size: 62,
             iconSize: 31,
           ),
@@ -610,7 +654,7 @@ class _NotificationPreferencesScreenState
             _circleIcon(
               channel.icon,
               _primaryBlue,
-              Color(0xFFEFF6FF),
+              _notificationIconBg(_primaryBlue, Color(0xFFEFF6FF)),
               size: 42,
               iconSize: 22,
             ),
@@ -659,7 +703,7 @@ class _NotificationPreferencesScreenState
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: _cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
@@ -789,7 +833,7 @@ class _NotificationPreferencesScreenState
     bool selected = enabled;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: _cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
@@ -1141,11 +1185,12 @@ class _NotificationsBottomNav extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cardBg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        border: Border(top: BorderSide(color: _borderColor)),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: 0.09),
+            color: _notificationShadowColor(0.09),
             blurRadius: 20,
             offset: Offset(0, -8),
           ),
@@ -1199,12 +1244,12 @@ class _NotificationsBottomNav extends StatelessWidget {
 
 BoxDecoration _cardDecoration(double radius) {
   return BoxDecoration(
-    color: Colors.white,
+    color: _cardBg,
     borderRadius: BorderRadius.circular(radius),
     border: Border.all(color: _borderColor.withValues(alpha: 0.55)),
     boxShadow: [
       BoxShadow(
-        color: _textDark.withValues(alpha: 0.06),
+        color: _notificationShadowColor(0.06),
         blurRadius: 18,
         offset: Offset(0, 8),
       ),

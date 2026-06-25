@@ -253,9 +253,9 @@ class MyApp extends StatelessWidget {
             useMaterial3: false,
             fontFamily: _appFontFamily,
             primaryColor: _primaryBlue,
-            scaffoldBackgroundColor: const Color(0xFF0F172A),
+            scaffoldBackgroundColor: Colors.black,
             appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF111827),
+              backgroundColor: Color(0xFF111111),
               foregroundColor: Colors.white,
               elevation: 0,
               iconTheme: IconThemeData(color: Colors.white),
@@ -268,7 +268,7 @@ class MyApp extends StatelessWidget {
             ),
             colorScheme: const ColorScheme.dark(
               primary: _primaryBlue,
-              surface: Color(0xFF111827),
+              surface: Color(0xFF111111),
             ),
           ),
           themeMode: appearanceController.themeMode,
@@ -286,7 +286,9 @@ class MyApp extends StatelessWidget {
             '/home-manager': (_) => DashboardManager(),
             '/manager-commerciaux': (_) => CommerciauxManager(),
             '/manager-commandes': (_) => OrdersManagerScreen(),
+            '/manager-objectifs': (_) => ObjectifsManagerScreen(),
             '/manager-rapports': (_) => ReportsManagerScreen(),
+            '/manager-profil': (_) => ProfileManagerScreen(),
             '/dashboard-admin': (_) => DashboardAdmin(),
           },
         );

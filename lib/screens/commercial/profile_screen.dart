@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../auth/current_user_session.dart';
 import '../../data/mock_presales_data.dart';
@@ -20,8 +20,22 @@ void syncProfileTheme(BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   textDark = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
   textMuted = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
-  surfaceBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-  cardBg = isDark ? const Color(0xFF111827) : const Color(0xFFFFFFFF);
+  surfaceBg = isDark ? Colors.black : const Color(0xFFF8FAFC);
+  cardBg = isDark ? const Color(0xFF111111) : const Color(0xFFFFFFFF);
+}
+
+bool _isProfileDarkMode() => cardBg != Colors.white;
+
+Color _profileBorderColor() {
+  return _isProfileDarkMode()
+      ? const Color(0xFF334155)
+      : const Color(0xFFE8EEF7);
+}
+
+Color _profileShadowColor([double lightAlpha = .055]) {
+  return _isProfileDarkMode()
+      ? Colors.black.withValues(alpha: .22)
+      : Colors.black.withValues(alpha: lightAlpha);
 }
 
 class ProfileCommercialScreen extends StatefulWidget {
@@ -751,6 +765,7 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    syncProfileTheme(context);
     return Scaffold(
       backgroundColor: surfaceBg,
       body: SafeArea(
@@ -765,11 +780,11 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
                 height: constraints.maxHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: surfaceBg,
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: .05),
+                        color: _profileShadowColor(.05),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -1065,6 +1080,11 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
                   autofocus: true,
                   keyboardType: keyboardType,
                   validator: validator,
+                  style: TextStyle(
+                    color: textDark,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                   decoration: _premiumInfoInputDecoration(title, icon),
                 ),
                 SizedBox(height: 18),
@@ -1145,7 +1165,13 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
                 for (final item in values)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(item),
+                    title: Text(
+                      item,
+                      style: TextStyle(
+                        color: textDark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     trailing: item == currentValue
                         ? Icon(Icons.check_rounded, color: primaryBlue)
                         : null,
@@ -1177,20 +1203,36 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
-                  leading: Icon(Icons.photo_camera_rounded),
-                  title: Text(AppLocalizations.globalText('Prendre une photo')),
+                  leading: Icon(Icons.photo_camera_rounded, color: textMuted),
+                  title: Text(
+                    AppLocalizations.globalText('Prendre une photo'),
+                    style: TextStyle(
+                      color: textDark,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   onTap: () => Navigator.pop(context, 'photo'),
                 ),
                 ListTile(
-                  leading: Icon(Icons.photo_library_rounded),
+                  leading: Icon(Icons.photo_library_rounded, color: textMuted),
                   title: Text(
                     AppLocalizations.globalText('Choisir depuis la galerie'),
+                    style: TextStyle(
+                      color: textDark,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   onTap: () => Navigator.pop(context, 'gallery'),
                 ),
                 ListTile(
-                  leading: Icon(Icons.close_rounded),
-                  title: Text(AppLocalizations.globalText('Annuler')),
+                  leading: Icon(Icons.close_rounded, color: textMuted),
+                  title: Text(
+                    AppLocalizations.globalText('Annuler'),
+                    style: TextStyle(
+                      color: textDark,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   onTap: () => Navigator.pop(context),
                 ),
               ],
@@ -1350,7 +1392,7 @@ class _PremiumInfoUserCard extends StatelessWidget {
                 right: -3,
                 bottom: 6,
                 child: Material(
-                  color: Colors.white,
+                  color: cardBg,
                   shape: CircleBorder(),
                   elevation: 8,
                   child: IconButton(
@@ -1445,7 +1487,7 @@ class _PremiumInfoCard extends StatelessWidget {
             if (i != rows.length - 1)
               Padding(
                 padding: EdgeInsets.only(left: 74),
-                child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+                child: Divider(height: 1, color: _profileBorderColor()),
               ),
           ],
         ],
@@ -1579,10 +1621,11 @@ class _PremiumProfileBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
+        border: Border(top: BorderSide(color: _profileBorderColor())),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: .06),
+            color: _profileShadowColor(.06),
             blurRadius: 18,
             offset: Offset(0, -6),
           ),
@@ -1635,10 +1678,11 @@ InputDecoration _premiumInfoInputDecoration(String hint, IconData icon) {
     prefixIcon: Icon(icon, color: textMuted),
     filled: true,
     fillColor: cardBg,
+    hintStyle: TextStyle(color: textMuted, fontWeight: FontWeight.w600),
     contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+      borderSide: BorderSide(color: _profileBorderColor()),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
@@ -1657,11 +1701,12 @@ InputDecoration _premiumInfoInputDecoration(String hint, IconData icon) {
 
 BoxDecoration _premiumInfoCardDecoration() {
   return BoxDecoration(
-    color: Colors.white,
+    color: cardBg,
     borderRadius: BorderRadius.circular(22),
+    border: Border.all(color: _profileBorderColor()),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withValues(alpha: .045),
+        color: _profileShadowColor(.045),
         blurRadius: 24,
         offset: Offset(0, 10),
       ),
