@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -5,6 +7,7 @@ import 'screens/auth/login_screen.dart';
 import 'package:gestion_prevente/screens/commercial/home_commercial_entry.dart';
 import 'screens/home_screen.dart';
 import 'screens/manager/home_manager_screen.dart';
+import 'screens/admin/home_admin.dart';
 import 'l10n/app_locale_controller.dart';
 import 'l10n/app_localizations.dart';
 import 'settings/app_appearance_controller.dart';
@@ -18,8 +21,12 @@ const Color _surfaceBg = Color(0xFFF8FAFC);
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  // Desktop needs the FFI SQLite engine; on Android/iOS the default sqflite
+  // plugin is used automatically (FFI would crash — no bundled native lib).
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
   await AppLocaleController.instance.load();
   await AppAppearanceController.instance.load();
@@ -289,7 +296,7 @@ class MyApp extends StatelessWidget {
             '/manager-objectifs': (_) => ObjectifsManagerScreen(),
             '/manager-rapports': (_) => ReportsManagerScreen(),
             '/manager-profil': (_) => ProfileManagerScreen(),
-            '/dashboard-admin': (_) => DashboardAdmin(),
+            '/dashboard-admin': (_) => const HomeAdmin(),
           },
         );
       },

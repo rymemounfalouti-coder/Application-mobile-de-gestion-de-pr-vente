@@ -18,7 +18,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: _onCreate,
       onOpen: (db) async {
         await _onCreate(db, 1);
@@ -46,7 +46,8 @@ class DatabaseHelper {
         nom TEXT,
         prenom TEXT,
         email TEXT,
-        password TEXT
+        password TEXT,
+        role TEXT
       )
     ''');
 
@@ -67,7 +68,12 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nom_client TEXT,
         prenom_client TEXT,
-        email TEXT
+        email TEXT,
+        ville TEXT,
+        categorie TEXT,
+        statut TEXT,
+        adresse TEXT,
+        telephone TEXT
       )
     ''');
 
@@ -85,7 +91,10 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         id_cat INTEGER,
         nom_produit TEXT,
-        prix REAL
+        prix REAL,
+        reference TEXT,
+        stock INTEGER,
+        categorie TEXT
       )
     ''');
 
