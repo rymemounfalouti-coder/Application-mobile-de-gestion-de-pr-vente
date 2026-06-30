@@ -9,256 +9,244 @@ class GeneratedAppLocalizationsAr extends GeneratedAppLocalizations {
   GeneratedAppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'Ø¥Ø¯Ø§Ø±Ø© Ù…Ø§ Ù‚Ø¨Ù„ Ø§Ù„Ø¨ÙŠØ¹';
+  String get appName => 'إدارة ما قبل البيع';
 
   @override
-  String get home => 'Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©';
+  String get home => 'الرئيسية';
 
   @override
-  String get clients => 'Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡';
+  String get clients => 'العملاء';
 
   @override
-  String get orders => 'Ø§Ù„Ø·Ù„Ø¨Ø§Øª';
+  String get orders => 'الطلبات';
 
   @override
-  String get activities => 'Ø§Ù„Ø£Ù†Ø´Ø·Ø©';
+  String get activities => 'الأنشطة';
 
   @override
-  String get profile => 'Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ';
+  String get profile => 'الملف الشخصي';
 
   @override
-  String get notifications => 'Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª';
+  String get notifications => 'الإشعارات';
 
   @override
-  String get security => 'Ø§Ù„Ø£Ù…Ø§Ù†';
+  String get security => 'الأمان';
 
   @override
-  String get personalInformation => 'Ø§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ø´Ø®ØµÙŠØ©';
+  String get personalInformation => 'المعلومات الشخصية';
 
   @override
-  String get language => 'Ø§Ù„Ù„ØºØ©';
+  String get language => 'اللغة';
 
   @override
-  String get appearance => 'Ø§Ù„Ù…Ø¸Ù‡Ø±';
+  String get appearance => 'المظهر';
 
   @override
-  String get myAccount => 'Ø­Ø³Ø§Ø¨ÙŠ';
+  String get myAccount => 'حسابي';
 
   @override
-  String get about => 'Ø­ÙˆÙ„ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚';
+  String get about => 'حول التطبيق';
 
   @override
-  String get privacy => 'Ø§Ù„Ø®ØµÙˆØµÙŠØ©';
+  String get privacy => 'الخصوصية';
 
   @override
-  String get terms => 'Ø´Ø±ÙˆØ· Ø§Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù…';
+  String get terms => 'شروط الاستخدام';
 
   @override
-  String get logout => 'ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬';
+  String get logout => 'تسجيل الخروج';
 
   @override
-  String get commercial => 'Ù…Ù†Ø¯ÙˆØ¨ Ù…Ø¨ÙŠØ¹Ø§Øª';
+  String get commercial => 'مندوب مبيعات';
 
   @override
-  String get profileSubtitle =>
-      'Ø¥Ø¯Ø§Ø±Ø© Ù…Ø¹Ù„ÙˆÙ…Ø§ØªÙƒ Ø§Ù„Ø´Ø®ØµÙŠØ©\nÙˆØ¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„ØªØ·Ø¨ÙŠÙ‚';
+  String get profileSubtitle => 'إدارة معلوماتك الشخصية\nوإعدادات التطبيق';
 
   @override
-  String get manageProfileInfo =>
-      'Ø¥Ø¯Ø§Ø±Ø© Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ';
+  String get manageProfileInfo => 'إدارة معلومات الملف الشخصي';
 
   @override
-  String get securitySubtitle =>
-      'ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±ØŒ Ø§Ù„Ø¨ØµÙ…Ø©ØŒ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„';
+  String get securitySubtitle => 'كلمة المرور، البصمة، تسجيل الدخول';
 
   @override
-  String get notificationPreferences => 'ØªÙØ¶ÙŠÙ„Ø§Øª Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª';
+  String get notificationPreferences => 'تفضيلات الإشعارات';
 
   @override
-  String get themeLight => 'Ø§Ù„Ù…Ø¸Ù‡Ø± Ø§Ù„ÙØ§ØªØ­';
+  String get themeLight => 'المظهر الفاتح';
 
   @override
-  String get aboutApp => 'Ø­ÙˆÙ„ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚';
+  String get aboutApp => 'حول التطبيق';
 
   @override
-  String get version => 'Ø§Ù„Ø¥ØµØ¯Ø§Ø± 1.0.0';
+  String get version => 'الإصدار 1.0.0';
 
   @override
-  String get privacyPolicy => 'Ø³ÙŠØ§Ø³Ø© Ø§Ù„Ø®ØµÙˆØµÙŠØ©';
+  String get privacyPolicy => 'سياسة الخصوصية';
 
   @override
-  String get readTerms => 'Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ø´Ø±ÙˆØ·';
+  String get readTerms => 'قراءة الشروط';
 
   @override
-  String get languageSubtitle => 'Ø§Ø®ØªØ± Ù„ØºØªÙƒ Ø§Ù„Ù…ÙØ¶Ù„Ø©';
+  String get languageSubtitle => 'اختر لغتك المفضلة';
 
   @override
-  String get currentLanguage => 'Ø§Ù„Ù„ØºØ© Ø§Ù„Ø­Ø§Ù„ÙŠØ©';
+  String get currentLanguage => 'اللغة الحالية';
 
   @override
-  String get chooseLanguage => 'Ø§Ø®ØªØ± Ù„ØºØ©';
+  String get chooseLanguage => 'اختر لغة';
 
   @override
-  String get languageCurrentInfo =>
-      'Ø³ÙŠØªÙ… Ø¹Ø±Ø¶ ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©.';
+  String get languageCurrentInfo => 'سيتم عرض واجهة التطبيق باللغة المحددة.';
 
   @override
-  String get current => 'Ø§Ù„Ø­Ø§Ù„ÙŠØ©';
+  String get current => 'الحالية';
 
   @override
-  String get french => 'Ø§Ù„ÙØ±Ù†Ø³ÙŠØ©';
+  String get french => 'الفرنسية';
 
   @override
   String get frenchNative => 'Français';
 
   @override
-  String get arabic => 'Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©';
+  String get arabic => 'العربية';
 
   @override
-  String get arabicNative => 'Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©';
+  String get arabicNative => 'العربية';
 
   @override
-  String get english => 'Ø§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠØ©';
+  String get english => 'الإنجليزية';
 
   @override
   String get englishNative => 'English';
 
   @override
-  String get preview => 'Ù…Ø¹Ø§ÙŠÙ†Ø©';
+  String get preview => 'معاينة';
 
   @override
-  String get languagePreviewInfo =>
-      'ÙŠÙ…ÙƒÙ†Ùƒ Ø±Ø¤ÙŠØ© ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©.';
+  String get languagePreviewInfo => 'يمكنك رؤية واجهة التطبيق باللغة المحددة.';
 
   @override
-  String get applyLanguage => 'ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ù„ØºØ©';
+  String get applyLanguage => 'تطبيق اللغة';
 
   @override
-  String get languageSuccess => 'ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù„ØºØ© Ø¨Ù†Ø¬Ø§Ø­';
+  String get languageSuccess => 'تم تحديث اللغة بنجاح';
 
   @override
   String get languageDeviceInfo =>
-      'Ø³ÙŠØªÙ… ØªØ·Ø¨ÙŠÙ‚ Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯ Ø¹Ù„Ù‰ Ø¬Ù…ÙŠØ¹ Ø£Ø¬Ù‡Ø²ØªÙƒ Ø§Ù„Ù…ØªØµÙ„Ø©.';
+      'سيتم تطبيق هذا الإعداد على جميع أجهزتك المتصلة.';
 
   @override
-  String get stayInformed => 'Ø§Ø¨Ù‚ Ø¹Ù„Ù‰ Ø§Ø·Ù„Ø§Ø¹';
+  String get stayInformed => 'ابق على اطلاع';
 
   @override
-  String get notificationsSubtitle =>
-      'Ø¥Ø¯Ø§Ø±Ø© ØªÙØ¶ÙŠÙ„Ø§Øª Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª';
+  String get notificationsSubtitle => 'إدارة تفضيلات الإشعارات';
 
   @override
-  String get notificationsIntro =>
-      'Ø§Ø®ØªØ± ÙƒÙŠÙ ÙˆÙ…ØªÙ‰ ØªØ±ÙŠØ¯ ØªÙ„Ù‚ÙŠ Ø¥Ø´Ø¹Ø§Ø±Ø§ØªÙƒ.';
+  String get notificationsIntro => 'اختر كيف ومتى تريد تلقي إشعاراتك.';
 
   @override
-  String get orderNotifications => 'Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„Ø·Ù„Ø¨Ø§Øª';
+  String get orderNotifications => 'إشعارات الطلبات';
 
   @override
-  String get orderNotificationsSubtitle =>
-      'ØªÙ„Ù‚ÙŠ ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ø·Ù„Ø¨Ø§Øª';
+  String get orderNotificationsSubtitle => 'تلقي تنبيهات الطلبات';
 
   @override
-  String get clientNotifications => 'Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡';
+  String get clientNotifications => 'إشعارات العملاء';
 
   @override
-  String get clientNotificationsSubtitle =>
-      'ØªÙ„Ù‚ÙŠ ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡';
+  String get clientNotificationsSubtitle => 'تلقي تنبيهات العملاء';
 
   @override
-  String get systemNotifications => 'Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„Ù†Ø¸Ø§Ù…';
+  String get systemNotifications => 'إشعارات النظام';
 
   @override
-  String get systemNotificationsSubtitle =>
-      'ØªÙ„Ù‚ÙŠ ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ù†Ø¸Ø§Ù…';
+  String get systemNotificationsSubtitle => 'تلقي تنبيهات النظام';
 
   @override
-  String get audioSettings => 'Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„ØµÙˆØª';
+  String get audioSettings => 'إعدادات الصوت';
 
   @override
-  String get sounds => 'Ø§Ù„Ø£ØµÙˆØ§Øª';
+  String get sounds => 'الأصوات';
 
   @override
-  String get soundsSubtitle => 'ØªÙØ¹ÙŠÙ„ Ø£ØµÙˆØ§Øª Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª';
+  String get soundsSubtitle => 'تفعيل أصوات الإشعارات';
 
   @override
-  String get vibration => 'Ø§Ù„Ø§Ù‡ØªØ²Ø§Ø²';
+  String get vibration => 'الاهتزاز';
 
   @override
-  String get vibrationSubtitle => 'ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø§Ù‡ØªØ²Ø§Ø²';
+  String get vibrationSubtitle => 'تفعيل الاهتزاز';
 
   @override
-  String get receiptsAndReminders => 'Ø§Ù„Ø¥ÙŠØµØ§Ù„Ø§Øª ÙˆØ§Ù„ØªØ°ÙƒÙŠØ±Ø§Øª';
+  String get receiptsAndReminders => 'الإيصالات والتذكيرات';
 
   @override
-  String get quietHours => 'Ø³Ø§Ø¹Ø§Øª Ø§Ù„ØµÙ…Øª';
+  String get quietHours => 'ساعات الصمت';
 
   @override
   String get quietHoursSubtitle =>
-      'ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø³Ø§Ø¹Ø§Øª Ø§Ù„ØªÙŠ Ù„Ø§ ØªØ±ÙŠØ¯ ØªÙ„Ù‚ÙŠ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø®Ù„Ø§Ù„Ù‡Ø§';
+      'تحديد الساعات التي لا تريد تلقي الإشعارات خلالها';
 
   @override
-  String get activityReminders => 'ØªØ°ÙƒÙŠØ±Ø§Øª Ø§Ù„Ù†Ø´Ø§Ø·';
+  String get activityReminders => 'تذكيرات النشاط';
 
   @override
-  String get activityRemindersSubtitle =>
-      'ØªÙ„Ù‚ÙŠ ØªØ°ÙƒÙŠØ±Ø§Øª Ù„Ø£Ù†Ø´Ø·ØªÙƒ Ø§Ù„Ù…Ø¬Ø¯ÙˆÙ„Ø©';
+  String get activityRemindersSubtitle => 'تلقي تذكيرات لأنشطتك المجدولة';
 
   @override
-  String get notificationChannels => 'Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª';
+  String get notificationChannels => 'قنوات الإشعارات';
 
   @override
-  String get push => 'Ø§Ù„Ø¯ÙØ¹';
+  String get push => 'الدفع';
 
   @override
-  String get email => 'Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ';
+  String get email => 'البريد الإلكتروني';
 
   @override
-  String get sms => 'Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù†ØµÙŠØ©';
+  String get sms => 'الرسائل النصية';
 
   @override
-  String get enabled => 'Ù…ÙØ¹Ù„';
+  String get enabled => 'مفعل';
 
   @override
-  String get disabled => 'Ù…Ø¹Ø·Ù„';
+  String get disabled => 'معطل';
 
   @override
-  String get preferencesUpdated => 'ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙØ¶ÙŠÙ„Ø§Øª';
+  String get preferencesUpdated => 'تم تحديث التفضيلات';
 
   @override
-  String get startTime => 'ÙˆÙ‚Øª Ø§Ù„Ø¨Ø¯Ø¡';
+  String get startTime => 'وقت البدء';
 
   @override
-  String get endTime => 'ÙˆÙ‚Øª Ø§Ù„Ø§Ù†ØªÙ‡Ø§Ø¡';
+  String get endTime => 'وقت الانتهاء';
 
   @override
-  String get save => 'Ø­ÙØ¸';
+  String get save => 'حفظ';
 
   @override
-  String get apply => 'ØªØ·Ø¨ÙŠÙ‚';
+  String get apply => 'تطبيق';
 
   @override
-  String get channel => 'Ù‚Ù†Ø§Ø©';
+  String get channel => 'قناة';
 
   @override
-  String get receiveNotificationsBy => 'ØªÙ„Ù‚ÙŠ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¹Ø¨Ø±';
+  String get receiveNotificationsBy => 'تلقي الإشعارات عبر';
 
   @override
-  String get doNotReceiveNotificationsBy =>
-      'Ø¹Ø¯Ù… ØªÙ„Ù‚ÙŠ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¹Ø¨Ø±';
+  String get doNotReceiveNotificationsBy => 'عدم تلقي الإشعارات عبر';
 
   @override
-  String get newClient => 'Ø¹Ù…ÙŠÙ„ Ø¬Ø¯ÙŠØ¯';
+  String get newClient => 'عميل جديد';
 
   @override
-  String get newOrder => 'Ø·Ù„Ø¨ Ø¬Ø¯ÙŠØ¯';
+  String get newOrder => 'طلب جديد';
 
   @override
-  String get orderDetails => 'ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨';
+  String get orderDetails => 'تفاصيل الطلب';
 
   @override
-  String get cancel => 'Ø¥Ù„ØºØ§Ø¡';
+  String get cancel => 'إلغاء';
 
   @override
-  String get notProvided => 'ØºÙŠØ± Ù…Ø­Ø¯Ø¯';
+  String get notProvided => 'غير محدد';
 }

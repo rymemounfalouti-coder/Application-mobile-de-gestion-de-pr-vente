@@ -24,7 +24,6 @@ class DatabaseHelper {
         await _onCreate(db, 1);
       },
 
-      
       onUpgrade: (db, oldVersion, newVersion) async {
         await db.execute("DROP TABLE IF EXISTS users");
         await db.execute("DROP TABLE IF EXISTS clients");
@@ -39,8 +38,7 @@ class DatabaseHelper {
   }
 
   Future _onCreate(Database db, int version) async {
-
-        await db.execute('''
+    await db.execute('''
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nom TEXT,
@@ -51,7 +49,6 @@ class DatabaseHelper {
       )
     ''');
 
-    
     await db.execute('''
       CREATE TABLE IF NOT EXISTS password_reset_tokens (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,7 +59,6 @@ class DatabaseHelper {
       )
     ''');
 
-    
     await db.execute('''
       CREATE TABLE IF NOT EXISTS clients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,7 +73,6 @@ class DatabaseHelper {
       )
     ''');
 
-    
     await db.execute('''
       CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,7 +80,6 @@ class DatabaseHelper {
       )
     ''');
 
-    
     await db.execute('''
       CREATE TABLE IF NOT EXISTS produits (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,7 +92,6 @@ class DatabaseHelper {
       )
     ''');
 
-    
     await db.execute('''
       CREATE TABLE IF NOT EXISTS factures (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,7 +101,6 @@ class DatabaseHelper {
       )
     ''');
 
-    
     await db.execute('''
       CREATE TABLE IF NOT EXISTS details_facture (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,13 +112,11 @@ class DatabaseHelper {
     ''');
   }
 
-  
   Future<int> insert(String table, Map<String, dynamic> row) async {
     final db = await database;
     return await db.insert(table, row);
   }
 
-  
   Future<List<Map<String, dynamic>>> getAll(String table) async {
     final db = await database;
     return await db.query(table);

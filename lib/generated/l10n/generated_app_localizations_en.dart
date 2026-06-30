@@ -113,7 +113,7 @@ class GeneratedAppLocalizationsEn extends GeneratedAppLocalizations {
   String get arabic => 'Arabic';
 
   @override
-  String get arabicNative => 'Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©';
+  String get arabicNative => 'العربية';
 
   @override
   String get english => 'English';

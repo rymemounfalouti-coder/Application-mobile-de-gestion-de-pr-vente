@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../api_service.dart';
 import '../../auth/current_user_session.dart';
 import '../../data/mock_presales_data.dart';
 import '../../database/database_helper.dart';
@@ -25,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  _LocalSession? _rememberedSession;
+  List<_LocalSession> _rememberedSessions = const [];
   bool _isApplyingRememberedLogin = false;
   bool _rememberMe = false;
   bool _obscurePassword = true;
@@ -61,28 +62,34 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _restoreRememberedLogin() async {
-    final session = await _LocalSessionStore.load();
-    if (!mounted || session == null || !session.rememberMe) return;
+    final sessions = await _LocalSessionStore.loadAll();
+    if (!mounted) return;
 
-    setState(() => _rememberedSession = session);
+    setState(() => _rememberedSessions = sessions);
   }
 
   void _autocompleteRememberedLogin() {
     if (_isApplyingRememberedLogin) return;
 
-    final session = _rememberedSession;
-    if (session == null || !session.rememberMe) return;
-
     final typedEmail = _emailController.text.trim().toLowerCase();
-    final savedEmail = session.email.trim().toLowerCase();
-    if (typedEmail.length < 4 || !savedEmail.startsWith(typedEmail)) return;
+    if (typedEmail.length < 4) return;
+
+    final session = _rememberedSessions.cast<_LocalSession?>().firstWhere((
+      session,
+    ) {
+      final savedEmail = session?.email.trim().toLowerCase() ?? '';
+      return savedEmail.startsWith(typedEmail) && savedEmail != typedEmail;
+    }, orElse: () => null);
+    if (session == null) return;
 
     _isApplyingRememberedLogin = true;
     _emailController.value = TextEditingValue(
       text: session.email,
       selection: TextSelection.collapsed(offset: session.email.length),
     );
-    _passwordController.text = session.password;
+    if (session.password.isNotEmpty) {
+      _passwordController.text = session.password;
+    }
     if (_emailError != null || _passwordError != null) {
       setState(() {
         _emailError = null;
@@ -128,6 +135,14 @@ class _LoginScreenState extends State<LoginScreen> {
           password: password,
           rememberMe: true,
         );
+        if (mounted) {
+          setState(() {
+            _rememberedSessions = _LocalSessionStore.mergeSession(
+              _rememberedSessions,
+              _LocalSession(email: email, password: password, rememberMe: true),
+            );
+          });
+        }
       }
 
       CurrentUserSession.signIn(authResult.user);
@@ -162,6 +177,47 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<_AuthResult?> _authenticate(String email, String password) async {
+    try {
+      final apiUser = await ApiService.login(email, password);
+      final roleValue = apiUser['role']?.toString().toUpperCase();
+      final role = switch (roleValue) {
+        'ADMIN' => UserRole.admin,
+        'MANAGER' => UserRole.manager,
+        _ => UserRole.commercial,
+      };
+      final displayName = [
+        apiUser['prenom']?.toString().trim() ?? '',
+        apiUser['nom']?.toString().trim() ?? '',
+      ].where((part) => part.isNotEmpty).join(' ').trim();
+      final fallbackName = apiUser['name']?.toString().trim() ?? '';
+      return _AuthResult(
+        user: AuthenticatedUser(
+          id: apiUser['id'] is int ? apiUser['id'] as int : 0,
+          fullName: displayName.isNotEmpty
+              ? displayName
+              : fallbackName.isNotEmpty
+              ? fallbackName
+              : email,
+          email: apiUser['email']?.toString() ?? email,
+          role: switch (role) {
+            UserRole.commercial => MockUserRole.commercial,
+            UserRole.manager => MockUserRole.manager,
+            UserRole.admin => MockUserRole.admin,
+          },
+          phone: apiUser['phone']?.toString() ?? '',
+        ),
+        role: role,
+        displayName: displayName.isNotEmpty
+            ? displayName
+            : fallbackName.isNotEmpty
+            ? fallbackName
+            : email,
+        email: apiUser['email']?.toString() ?? email,
+      );
+    } catch (error) {
+      debugPrint('Authentification API indisponible/echec: $error');
+    }
+
     final mockUser = MockPreSalesData.userByEmail(email);
     if (mockUser != null) {
       if (PasswordResetService.passwordFor(email, mockUser.password) !=
@@ -234,7 +290,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _onRememberChanged(bool? value) async {
     final remember = value ?? false;
     setState(() => _rememberMe = remember);
-    if (!remember) await _LocalSessionStore.clear();
   }
 
   void _showMessage(String message) {
@@ -1640,42 +1695,78 @@ class _LocalSession {
 class _LocalSessionStore {
   static final _fileName = 'presales_session.json';
 
+  static List<_LocalSession> mergeSession(
+    List<_LocalSession> sessions,
+    _LocalSession next,
+  ) {
+    final normalizedEmail = next.email.trim().toLowerCase();
+    final merged = <_LocalSession>[
+      next,
+      for (final session in sessions)
+        if (session.email.trim().toLowerCase() != normalizedEmail) session,
+    ];
+    return merged;
+  }
+
   static Future<void> save({
     required String email,
     required String password,
     required bool rememberMe,
   }) async {
+    final sessions = mergeSession(
+      await loadAll(),
+      _LocalSession(email: email, password: password, rememberMe: rememberMe),
+    );
     final file = await _file();
     await file.writeAsString(
       jsonEncode({
-        'email': email,
-        'password': password,
-        'rememberMe': rememberMe,
+        'sessions': [
+          for (final session in sessions)
+            {
+              'email': session.email,
+              'password': session.password,
+              'rememberMe': session.rememberMe,
+            },
+        ],
       }),
     );
   }
 
-  static Future<_LocalSession?> load() async {
+  static Future<List<_LocalSession>> loadAll() async {
     try {
       final file = await _file();
-      if (!await file.exists()) return null;
+      if (!await file.exists()) return const [];
 
       final payload = jsonDecode(await file.readAsString());
-      if (payload is! Map<String, dynamic>) return null;
+      if (payload is! Map<String, dynamic>) return const [];
 
-      return _LocalSession(
+      final sessionsPayload = payload['sessions'];
+      if (sessionsPayload is List) {
+        return [
+              for (final item in sessionsPayload)
+                if (item is Map)
+                  _LocalSession(
+                    email: item['email']?.toString() ?? '',
+                    password: item['password']?.toString() ?? '',
+                    rememberMe: item['rememberMe'] == true,
+                  ),
+            ]
+            .where((session) => session.rememberMe && session.email.isNotEmpty)
+            .toList();
+      }
+
+      final legacySession = _LocalSession(
         email: payload['email']?.toString() ?? '',
         password: payload['password']?.toString() ?? '',
         rememberMe: payload['rememberMe'] == true,
       );
+      if (!legacySession.rememberMe || legacySession.email.isEmpty) {
+        return const [];
+      }
+      return [legacySession];
     } catch (_) {
-      return null;
+      return const [];
     }
-  }
-
-  static Future<void> clear() async {
-    final file = await _file();
-    if (await file.exists()) await file.delete();
   }
 
   static Future<File> _file() async {

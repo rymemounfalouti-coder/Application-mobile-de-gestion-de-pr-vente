@@ -54,10 +54,7 @@ class PasswordResetService {
     );
   }
 
-  static void verifyResetCode({
-    required String email,
-    required String code,
-  }) {
+  static void verifyResetCode({required String email, required String code}) {
     _validateCode(email: email, code: code);
   }
 
@@ -76,10 +73,7 @@ class PasswordResetService {
     _otps.remove(normalizedEmail);
   }
 
-  static void _validateCode({
-    required String email,
-    required String code,
-  }) {
+  static void _validateCode({required String email, required String code}) {
     final normalizedEmail = email.trim().toLowerCase();
     final otp = _otps[normalizedEmail];
     if (otp == null || otp.code != code.trim()) {
@@ -95,10 +89,7 @@ class PasswordResetService {
 }
 
 class _ResetOtp {
-  const _ResetOtp({
-    required this.code,
-    required this.expiresAt,
-  });
+  const _ResetOtp({required this.code, required this.expiresAt});
 
   final String code;
   final DateTime expiresAt;
@@ -138,10 +129,9 @@ class _SmtpConfig {
       host: requiredValue('SMTP_HOST'),
       port: int.tryParse(requiredValue('SMTP_PORT')) ?? 587,
       user: requiredValue('SMTP_USER'),
-      password: requiredValue('SMTP_PASSWORD')
-          .replaceAll(RegExp(r'\s+'), '')
-          .replaceAll('"', '')
-          .replaceAll("'", ''),
+      password: requiredValue(
+        'SMTP_PASSWORD',
+      ).replaceAll(RegExp(r'\s+'), '').replaceAll('"', '').replaceAll("'", ''),
       from: requiredValue('SMTP_FROM'),
       recoveryEmail: requiredValue('MY_RECOVERY_EMAIL'),
     );
@@ -175,8 +165,9 @@ class _SmtpConfig {
         if (line.trim().isNotEmpty &&
             !line.trimLeft().startsWith('#') &&
             line.contains('='))
-          line.split('=').first.trim():
-              line.substring(line.indexOf('=') + 1).trim(),
+          line.split('=').first.trim(): line
+              .substring(line.indexOf('=') + 1)
+              .trim(),
     };
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 
-import '../../database/database_helper.dart';
 import 'order_cart.dart';
 import 'products_by_category_screen.dart' as products_page;
 
@@ -33,22 +32,20 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCategories();
-  }
-
-  Future<void> _loadCategories() async {
-    final db = await DatabaseHelper.instance.database;
-    final rows = await db.query('categories', orderBy: 'id ASC');
-
-    if (!mounted || rows.isEmpty) return;
-
-    setState(() {
-      final dbCategories = rows.map(_OrderCategory.fromDb).take(9).toList();
-      _categories = [
-        ...dbCategories,
-        ..._OrderCategory.defaults.skip(dbCategories.length),
-      ].take(9).toList();
-    });
+    _categories = [
+      _OrderCategory(
+        id: 1,
+        title: 'Thé Vert Premium',
+        description: 'Gamme premium',
+        icon: 'TP',
+      ),
+      _OrderCategory(
+        id: 2,
+        title: 'Thé Vert Classique',
+        description: 'Gamme classique',
+        icon: 'TC',
+      ),
+    ];
   }
 
   void _openProducts(_OrderCategory category) {
@@ -755,73 +752,18 @@ class _OrderCategory {
   final String description;
   final String icon;
 
-  factory _OrderCategory.fromDb(Map<String, Object?> row) {
-    final id = (row['id'] as int?) ?? 0;
-    final title = (row['nom_cat'] ?? 'Catégorie').toString();
-    final fallback = defaults[id % defaults.length];
-
-    return _OrderCategory(
-      id: id,
-      title: title,
-      description: fallback.description,
-      icon: fallback.icon,
-    );
-  }
-
   static final defaults = [
     _OrderCategory(
       id: 1,
-      title: AppLocalizations.globalText('Boissons & Sodas'),
-      description: 'Eaux, jus, sodas...',
-      icon: 'ðŸ§´ðŸ¥›',
+      title: 'Thé Vert Premium',
+      description: 'Gamme premium',
+      icon: 'TP',
     ),
     _OrderCategory(
       id: 2,
-      title: AppLocalizations.globalText('Boulangerie'),
-      description: 'Pains, pâtisseries, viennoiseries...',
-      icon: 'ðŸžðŸŒ¾',
-    ),
-    _OrderCategory(
-      id: 3,
-      title: AppLocalizations.globalText('Produits Laitiers'),
-      description: 'Laits, yaourts, fromages...',
-      icon: 'ðŸ§€ðŸ¥›',
-    ),
-    _OrderCategory(
-      id: 4,
-      title: AppLocalizations.globalText('Viandes & Poissons'),
-      description: 'Volailles, bÅ“ufs, poissons frais...',
-      icon: 'ðŸŸðŸ—',
-    ),
-    _OrderCategory(
-      id: 5,
-      title: AppLocalizations.globalText('Fruits & Légumes'),
-      description: 'Saisonniers, frais...',
-      icon: 'ðŸŽðŸŒ',
-    ),
-    _OrderCategory(
-      id: 6,
-      title: AppLocalizations.globalText('Épicerie Sucrée'),
-      description: 'Biscuits, confiseries, petits déjeuners...',
-      icon: 'ðŸªðŸ«',
-    ),
-    _OrderCategory(
-      id: 7,
-      title: AppLocalizations.globalText('Épicerie Salée'),
-      description: 'Chips, snacks, conserves...',
-      icon: 'ðŸ¥«ðŸ¥¨',
-    ),
-    _OrderCategory(
-      id: 8,
-      title: AppLocalizations.globalText('Hygiène'),
-      description: 'Savons, shampoings, soins...',
-      icon: 'ðŸ§¼ðŸ§´',
-    ),
-    _OrderCategory(
-      id: 9,
-      title: AppLocalizations.globalText('Surgelés'),
-      description: 'Glaces, légumes, plats frais...',
-      icon: 'ðŸ§ŠðŸ¦',
+      title: 'Thé Vert Classique',
+      description: 'Gamme classique',
+      icon: 'TC',
     ),
   ];
 }

@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "fr",
   "appName": "Gestion Prévente",
   "home": "Accueil",
@@ -34,7 +34,7 @@
   "french": "Français",
   "frenchNative": "Français",
   "arabic": "Arabe",
-  "arabicNative": "Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©",
+  "arabicNative": "العربية",
   "english": "Anglais",
   "englishNative": "English",
   "preview": "Aperçu",

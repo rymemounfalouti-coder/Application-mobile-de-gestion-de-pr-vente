@@ -1,4 +1,4 @@
-﻿import 'dart:typed_data';
+import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -15,7 +15,10 @@ class PdfService {
             children: [
               pw.Text(
                 "FACTURE #${facture['id']}",
-                style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: 22,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
 
               pw.SizedBox(height: 10),
@@ -25,13 +28,18 @@ class PdfService {
 
               pw.Divider(),
 
-              pw.Text("Détails:",
-                  style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                "Détails:",
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
 
               pw.SizedBox(height: 10),
 
               ...details.map(
-                    (d) => pw.Text(
+                (d) => pw.Text(
                   "Produit ID: ${d['id_prod']} | Qté: ${d['qte']} | Prix: ${d['prix_vendu']} DH",
                 ),
               ),
@@ -47,8 +55,6 @@ class PdfService {
   static Future<void> printInvoice(Map facture, List details) async {
     final pdf = await generateInvoice(facture, details);
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf,
-    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf);
   }
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../database/database_helper.dart';
 
@@ -162,7 +162,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.globalText("Produits"))),
 
-      // ðŸ›’ bouton panier flottant
+      // 🛒 bouton panier flottant
       floatingActionButton: FloatingActionButton(
         onPressed: openCart,
         child: Text("${getTotal()}"),

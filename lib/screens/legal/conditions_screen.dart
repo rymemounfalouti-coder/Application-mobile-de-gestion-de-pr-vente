@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 
 class ConditionsScreen extends StatelessWidget {

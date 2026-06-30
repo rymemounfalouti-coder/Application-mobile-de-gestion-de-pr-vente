@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../api_service.dart';
 import '../../auth/current_user_session.dart';
 import '../../data/mock_presales_data.dart';
 import '../../l10n/app_locale_controller.dart';
@@ -64,11 +65,22 @@ class ProfileCommercialScreen extends StatefulWidget {
 class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
   final String _selectedTheme = 'Clair';
   late MockUserProfile? userProfile;
+  String _company = 'Ryme Distribution';
 
   @override
   void initState() {
     super.initState();
     userProfile = widget.user;
+    _loadCompanyInfo();
+  }
+
+  Future<void> _loadCompanyInfo() async {
+    try {
+      final data = await ApiService.getCompanyInfo();
+      final name = data['name']?.toString().trim() ?? '';
+      if (!mounted || name.isEmpty) return;
+      setState(() => _company = name);
+    } catch (_) {}
   }
 
   String get _name {
@@ -82,8 +94,6 @@ class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
   }
 
   String get _phone => userProfile?.phone ?? 'Non renseigné';
-
-  String get _company => 'Ryme Distribution';
 
   String _languageName(AppLocalizations l10n) {
     return switch (AppLocaleController.instance.languageCode) {
@@ -742,6 +752,16 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
     _nationality = 'Marocaine';
     _language = 'Fran\u00E7ais';
     _company = 'Ryme Distribution';
+    _loadCompanyInfo();
+  }
+
+  Future<void> _loadCompanyInfo() async {
+    try {
+      final data = await ApiService.getCompanyInfo();
+      final name = data['name']?.toString().trim() ?? '';
+      if (!mounted || name.isEmpty) return;
+      setState(() => _company = name);
+    } catch (_) {}
   }
 
   String get _role => switch (widget.user?.role) {
@@ -3763,7 +3783,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
         children: [
           _buildLanguageOption('Français', 'French', 'FR'),
           SizedBox(height: 12),
-          _buildLanguageOption('Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©', 'Arabic', 'AR'),
+          _buildLanguageOption('العربية', 'Arabic', 'AR'),
           SizedBox(height: 12),
           _buildLanguageOption('English', 'English', 'EN'),
         ],

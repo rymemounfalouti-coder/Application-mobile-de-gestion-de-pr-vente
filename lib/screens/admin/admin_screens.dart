@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../api_service.dart';
 import '../../data/mock_presales_data.dart';
-import '../../database/database_helper.dart';
 
 // Admin design kit — colors + shared widgets matching the reference mockup
 // (emerald green primary, dark navy rounded headers, white cards).
@@ -45,7 +45,7 @@ String roleLabel(MockUserRole role) => switch (role) {
   MockUserRole.admin => 'Administrateur',
 };
 
-String _roleToDb(MockUserRole role) => role.name.toUpperCase();
+String _roleToDb(MockUserRole role) => role.name.toLowerCase();
 
 MockUserRole roleFromDb(String? value) => switch (value?.toUpperCase()) {
   'ADMIN' => MockUserRole.admin,
@@ -64,6 +64,60 @@ String initials(String value) {
   if (parts.isEmpty) return '?';
   if (parts.length == 1) return parts.first[0].toUpperCase();
   return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+}
+
+String _jsonString(Map<dynamic, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value != null && value.toString().trim().isNotEmpty) {
+      return value.toString().trim();
+    }
+  }
+  return '';
+}
+
+int _jsonInt(Map<dynamic, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    final parsed = int.tryParse(value?.toString() ?? '');
+    if (parsed != null) return parsed;
+  }
+  return 0;
+}
+
+double _jsonDouble(Map<dynamic, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    final parsed = double.tryParse(
+      (value?.toString() ?? '').replaceAll(',', '.'),
+    );
+    if (parsed != null) return parsed;
+  }
+  return 0;
+}
+
+bool _jsonBool(
+  Map<dynamic, dynamic> json,
+  List<String> keys, {
+  bool fallback = true,
+}) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final text = value?.toString().toLowerCase();
+    if (text == 'true' || text == '1' || text == 'actif') return true;
+    if (text == 'false' || text == '0' || text == 'inactif') return false;
+  }
+  return fallback;
+}
+
+extension _AdminStringFallback on String {
+  String ifEmpty(String fallback) => trim().isEmpty ? fallback : this;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +197,9 @@ class AdminHeader extends StatelessWidget {
                     )
                   : Text(
                       title,
-                      textAlign: onBack != null ? TextAlign.center : TextAlign.left,
+                      textAlign: onBack != null
+                          ? TextAlign.center
+                          : TextAlign.left,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 19,
@@ -165,32 +221,9 @@ class _BellButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton(
-          onPressed: onTap,
-          icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
-        ),
-        Positioned(
-          right: 6,
-          top: 6,
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: const BoxDecoration(color: kRed, shape: BoxShape.circle),
-            constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-            child: const Text(
-              '8',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ),
-      ],
+    return IconButton(
+      onPressed: onTap,
+      icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
     );
   }
 }
@@ -251,12 +284,17 @@ class AdminSearchRow extends StatelessWidget {
               height: 50,
               child: Stack(
                 children: [
-                  const Center(child: Icon(Icons.tune_rounded, color: Colors.white)),
+                  const Center(
+                    child: Icon(Icons.tune_rounded, color: Colors.white),
+                  ),
                   if (filterActive)
                     const Positioned(
                       right: 8,
                       top: 8,
-                      child: CircleAvatar(radius: 4, backgroundColor: Colors.white),
+                      child: CircleAvatar(
+                        radius: 4,
+                        backgroundColor: Colors.white,
+                      ),
                     ),
                 ],
               ),
@@ -290,13 +328,28 @@ Future<T?> showFilterSheet<T>(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(color: kInk, fontSize: 18, fontWeight: FontWeight.w900)),
+            Text(
+              title,
+              style: const TextStyle(
+                color: kInk,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
             const SizedBox(height: 8),
             for (final o in options)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(o.$1, style: const TextStyle(color: kInk, fontWeight: FontWeight.w700)),
-                trailing: o.$2 == current ? const Icon(Icons.check_rounded, color: kGreen) : null,
+                title: Text(
+                  o.$1,
+                  style: const TextStyle(
+                    color: kInk,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                trailing: o.$2 == current
+                    ? const Icon(Icons.check_rounded, color: kGreen)
+                    : null,
                 onTap: () => Navigator.pop(context, o.$2),
               ),
           ],
@@ -418,14 +471,18 @@ class GreenButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class AdminUserStore {
-  AdminUserStore() : _users = [...MockPreSalesData.users.values];
+  AdminUserStore();
 
-  final List<MockUserProfile> _users;
-
-  static const int dbBase = 100000;
-  static bool isDbUser(int id) => id >= dbBase;
+  final List<MockUserProfile> _users = [];
 
   List<MockUserProfile> get all => List.unmodifiable(_users);
+
+  Future<void> load() async {
+    final rows = await ApiService.getUsers();
+    _users
+      ..clear()
+      ..addAll(rows.whereType<Map>().map((row) => userFromApi(row)));
+  }
 
   void upsert(MockUserProfile user) {
     final i = _users.indexWhere((u) => u.id == user.id);
@@ -464,6 +521,38 @@ class AdminUserStore {
   }
 }
 
+MockUserProfile userFromApi(Map<dynamic, dynamic> row) {
+  final email = _jsonString(row, ['email']);
+  final first = _jsonString(row, ['prenom', 'first_name']);
+  final last = _jsonString(row, ['nom', 'last_name']);
+  final fullName = _jsonString(row, ['name', 'full_name']).isNotEmpty
+      ? _jsonString(row, ['name', 'full_name'])
+      : '$first $last'.trim();
+  return MockUserProfile(
+    id: _jsonInt(row, ['id', 'user_id']),
+    name: fullName.isEmpty ? email : fullName,
+    email: email,
+    phone: _jsonString(row, ['phone', 'telephone']),
+    password: _jsonString(row, ['password']),
+    role: roleFromDb(_jsonString(row, ['role', 'type'])),
+    isActive: _jsonBool(row, ['is_active', 'active', 'actif']),
+  );
+}
+
+Map<String, dynamic> userToApi(MockUserProfile u) {
+  final (prenom, nom) = splitName(u.name);
+  return {
+    'name': u.name,
+    'prenom': prenom,
+    'nom': nom,
+    'email': u.email,
+    'phone': u.phone,
+    'password': u.password,
+    'role': _roleToDb(u.role),
+    'is_active': u.isActive,
+  };
+}
+
 MockUserProfile copyUser(
   MockUserProfile u, {
   int? id,
@@ -485,79 +574,25 @@ MockUserProfile copyUser(
   );
 }
 
-/// Shared async DB helpers for the Utilisateurs CRUD (used by HomeAdmin).
-Future<void> loadDbUsers(AdminUserStore store) async {
-  final rows = await DatabaseHelper.instance.getAll('users');
-  final mockEmails = MockPreSalesData.users.keys.toSet();
-  for (final r in rows) {
-    final email = (r['email'] ?? '').toString();
-    if (mockEmails.contains(email.toLowerCase())) continue;
-    final rawId = r['id'];
-    final id = rawId is int ? rawId : int.tryParse('$rawId') ?? 0;
-    final name = '${r['prenom'] ?? ''} ${r['nom'] ?? ''}'.trim();
-    store.upsert(
-      MockUserProfile(
-        id: AdminUserStore.dbBase + id,
-        name: name.isEmpty ? email : name,
-        email: email,
-        phone: '',
-        password: (r['password'] ?? '').toString(),
-        role: roleFromDb(r['role']?.toString()),
-      ),
-    );
-  }
-}
-
 Future<int> dbInsertUser(MockUserProfile u) async {
-  final (prenom, nom) = splitName(u.name);
-  return DatabaseHelper.instance.insert('users', {
-    'nom': nom,
-    'prenom': prenom,
-    'email': u.email,
-    'password': u.password,
-    'role': _roleToDb(u.role),
-  });
+  final row = await ApiService.createUser(userToApi(u));
+  return _jsonInt(row, ['id', 'user_id']);
 }
 
 Future<void> dbUpdateUser(int storeId, MockUserProfile u) async {
-  final (prenom, nom) = splitName(u.name);
-  final db = await DatabaseHelper.instance.database;
-  await db.update(
-    'users',
-    {
-      'nom': nom,
-      'prenom': prenom,
-      'email': u.email,
-      'password': u.password,
-      'role': _roleToDb(u.role),
-    },
-    where: 'id = ?',
-    whereArgs: [storeId - AdminUserStore.dbBase],
-  );
+  await ApiService.updateUser(storeId, userToApi(u));
 }
 
 Future<void> dbDeleteUser(int storeId) async {
-  final db = await DatabaseHelper.instance.database;
-  await db.delete(
-    'users',
-    where: 'id = ?',
-    whereArgs: [storeId - AdminUserStore.dbBase],
-  );
+  await ApiService.deleteUser(storeId);
 }
 
 Future<void> dbSetUserPassword(int storeId, String password) async {
-  final db = await DatabaseHelper.instance.database;
-  await db.update(
-    'users',
-    {'password': password},
-    where: 'id = ?',
-    whereArgs: [storeId - AdminUserStore.dbBase],
-  );
+  await ApiService.updateUser(storeId, {'password': password});
 }
 
 // ---------------------------------------------------------------------------
-// Sample orders (mock orders table is empty — seed a few for display)
-// ponytail: display-only seed; swap for real orders when the DB has them.
+// PostgreSQL order view model.
 // ---------------------------------------------------------------------------
 
 class AdminOrder {
@@ -592,57 +627,6 @@ class AdminOrderItem {
   final double total;
 }
 
-const sampleOrders = <AdminOrder>[
-  AdminOrder(
-    number: 'CMD-2024-1856',
-    client: 'Épicerie Al Amal',
-    commercial: 'Ahmed Benali',
-    date: '03/12/2024',
-    total: 1250,
-    subtotal: 1400,
-    discount: 150,
-    status: 'pending',
-    items: [
-      AdminOrderItem('Thé Vert 250g', 10, 25, 250),
-      AdminOrderItem('Thé Vert 500g', 20, 40, 800),
-      AdminOrderItem('Thé Vert 1kg', 5, 70, 350),
-    ],
-  ),
-  AdminOrder(
-    number: 'CMD-2024-1855',
-    client: 'Supermarché Marjane',
-    commercial: 'Sara El Amrani',
-    date: '03/12/2024',
-    total: 3450,
-    subtotal: 3450,
-    discount: 0,
-    status: 'validated',
-    items: [AdminOrderItem('Thé Vert Premium 250g', 115, 30, 3450)],
-  ),
-  AdminOrder(
-    number: 'CMD-2024-1854',
-    client: 'Bazar du Centre',
-    commercial: 'Mehdi Alaoui',
-    date: '02/12/2024',
-    total: 850,
-    subtotal: 850,
-    discount: 0,
-    status: 'refused',
-    items: [AdminOrderItem('Thé Vert 500g', 21, 40, 840)],
-  ),
-  AdminOrder(
-    number: 'CMD-2024-1853',
-    client: 'Épicerie Les Oliviers',
-    commercial: 'Ahmed Benali',
-    date: '02/12/2024',
-    total: 1780,
-    subtotal: 1780,
-    discount: 0,
-    status: 'validated',
-    items: [AdminOrderItem('Thé Vert 1kg', 25, 70, 1750)],
-  ),
-];
-
 (String, Color) orderStatusStyle(String status) => switch (status) {
   'validated' => ('Validée', kGreen),
   'refused' => ('Refusée', kRed),
@@ -650,8 +634,7 @@ const sampleOrders = <AdminOrder>[
 };
 
 // ---------------------------------------------------------------------------
-// Product store (sqflite-backed; seeded once from the mock catalogue)
-// ponytail: icon/color aren't persisted — every product uses the tea default.
+// Product store (PostgreSQL-backed through Flask API).
 // ---------------------------------------------------------------------------
 
 class ProductStore {
@@ -661,34 +644,44 @@ class ProductStore {
   List<String> get categories => _items.map((p) => p.category).toSet().toList();
 
   Future<void> load() async {
-    final db = await DatabaseHelper.instance.database;
-    var rows = await db.query('produits');
-    if (rows.isEmpty) {
-      for (final p in MockPreSalesData.orderProducts) {
-        await db.insert('produits', _toRow(p));
-      }
-      rows = await db.query('produits');
-    }
+    final rows = await ApiService.getProduits();
     _items
       ..clear()
-      ..addAll(rows.map(_fromRow));
+      ..addAll(rows.whereType<Map>().map(_fromRow));
   }
 
-  Map<String, Object?> _toRow(OrderProduct p) => {
+  Map<String, dynamic> _toRow(OrderProduct p) => {
     'nom_produit': p.name,
+    'name': p.name,
     'reference': p.reference,
     'categorie': p.category,
+    'category': p.category,
     'prix': p.unitPrice,
+    'price': p.unitPrice,
+    'prix_vente': p.unitPrice,
+    'unit_price': p.unitPrice,
     'stock': p.stock,
+    'quantite_stock': p.stock,
+    'image': p.image,
+    'photo': p.image,
+    'description': p.description,
+    'status': 'actif',
+    'statut': 'actif',
   };
 
-  OrderProduct _fromRow(Map<String, Object?> r) => OrderProduct(
-    id: (r['id'] as num).toInt(),
-    name: (r['nom_produit'] ?? '').toString(),
-    reference: (r['reference'] ?? '').toString(),
-    category: (r['categorie'] ?? 'Divers').toString(),
-    unitPrice: (r['prix'] as num?)?.toDouble() ?? 0,
-    stock: (r['stock'] as num?)?.toInt() ?? 0,
+  OrderProduct _fromRow(Map<dynamic, dynamic> r) => OrderProduct(
+    id: _jsonInt(r, ['id', 'produit_id']),
+    name: _jsonString(r, ['nom_produit', 'name', 'nom']).ifEmpty('Produit'),
+    reference: _jsonString(r, ['reference', 'ref']),
+    category: _jsonString(r, [
+      'categorie',
+      'category',
+      'nom_cat',
+    ]).ifEmpty('Divers'),
+    description: _jsonString(r, ['description']),
+    image: _jsonString(r, ['image', 'photo', 'product_image']),
+    unitPrice: _jsonDouble(r, ['prix', 'price', 'unit_price', 'prix_vente']),
+    stock: _jsonInt(r, ['stock', 'quantite_stock', 'quantity']),
     icon: Icons.local_cafe_rounded,
     imageColor: kGreen,
   );
@@ -698,6 +691,8 @@ class ProductStore {
     required String name,
     required String reference,
     required String category,
+    String description = '',
+    String image = '',
     required double price,
     required int stock,
   }) => OrderProduct(
@@ -705,6 +700,8 @@ class ProductStore {
     name: name,
     reference: reference,
     category: category.isEmpty ? 'Divers' : category,
+    description: description,
+    image: image,
     unitPrice: price,
     stock: stock,
     icon: Icons.local_cafe_rounded,
@@ -712,21 +709,18 @@ class ProductStore {
   );
 
   Future<void> add(OrderProduct p) async {
-    final db = await DatabaseHelper.instance.database;
-    final id = await db.insert('produits', _toRow(p));
-    _items.add(_fromRow({..._toRow(p), 'id': id}));
+    final row = await ApiService.createProduit(_toRow(p));
+    _items.add(_fromRow(row));
   }
 
   Future<void> update(OrderProduct p) async {
-    final db = await DatabaseHelper.instance.database;
-    await db.update('produits', _toRow(p), where: 'id = ?', whereArgs: [p.id]);
+    final row = await ApiService.updateProduit(p.id, _toRow(p));
     final i = _items.indexWhere((x) => x.id == p.id);
-    if (i >= 0) _items[i] = p;
+    if (i >= 0) _items[i] = _fromRow(row);
   }
 
   Future<void> remove(int id) async {
-    final db = await DatabaseHelper.instance.database;
-    await db.delete('produits', where: 'id = ?', whereArgs: [id]);
+    await ApiService.deleteProduit(id);
     _items.removeWhere((p) => p.id == id);
   }
 
@@ -742,7 +736,7 @@ class ProductStore {
 }
 
 // ---------------------------------------------------------------------------
-// Client store (mutable in-memory; seeded from mock clients)
+// Client store (PostgreSQL-backed through Flask API).
 // ---------------------------------------------------------------------------
 
 (String, Color) clientStatusStyle(ClientStatus s) => switch (s) {
@@ -758,53 +752,86 @@ class ClientStore {
   int count(ClientStatus s) => _items.where((c) => c.status == s).length;
 
   Future<void> load() async {
-    final db = await DatabaseHelper.instance.database;
-    var rows = await db.query('clients');
-    if (rows.isEmpty) {
-      for (final c in MockPreSalesData.teaSudClients) {
-        await db.insert('clients', _toRow(c));
-      }
-      rows = await db.query('clients');
-    }
+    final rows = await ApiService.getClients();
     _items
       ..clear()
-      ..addAll(rows.map(_fromRow));
+      ..addAll(rows.whereType<Map>().map(_fromRow));
   }
 
-  Map<String, Object?> _toRow(CommercialClient c) => {
-    'nom_client': c.name,
+  Map<String, dynamic> _toRow(CommercialClient c) => {
+    'name': c.name,
+    'nom': c.name,
     'email': c.email,
+    'city': c.city,
     'ville': c.city,
-    'categorie': c.category,
-    'statut': c.status.name,
-    'adresse': c.address,
-    'telephone': c.phone,
+    'category': c.businessType,
+    'business_type': c.businessType,
+    'contact_name': c.contactName,
+    'quartier': c.quartier,
+    'notes': c.notes,
+    'latitude': c.latitude,
+    'longitude': c.longitude,
+    'commercial_id': c.commercialId == 0 ? null : c.commercialId,
+    'status': c.status.name,
+    'address': c.address,
+    'phone': c.phone,
   };
 
-  CommercialClient _fromRow(Map<String, Object?> r) {
-    final name = (r['nom_client'] ?? '').toString();
+  CommercialClient _fromRow(Map<dynamic, dynamic> r) {
+    final name = _jsonString(r, [
+      'name',
+      'nom',
+      'nom_client',
+    ]).ifEmpty('Client');
     return CommercialClient(
-      id: (r['id'] as num).toInt(),
+      id: _jsonInt(r, ['id', 'client_id']),
       name: name,
-      city: (r['ville'] ?? '').toString(),
-      category: (r['categorie'] ?? 'Commerce général').toString(),
-      status: _statusFromName((r['statut'] ?? '').toString()),
+      city: _jsonString(r, ['city', 'ville']),
+      commercialId: _jsonInt(r, [
+        'commercial_id',
+        'id_commercial',
+        'user_id',
+        'created_by',
+      ]),
+      businessType: _jsonString(r, [
+        'business_type',
+        'category',
+        'categorie',
+      ]).ifEmpty('Autre'),
+      category: _jsonString(r, [
+        'category',
+        'business_type',
+        'categorie',
+      ]).ifEmpty('Commerce general'),
+      status: _statusFromName(
+        _jsonString(r, ['computed_status', 'status', 'statut']),
+      ),
       initials: initials(name),
-      phone: (r['telephone'] ?? '').toString(),
-      email: (r['email'] ?? '').toString(),
-      address: (r['adresse'] ?? '').toString(),
+      phone: _jsonString(r, ['phone', 'telephone']),
+      email: _jsonString(r, ['email']),
+      address: _jsonString(r, ['address', 'adresse']),
+      contactName: _jsonString(r, ['contact_name', 'responsable']),
+      quartier: _jsonString(r, ['quartier', 'district']),
+      notes: _jsonString(r, ['notes', 'commentaire', 'comments']),
+      latitude: _jsonDouble(r, ['latitude', 'lat']),
+      longitude: _jsonDouble(r, ['longitude', 'lng']),
       creditLimit: 0,
       discount: 0,
       balance: 0,
-      lastOrderDate: '-',
+      lastOrderDate: _jsonString(r, [
+        'computed_last_order_date',
+        'last_order_date',
+      ]).ifEmpty('-'),
       risk: ClientRisk.low,
-      orders: const [],
+      orders: _clientOrdersFromStats(r),
       documents: const [],
     );
   }
 
-  ClientStatus _statusFromName(String s) => ClientStatus.values
-      .firstWhere((v) => v.name == s, orElse: () => ClientStatus.visited);
+  ClientStatus _statusFromName(String s) => ClientStatus.values.firstWhere(
+    (v) => v.name == s,
+    orElse: () => ClientStatus.visited,
+  );
 
   CommercialClient build({
     int? id,
@@ -812,20 +839,34 @@ class ClientStore {
     required String city,
     required String category,
     required ClientStatus status,
+    int commercialId = 0,
+    String businessType = 'Autre',
     String address = '',
     String phone = '',
     String email = '',
+    String contactName = '',
+    String quartier = '',
+    String notes = '',
+    double latitude = 33.5731,
+    double longitude = -7.5898,
   }) {
     return CommercialClient(
       id: id ?? 0,
+      commercialId: commercialId,
       name: name,
       city: city,
-      category: category.isEmpty ? 'Commerce général' : category,
+      businessType: businessType,
+      category: category.isEmpty ? 'Commerce general' : category,
       status: status,
       initials: initials(name),
       phone: phone,
       email: email,
       address: address,
+      contactName: contactName,
+      quartier: quartier,
+      notes: notes,
+      latitude: latitude,
+      longitude: longitude,
       creditLimit: 0,
       discount: 0,
       balance: 0,
@@ -837,21 +878,18 @@ class ClientStore {
   }
 
   Future<void> add(CommercialClient c) async {
-    final db = await DatabaseHelper.instance.database;
-    final id = await db.insert('clients', _toRow(c));
-    _items.add(_fromRow({..._toRow(c), 'id': id}));
+    final row = await ApiService.createClient(_toRow(c));
+    _items.add(_fromRow(row));
   }
 
   Future<void> update(CommercialClient c) async {
-    final db = await DatabaseHelper.instance.database;
-    await db.update('clients', _toRow(c), where: 'id = ?', whereArgs: [c.id]);
+    final row = await ApiService.updateClient(c.id, _toRow(c));
     final i = _items.indexWhere((x) => x.id == c.id);
-    if (i >= 0) _items[i] = c;
+    if (i >= 0) _items[i] = _fromRow(row);
   }
 
   Future<void> remove(int id) async {
-    final db = await DatabaseHelper.instance.database;
-    await db.delete('clients', where: 'id = ?', whereArgs: [id]);
+    await ApiService.deleteClient(id);
     _items.removeWhere((c) => c.id == id);
   }
 
@@ -864,4 +902,22 @@ class ClientStore {
           c.city.toLowerCase().contains(q);
     }).toList();
   }
+}
+
+List<ClientOrder> _clientOrdersFromStats(Map<dynamic, dynamic> row) {
+  final count = _jsonInt(row, ['orders_count', 'commandes_count']);
+  if (count <= 0) return const [];
+  final revenue = _jsonDouble(row, ['ca_total', 'revenue', 'total_ca']);
+  final date = _jsonString(row, [
+    'computed_last_order_date',
+    'last_order_date',
+  ]).ifEmpty('-');
+  return List<ClientOrder>.generate(
+    count,
+    (index) => ClientOrder(
+      reference: 'CMD-${index + 1}',
+      date: date,
+      amount: index == 0 ? revenue : 0,
+    ),
+  );
 }

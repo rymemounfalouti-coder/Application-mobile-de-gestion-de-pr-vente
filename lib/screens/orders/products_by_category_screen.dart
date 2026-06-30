@@ -1,7 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
-import 'package:sqflite/sqflite.dart';
 
+import '../../api_service.dart';
 import '../../database/database_helper.dart';
 import 'order_cart.dart';
 
@@ -42,22 +42,39 @@ class _ProductsByCategoryScreenState extends State<ProductsByCategoryScreen> {
   }
 
   Future<void> _loadProducts() async {
-    final db = await DatabaseHelper.instance.database;
-    await _seedProductsIfNeeded(db);
-
-    final rows = await db.query(
-      'produits',
-      where: 'id_cat = ?',
-      whereArgs: [widget.categoryId],
-      orderBy: 'id ASC',
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      _products = rows.map(_ProductItem.fromDb).toList();
-      _isLoadingProducts = false;
-    });
+    try {
+      final rows = await ApiService.getProduits();
+      final category = _categoryKey(widget.categoryName);
+      final allProducts = rows
+          .whereType<Map>()
+          .map((row) => _ProductItem.fromApi(row))
+          .where((product) => product.id > 0)
+          .toList();
+      final matchingProducts = allProducts.where((product) {
+        if (category.isEmpty) return true;
+        final productCategory = _categoryKey(product.category);
+        return productCategory.isEmpty ||
+            productCategory == category ||
+            productCategory.contains(category) ||
+            category.contains(productCategory);
+      }).toList();
+      final products = matchingProducts.isEmpty
+          ? allProducts
+          : matchingProducts;
+      if (!mounted) return;
+      setState(() {
+        _products = products;
+        _isLoadingProducts = false;
+      });
+      return;
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _products = [];
+        _isLoadingProducts = false;
+      });
+      _showMessage('Erreur chargement produits');
+    }
   }
 
   int get _cartCount =>
@@ -942,6 +959,7 @@ class _ProductItem {
     required this.shortName,
     required this.price,
     required this.icon,
+    this.category = '',
   });
 
   final int id;
@@ -949,93 +967,46 @@ class _ProductItem {
   final String shortName;
   final double price;
   final String icon;
+  final String category;
 
-  factory _ProductItem.fromDb(Map<String, Object?> row) {
-    final name = (row['nom_produit'] ?? 'Produit').toString();
+  factory _ProductItem.fromApi(Map<dynamic, dynamic> row) {
+    final name = (row['nom_produit'] ?? row['name'] ?? row['nom'] ?? 'Produit')
+        .toString();
+    final priceValue =
+        row['prix'] ?? row['price'] ?? row['unit_price'] ?? row['prix_vente'];
+    final price = priceValue is num
+        ? priceValue.toDouble()
+        : double.tryParse(priceValue?.toString().replaceAll(',', '.') ?? '') ??
+              0;
     return _ProductItem(
-      id: (row['id'] as int?) ?? 0,
+      id: _intFrom(row['id'] ?? row['produit_id']),
       name: name,
       shortName: _shortName(name),
-      price: ((row['prix'] as num?) ?? 0).toDouble(),
+      price: price,
       icon: _iconForName(name),
+      category: (row['categorie'] ?? row['category'] ?? row['nom_cat'] ?? '')
+          .toString(),
     );
   }
+}
 
-  // ignore: unused_element
-  static List<_ProductItem> forCategory(String categoryName) {
-    return [
-      _ProductItem(
-        id: 1,
-        name: 'Coca-Cola Classic (33cl)',
-        shortName: 'Coca-Cola\n(33cl)',
-        price: 15.00,
-        icon: 'ðŸ¥¤',
-      ),
-      _ProductItem(
-        id: 2,
-        name: 'Fanta Orange (33cl)',
-        shortName: 'Fanta\n(33cl)',
-        price: 14.50,
-        icon: 'ðŸ§ƒ',
-      ),
-      _ProductItem(
-        id: 3,
-        name: 'Sprite (33cl)',
-        shortName: 'Sprite\n(33cl)',
-        price: 14.50,
-        icon: 'ðŸ¥¤',
-      ),
-      _ProductItem(
-        id: 4,
-        name: 'Evian Eau Minérale (50cl)',
-        shortName: 'Evian\n(50cl)',
-        price: 11.00,
-        icon: 'ðŸ’§',
-      ),
-      _ProductItem(
-        id: 5,
-        name: 'Perrier Eau Gazeuse (33cl)',
-        shortName: 'Perrier\n(33cl)',
-        price: 12.50,
-        icon: 'ðŸ¾',
-      ),
-      _ProductItem(
-        id: 6,
-        name: "Jus d'Orange Bio (1L)",
-        shortName: "Jus d'Orange\n(1L)",
-        price: 32.00,
-        icon: 'ðŸ§ƒ',
-      ),
-      _ProductItem(
-        id: 7,
-        name: 'Oasis Tropical (33cl)',
-        shortName: 'Oasis\n(33cl)',
-        price: 13.50,
-        icon: 'ðŸ§ƒ',
-      ),
-      _ProductItem(
-        id: 8,
-        name: 'Ice Tea Pêche (33cl)',
-        shortName: 'Ice Tea\n(33cl)',
-        price: 16.00,
-        icon: 'ðŸ¥¤',
-      ),
-      _ProductItem(
-        id: 9,
-        name: 'Eau Minérale (1.5L)',
-        shortName: 'Eau\n(1.5L)',
-        price: 10.00,
-        icon: 'ðŸ’§',
-      ),
-      _ProductItem(
-        id: 10,
-        name: 'Red Bull (25cl)',
-        shortName: 'Red Bull\n(25cl)',
-        price: 28.00,
-        icon: 'ðŸ¥«',
-      ),
-    ];
-  }
+int _intFrom(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+String _categoryKey(String value) {
+  return value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp('[àáâãäå]'), 'a')
+      .replaceAll(RegExp('[èéêë]'), 'e')
+      .replaceAll(RegExp('[ìíîï]'), 'i')
+      .replaceAll(RegExp('[òóôõö]'), 'o')
+      .replaceAll(RegExp('[ùúûü]'), 'u')
+      .replaceAll('ç', 'c')
+      .replaceAll(RegExp(r'\s+'), ' ');
 }
 
 String _shortName(String name) {
@@ -1046,7 +1017,7 @@ String _shortName(String name) {
 
 String _iconForName(String name) {
   final value = name.toLowerCase();
-  if (value.contains('eau') || value.contains('perrier')) return 'ðŸ’§';
+  if (value.contains('eau') || value.contains('perrier')) return 'W';
   if (value.contains('coca') ||
       value.contains('fanta') ||
       value.contains('sprite') ||
@@ -1054,186 +1025,35 @@ String _iconForName(String name) {
       value.contains('tea') ||
       value.contains('oasis') ||
       value.contains('soda')) {
-    return 'ðŸ¥¤';
+    return 'B';
   }
   if (value.contains('pain') ||
       value.contains('baguette') ||
       value.contains('croissant')) {
-    return 'ðŸ¥–';
+    return 'P';
   }
   if (value.contains('lait') ||
       value.contains('yaourt') ||
       value.contains('fromage')) {
-    return 'ðŸ§€';
+    return 'L';
   }
   if (value.contains('poulet') ||
       value.contains('boeuf') ||
       value.contains('poisson')) {
-    return 'ðŸ—';
+    return 'V';
   }
   if (value.contains('pomme') ||
       value.contains('banane') ||
       value.contains('tomate')) {
-    return 'ðŸŽ';
+    return 'F';
   }
   if (value.contains('biscuit') ||
       value.contains('chocolat') ||
       value.contains('gateau')) {
-    return 'ðŸª';
+    return 'S';
   }
-  if (value.contains('chips') || value.contains('olive')) return 'ðŸ¥«';
-  if (value.contains('savon') || value.contains('shampoing')) return 'ðŸ§´';
-  if (value.contains('glace') || value.contains('surg')) return 'ðŸ§Š';
-  return 'ðŸ›’';
+  if (value.contains('chips') || value.contains('olive')) return 'E';
+  if (value.contains('savon') || value.contains('shampoing')) return 'H';
+  if (value.contains('glace') || value.contains('surg')) return 'G';
+  return 'P';
 }
-
-Future<void> _seedProductsIfNeeded(Database db) async {
-  final countRows = await db.rawQuery('SELECT COUNT(*) AS count FROM produits');
-  final productCount = (countRows.first['count'] as int?) ?? 0;
-  if (productCount > 0) return;
-
-  final categoryCountRows = await db.rawQuery(
-    'SELECT COUNT(*) AS count FROM categories',
-  );
-  final categoryCount = (categoryCountRows.first['count'] as int?) ?? 0;
-  if (categoryCount == 0) {
-    for (final category in _seedCategoryNames) {
-      await db.insert('categories', {'nom_cat': category});
-    }
-  }
-
-  final batch = db.batch();
-  _seedProductsByCategory.forEach((categoryId, products) {
-    for (final product in products) {
-      batch.insert('produits', {
-        'id_cat': categoryId,
-        'nom_produit': product.$1,
-        'prix': product.$2,
-      });
-    }
-  });
-  await batch.commit(noResult: true);
-}
-
-final _seedCategoryNames = [
-  'Boissons & Sodas',
-  'Boulangerie',
-  'Produits Laitiers',
-  'Viandes & Poissons',
-  'Fruits & Legumes',
-  'Epicerie Sucree',
-  'Epicerie Salee',
-  'Hygiene',
-  'Surgeles',
-];
-
-Map<int, List<(String, double)>> _seedProductsByCategory = {
-  1: [
-    ('Coca-Cola Classic (33cl)', 15.00),
-    ('Fanta Orange (33cl)', 14.50),
-    ('Sprite (33cl)', 14.50),
-    ('Evian Eau Minerale (50cl)', 11.00),
-    ('Perrier Eau Gazeuse (33cl)', 12.50),
-    ("Jus d'Orange Bio (1L)", 32.00),
-    ('Oasis Tropical (33cl)', 13.50),
-    ('Ice Tea Peche (33cl)', 16.00),
-    ('Eau Minerale (1.5L)', 10.00),
-    ('Red Bull (25cl)', 28.00),
-  ],
-  2: [
-    ('Baguette Tradition', 3.50),
-    ('Pain Complet', 8.00),
-    ('Croissant Beurre', 4.00),
-    ('Pain Chocolat', 4.50),
-    ('Brioche Nature', 12.00),
-    ('Pain Burger', 10.00),
-    ('Pain Toast', 14.00),
-    ('Muffin Vanille', 7.50),
-    ('Madeleine Sachet', 9.00),
-    ('Cake Marbre', 18.00),
-  ],
-  3: [
-    ('Lait Entier (1L)', 9.50),
-    ('Lait Demi-Ecreme (1L)', 9.00),
-    ('Yaourt Nature Pack', 18.00),
-    ('Yaourt Fraise Pack', 19.00),
-    ('Fromage Portions', 16.00),
-    ('Beurre Doux', 24.00),
-    ('Creme Fraiche', 13.00),
-    ('Mozzarella', 22.00),
-    ('Fromage Rape', 21.00),
-    ('Lben Frais', 8.00),
-  ],
-  4: [
-    ('Poulet Entier', 42.00),
-    ('Escalope Poulet', 58.00),
-    ('Viande Boeuf Hachee', 75.00),
-    ('Steak Boeuf', 88.00),
-    ('Poisson Blanc', 65.00),
-    ('Thon Frais', 72.00),
-    ('Crevettes', 95.00),
-    ('Saucisses Poulet', 38.00),
-    ('Dinde Fumee', 52.00),
-    ('Kefta Assaisonnee', 69.00),
-  ],
-  5: [
-    ('Pommes Rouges', 14.00),
-    ('Bananes', 12.00),
-    ('Oranges', 10.00),
-    ('Tomates', 8.00),
-    ('Pommes de Terre', 7.00),
-    ('Carottes', 6.50),
-    ('Oignons', 6.00),
-    ('Salade Verte', 5.00),
-    ('Concombres', 7.50),
-    ('Citrons', 11.00),
-  ],
-  6: [
-    ('Biscuits Chocolat', 12.00),
-    ('Chocolat Noir', 18.00),
-    ('Cereales Miel', 24.00),
-    ('Confiture Fraise', 21.00),
-    ('Miel Naturel', 45.00),
-    ('Gateau Fourre', 10.00),
-    ('Bonbons Fruits', 9.00),
-    ('Pate a Tartiner', 35.00),
-    ('Sucre Semoule', 11.00),
-    ('Cafe Moulu', 29.00),
-  ],
-  7: [
-    ('Chips Nature', 8.00),
-    ('Chips Fromage', 8.50),
-    ('Olives Vertes', 18.00),
-    ('Thon Conserve', 16.00),
-    ('Mais Conserve', 12.00),
-    ('Cornichons', 15.00),
-    ('Crackers Sales', 11.00),
-    ('Sauce Tomate', 9.00),
-    ('Pates Spaghetti', 13.00),
-    ('Riz Long Grain', 17.00),
-  ],
-  8: [
-    ('Savon Liquide', 22.00),
-    ('Shampoing Doux', 34.00),
-    ('Gel Douche', 28.00),
-    ('Dentifrice', 16.00),
-    ('Brosse a Dents', 12.00),
-    ('Papier Toilette', 32.00),
-    ('Mouchoirs Boite', 10.00),
-    ('Deodorant', 25.00),
-    ('Lingettes', 18.00),
-    ('Creme Mains', 20.00),
-  ],
-  9: [
-    ('Glace Vanille', 26.00),
-    ('Glace Chocolat', 26.00),
-    ('Legumes Surgeles', 19.00),
-    ('Frites Surgeles', 18.00),
-    ('Pizza Surgeles', 32.00),
-    ('Poisson Pane', 36.00),
-    ('Nuggets Poulet', 34.00),
-    ('Epinards Surgeles', 16.00),
-    ('Petits Pois', 15.00),
-    ('Dessert Glace', 29.00),
-  ],
-};

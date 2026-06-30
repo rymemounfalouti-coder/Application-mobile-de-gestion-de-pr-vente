@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "en",
   "appName": "Pre-Sales Management",
   "home": "Home",
@@ -34,7 +34,7 @@
   "french": "French",
   "frenchNative": "Français",
   "arabic": "Arabic",
-  "arabicNative": "Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©",
+  "arabicNative": "العربية",
   "english": "English",
   "englishNative": "English",
   "preview": "Preview",

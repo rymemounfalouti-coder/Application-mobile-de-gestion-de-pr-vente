@@ -1,4 +1,4 @@
-﻿import '../data/mock_presales_data.dart';
+import '../data/mock_presales_data.dart';
 
 enum ManagerOrderStatus { all, validated, pending, cancelled, returned }
 

@@ -1134,6 +1134,8 @@ class CommercialClient {
     this.businessType = 'Commerce général',
     this.category = 'Commerce général',
     this.contactName = '',
+    this.quartier = '',
+    this.notes = '',
     this.latitude = 33.5731,
     this.longitude = -7.5898,
     required this.id,
@@ -1158,6 +1160,8 @@ class CommercialClient {
   final String businessType;
   final String category;
   final String contactName;
+  final String quartier;
+  final String notes;
   final double latitude;
   final double longitude;
   final int id;
@@ -1182,6 +1186,8 @@ class CommercialClient {
     String? businessType,
     String? category,
     String? contactName,
+    String? quartier,
+    String? notes,
     double? latitude,
     double? longitude,
     int? id,
@@ -1206,6 +1212,8 @@ class CommercialClient {
       businessType: businessType ?? this.businessType,
       category: category ?? this.category,
       contactName: contactName ?? this.contactName,
+      quartier: quartier ?? this.quartier,
+      notes: notes ?? this.notes,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       id: id ?? this.id,
@@ -1258,6 +1266,7 @@ class OrderProduct {
     required this.reference,
     required this.category,
     this.weight = '',
+    this.description = '',
     this.image = '',
     required this.unitPrice,
     double? prixStandard,
@@ -1277,6 +1286,7 @@ class OrderProduct {
   final String reference;
   final String category;
   final String weight;
+  final String description;
   final String image;
   final double unitPrice;
   final double prixStandard;

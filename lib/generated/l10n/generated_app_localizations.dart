@@ -310,7 +310,7 @@ abstract class GeneratedAppLocalizations {
   /// No description provided for @arabicNative.
   ///
   /// In fr, this message translates to:
-  /// **'Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©'**
+  /// **'العربية'**
   String get arabicNative;
 
   /// No description provided for @english.

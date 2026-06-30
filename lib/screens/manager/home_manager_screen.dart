@@ -137,6 +137,32 @@ enum _ManagerOrderApiStatus { all, pending, validated, refused }
 
 enum _ManagerRecentActivityType { order, report, objective, activity, claim }
 
+final ValueNotifier<int> _managerUnreadNotifications = ValueNotifier<int>(0);
+
+bool _isUnreadManagerNotification(Map<dynamic, dynamic> item) {
+  final value = item['is_read'] ?? item['read'] ?? item['lu'];
+  if (value is bool) return !value;
+  if (value is num) return value == 0;
+  if (value is String) {
+    return !['true', '1', 'lu', 'read'].contains(value.toLowerCase());
+  }
+  return true;
+}
+
+Future<void> _syncManagerUnreadNotifications() async {
+  final user = CurrentUserSession.currentUser;
+  if (user == null || !user.isManager) return;
+  try {
+    final notifications = await ApiService.getNotifications(managerId: user.id);
+    _managerUnreadNotifications.value = notifications
+        .whereType<Map>()
+        .where(_isUnreadManagerNotification)
+        .length;
+  } catch (error) {
+    debugPrint('[MANAGER][NOTIFICATIONS][BADGE][ERROR] $error');
+  }
+}
+
 class _ManagerHomeData {
   _ManagerHomeData({
     required this.range,
@@ -209,7 +235,6 @@ class _ManagerHomeData {
 
   factory _ManagerHomeData.fromApi({
     required List<dynamic> factures,
-    required List<dynamic> clients,
     required List<dynamic> users,
     required List<dynamic> notifications,
     required DateTimeRange range,
@@ -227,25 +252,22 @@ class _ManagerHomeData {
         .whereType<Map>()
         .map((item) => _ManagerApiUser.fromJson(item.cast<String, dynamic>()))
         .toList();
-    final commercialUsers = usersList
-        .where((user) => user.isCommercial)
-        .take(3)
-        .toList();
-    final activeCommercials = commercialUsers
-        .where((user) => user.isActive)
-        .length;
-    final activeClients = clients.whereType<Map>().where((client) {
-      final status = _readString(client, ['status', 'statut', 'etat']);
-      return status.isEmpty || _isActiveStatus(status);
-    }).length;
+    final usersById = {for (final user in usersList) user.id: user};
+    final activeCommercialIds = orders
+        .map((order) => order.commercialId)
+        .whereType<int>()
+        .toSet();
+    final activeClientKeys = orders
+        .map((order) => order.clientId?.toString() ?? order.clientName)
+        .where((value) => value.trim().isNotEmpty)
+        .toSet();
+    final activeCommercials = activeCommercialIds.length;
+    final activeClients = activeClientKeys.length;
 
     final validated = orders
         .where((order) => order.status == _ManagerOrderApiStatus.validated)
         .toList();
-    final revenue = validated.fold<double>(
-      0,
-      (sum, order) => sum + order.total,
-    );
+    final revenue = orders.fold<double>(0, (sum, order) => sum + order.total);
     final pendingOrders = orders
         .where((o) => o.status == _ManagerOrderApiStatus.pending)
         .length;
@@ -254,20 +276,11 @@ class _ManagerHomeData {
         .length;
 
     final byCommercial = <int, _ManagerCommercialPerformance>{};
-    for (final user in commercialUsers) {
-      byCommercial[user.id] = _ManagerCommercialPerformance(
-        id: user.id,
-        name: user.name,
-        revenue: 0,
-        orderCount: 0,
-        objective: 0,
-        objectiveRate: 0,
-      );
-    }
-    for (final order in validated) {
+    for (final order in orders) {
       final commercialId = order.commercialId ?? 0;
       final existing = byCommercial[commercialId];
-      final name = existing?.name ?? order.commercialName;
+      final userName = usersById[commercialId]?.name ?? '';
+      final name = existing?.name ?? order.commercialName.ifEmpty(userName);
       byCommercial[commercialId] = _ManagerCommercialPerformance(
         id: commercialId,
         name: name.isEmpty ? 'Commercial' : name,
@@ -288,6 +301,11 @@ class _ManagerHomeData {
     final objectiveRate = objectiveTotal <= 0
         ? 0
         : ((revenue / objectiveTotal) * 100).round();
+    final unreadNotifications = notifications
+        .whereType<Map>()
+        .where(_isUnreadManagerNotification)
+        .length;
+    _managerUnreadNotifications.value = unreadNotifications;
 
     return _ManagerHomeData(
       range: range,
@@ -299,18 +317,10 @@ class _ManagerHomeData {
       activeCommercials: activeCommercials,
       activeClients: activeClients,
       objectiveRate: objectiveRate,
-      revenueSeries: _buildRevenueSeries(validated, range, period),
+      revenueSeries: _buildRevenueSeries(orders, range, period),
       topCommercials: top5,
       recentActivities: _buildRecentActivities(orders),
-      unreadNotifications: notifications.whereType<Map>().where((item) {
-        final value = item['is_read'] ?? item['read'] ?? item['lu'];
-        if (value is bool) return !value;
-        if (value is num) return value == 0;
-        if (value is String) {
-          return !['true', '1', 'lu', 'read'].contains(value.toLowerCase());
-        }
-        return true;
-      }).length,
+      unreadNotifications: unreadNotifications,
     );
   }
 }
@@ -322,6 +332,7 @@ class _ManagerApiOrder {
     required this.status,
     this.date,
     this.commercialId,
+    this.clientId,
     this.commercialName = '',
     this.clientName = '',
     this.orderNumber = '',
@@ -332,6 +343,7 @@ class _ManagerApiOrder {
   final _ManagerOrderApiStatus status;
   final DateTime? date;
   final int? commercialId;
+  final int? clientId;
   final String commercialName;
   final String clientName;
   final String orderNumber;
@@ -357,6 +369,7 @@ class _ManagerApiOrder {
         'created_by',
         'vendeur_id',
       ]),
+      clientId: _readNullableInt(json, ['client_id', 'id_client']),
       commercialName: _readString(json, [
         'commercial_name',
         'commercial',
@@ -580,6 +593,14 @@ String _readString(Map<dynamic, dynamic> json, List<String> keys) {
   return '';
 }
 
+String _readUserDisplayName(Map<dynamic, dynamic> json) {
+  final direct = _readString(json, ['name', 'full_name', 'username']).trim();
+  if (direct.isNotEmpty) return direct;
+  final first = _readString(json, ['prenom', 'first_name']).trim();
+  final last = _readString(json, ['nom', 'last_name']).trim();
+  return '$first $last'.trim();
+}
+
 int _readInt(Map<dynamic, dynamic> json, List<String> keys) {
   return _readNullableInt(json, keys) ?? 0;
 }
@@ -614,9 +635,43 @@ DateTime? _readDate(Map<dynamic, dynamic> json, List<String> keys) {
     if (value is String) {
       final parsed = DateTime.tryParse(value);
       if (parsed != null) return parsed;
+      final httpParsed = _parseHttpDate(value);
+      if (httpParsed != null) return httpParsed;
     }
   }
   return null;
+}
+
+DateTime? _parseHttpDate(String value) {
+  final match = RegExp(
+    r'^[A-Za-z]{3},\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+'
+    r'(\d{2}):(\d{2}):(\d{2})\s+GMT$',
+  ).firstMatch(value.trim());
+  if (match == null) return null;
+  const months = {
+    'Jan': 1,
+    'Feb': 2,
+    'Mar': 3,
+    'Apr': 4,
+    'May': 5,
+    'Jun': 6,
+    'Jul': 7,
+    'Aug': 8,
+    'Sep': 9,
+    'Oct': 10,
+    'Nov': 11,
+    'Dec': 12,
+  };
+  final month = months[match.group(2)];
+  if (month == null) return null;
+  return DateTime.utc(
+    int.parse(match.group(3)!),
+    month,
+    int.parse(match.group(1)!),
+    int.parse(match.group(4)!),
+    int.parse(match.group(5)!),
+    int.parse(match.group(6)!),
+  ).toLocal();
 }
 
 class _ManagerOrdersCache {
@@ -879,10 +934,11 @@ class _ManagerOrderLineView {
   final double discount;
 
   factory _ManagerOrderLineView.fromJson(Map<String, dynamic> json) {
-    final quantity = _readDouble(json, ['quantity', 'quantite', 'qty']);
+    final quantity = _readDouble(json, ['quantity', 'quantite', 'qty', 'qte']);
     final unitPrice = _readDouble(json, [
       'unit_price',
       'prix_unitaire',
+      'prix_vendu',
       'price',
     ]);
     return _ManagerOrderLineView(
@@ -904,6 +960,7 @@ class _ManagerOrderLineView {
       discount: _readDouble(json, ['discount', 'remise']),
       total: _readDouble(json, [
         'total',
+        'total_ligne',
         'line_total',
       ]).nonZero(quantity * unitPrice),
     );
@@ -984,38 +1041,47 @@ class _ManagerHomeHeader extends StatelessWidget {
               ],
             ),
           ),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                onPressed: onNotificationsPressed,
-                icon: Icon(LucideIcons.bell, size: 27),
-                color: Colors.white,
-              ),
-              if (unreadCount > 0)
-                Positioned(
-                  right: 7,
-                  top: 5,
-                  child: Container(
-                    constraints: BoxConstraints(minWidth: 18, minHeight: 18),
-                    padding: EdgeInsets.symmetric(horizontal: 5),
-                    decoration: BoxDecoration(
-                      color: _DashboardManagerState.managerRed,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Center(
-                      child: Text(
-                        unreadCount > 99 ? '99+' : '$unreadCount',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
+          ValueListenableBuilder<int>(
+            valueListenable: _managerUnreadNotifications,
+            builder: (context, globalUnread, child) {
+              final effectiveUnread = globalUnread;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    onPressed: onNotificationsPressed,
+                    icon: Icon(LucideIcons.bell, size: 27),
+                    color: Colors.white,
+                  ),
+                  if (effectiveUnread > 0)
+                    Positioned(
+                      right: 7,
+                      top: 5,
+                      child: Container(
+                        constraints: BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 5),
+                        decoration: BoxDecoration(
+                          color: _DashboardManagerState.managerRed,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Center(
+                          child: Text(
+                            effectiveUnread > 99 ? '99+' : '$effectiveUnread',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-            ],
+                ],
+              );
+            },
           ),
           SizedBox(width: 8),
           InkWell(
@@ -1480,90 +1546,98 @@ class _OrderStatusDonutCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 18),
-          Row(
-            children: [
-              SizedBox(
-                width: 138,
-                height: 138,
-                child: CustomPaint(
-                  painter: _OrderDonutPainter(
-                    validated: data.validatedOrders,
-                    pending: data.pendingOrders,
-                    refused: data.refusedOrders,
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '$total',
-                          style: TextStyle(
-                            color: _DashboardManagerState._textDark,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
+          if (total == 0)
+            Expanded(
+              child: _ManagerEmptyInline(
+                icon: LucideIcons.pieChart,
+                text: 'Aucune donnee disponible.',
+              ),
+            )
+          else
+            Row(
+              children: [
+                SizedBox(
+                  width: 138,
+                  height: 138,
+                  child: CustomPaint(
+                    painter: _OrderDonutPainter(
+                      validated: data.validatedOrders,
+                      pending: data.pendingOrders,
+                      refused: data.refusedOrders,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$total',
+                            style: TextStyle(
+                              color: _DashboardManagerState._textDark,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Total',
-                          style: TextStyle(
-                            color: _DashboardManagerState._textMuted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                          Text(
+                            'Total',
+                            style: TextStyle(
+                              color: _DashboardManagerState._textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  children: [
-                    for (final row in rows)
-                      InkWell(
-                        onTap: () => onOpenCommands(row.$4),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: row.$3,
-                                  shape: BoxShape.circle,
+                SizedBox(width: 18),
+                Expanded(
+                  child: Column(
+                    children: [
+                      for (final row in rows)
+                        InkWell(
+                          onTap: () => onOpenCommands(row.$4),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: row.$3,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(width: 9),
-                              Expanded(
-                                child: Text(
-                                  row.$1,
+                                SizedBox(width: 9),
+                                Expanded(
+                                  child: Text(
+                                    row.$1,
+                                    style: TextStyle(
+                                      color: _DashboardManagerState._textDark,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${row.$2} (${((row.$2 / total) * 100).round()}%)',
                                   style: TextStyle(
-                                    color: _DashboardManagerState._textDark,
-                                    fontSize: 13,
+                                    color: _DashboardManagerState._textMuted,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
-                              ),
-                              Text(
-                                '${row.$2} (${total == 0 ? 0 : ((row.$2 / total) * 100).round()}%)',
-                                style: TextStyle(
-                                  color: _DashboardManagerState._textMuted,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );
@@ -2490,6 +2564,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
   }
 
   Future<_ManagerCommercialsData> _loadData() async {
+    await _syncManagerUnreadNotifications();
     final range = _selectedPeriod.range(_customRange);
     final results = await Future.wait<List<dynamic>>([
       _safeApiList(ApiService.getUsers),
@@ -2520,18 +2595,18 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
         id,
       );
       final assignedClients = clients.where((client) {
-        final commercialId = _readInt(client, ['commercial_id', 'user_id']);
-        return commercialId == id;
+        final commercialId = _readNullableInt(client, [
+          'commercial_id',
+          'id_commercial',
+          'user_id',
+          'created_by',
+        ]);
+        return commercialId == null || commercialId == id;
       }).length;
       items.add(
         _ManagerCommercialView(
           id: id,
-          name: _readString(userJson, [
-            'name',
-            'full_name',
-            'username',
-            'nom',
-          ]).ifEmpty('Commercial'),
+          name: _readUserDisplayName(userJson).ifEmpty('Commercial'),
           email: _readString(userJson, ['email']),
           phone: _readString(userJson, ['phone', 'telephone']),
           city: _readString(userJson, ['city', 'ville']).ifEmpty('-'),
@@ -2575,7 +2650,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
       'vendeur_id',
     ]);
     if (rawId != null) return rawId == id;
-    final name = _readString(user, ['name', 'full_name', 'username', 'nom']);
+    final name = _readUserDisplayName(user);
     return name.isNotEmpty &&
         order.commercialName.toLowerCase().contains(name.toLowerCase());
   }
@@ -3080,6 +3155,8 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
   DateTimeRange? _customRange;
   _ManagerOrderApiStatus _selectedStatus = _ManagerOrderApiStatus.all;
   Future<List<_ManagerOrderView>>? _ordersFuture;
+  Timer? _refreshTimer;
+  bool _appliedRouteArgs = false;
   String _commercialFilter = '';
   String _clientFilter = '';
   String _categoryFilter = '';
@@ -3092,12 +3169,45 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
     super.initState();
     _searchController.addListener(() => setState(() {}));
     _ordersFuture = _loadOrders();
+    _refreshTimer = Timer.periodic(Duration(seconds: 5), (_) {
+      if (mounted) _refreshOrders();
+    });
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_appliedRouteArgs) return;
+    _appliedRouteArgs = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is! Map) return;
+    final status = args['status']?.toString();
+    final period = args['period']?.toString();
+    final startDate = DateTime.tryParse(args['startDate']?.toString() ?? '');
+    final endDate = DateTime.tryParse(args['endDate']?.toString() ?? '');
+    setState(() {
+      _selectedStatus = switch (status) {
+        'en_attente' => _ManagerOrderApiStatus.pending,
+        'validee' => _ManagerOrderApiStatus.validated,
+        'refusee' => _ManagerOrderApiStatus.refused,
+        _ => _ManagerOrderApiStatus.all,
+      };
+      _selectedPeriod = _ManagerDashboardPeriod.values.firstWhere(
+        (item) => item.name == period,
+        orElse: () => _selectedPeriod,
+      );
+      if (startDate != null && endDate != null) {
+        _customRange = DateTimeRange(start: startDate, end: endDate);
+      }
+      _ordersFuture = _loadOrders();
+    });
   }
 
   @override
@@ -3248,9 +3358,12 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
 
   Future<List<_ManagerOrderView>> _loadOrders() async {
     try {
+      await _syncManagerUnreadNotifications();
       _errorMessage = null;
       final range = _selectedPeriod.range(_customRange);
-      final raw = await ApiService.getFactures();
+      final raw = await ApiService.getManagerCommandes(
+        managerId: CurrentUserSession.currentUser?.id,
+      );
       final orders =
           raw
               .whereType<Map>()
@@ -3264,10 +3377,15 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
                   b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
               return right.compareTo(left);
             });
+      debugPrint(
+        '[MANAGER][COMMANDES] api=${raw.length} visible=${orders.length} '
+        'period=${_selectedPeriod.name} manager_id=${CurrentUserSession.currentUser?.id}',
+      );
       _ManagerOrdersCache.replaceAll(orders);
       return orders;
-    } catch (_) {
-      _errorMessage = null;
+    } catch (error) {
+      _errorMessage = 'Impossible de charger les commandes PostgreSQL.';
+      debugPrint('[MANAGER][COMMANDES][ERROR] $error');
       _ManagerOrdersCache.replaceAll(const []);
       return const [];
     }
@@ -4110,6 +4228,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
   }
 
   Future<_ManagerReportsData> _loadData() async {
+    await _syncManagerUnreadNotifications();
     final range = _reportRange(_period, _customRange);
     final users = await _safeApiList(ApiService.getUsers);
     final reportsRaw = await _safeApiList(ApiService.getRapports);
@@ -4123,12 +4242,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
       commercials.add(
         _ManagerCommercialView(
           id: id,
-          name: _readString(userJson, [
-            'name',
-            'full_name',
-            'username',
-            'nom',
-          ]).ifEmpty('Commercial'),
+          name: _readUserDisplayName(userJson).ifEmpty('Commercial'),
           email: _readString(userJson, ['email']),
           phone: _readString(userJson, ['phone', 'telephone']),
           city: _readString(userJson, ['city', 'ville']).ifEmpty('-'),
@@ -4667,7 +4781,7 @@ class _DashboardManagerState extends State<DashboardManager> {
   void initState() {
     super.initState();
     _dashboardFuture = _loadDashboard();
-    _refreshTimer = Timer.periodic(Duration(seconds: 20), (_) {
+    _refreshTimer = Timer.periodic(Duration(seconds: 5), (_) {
       if (mounted) _refreshDashboard(silent: true);
     });
   }
@@ -4849,8 +4963,11 @@ class _DashboardManagerState extends State<DashboardManager> {
   Future<_ManagerHomeData> _loadDashboard() async {
     final range = _selectedPeriod.range(_customRange);
     final results = await Future.wait<List<dynamic>>([
-      _safeApiList(ApiService.getFactures),
-      _safeApiList(ApiService.getClients),
+      _safeApiList(
+        () => ApiService.getManagerCommandes(
+          managerId: CurrentUserSession.currentUser?.id,
+        ),
+      ),
       _safeApiList(ApiService.getUsers),
       _safeApiList(
         () => ApiService.getNotifications(
@@ -4860,9 +4977,8 @@ class _DashboardManagerState extends State<DashboardManager> {
     ]);
     final data = _ManagerHomeData.fromApi(
       factures: results[0],
-      clients: results[1],
-      users: results[2],
-      notifications: results[3],
+      users: results[1],
+      notifications: results[2],
       range: range,
       period: _selectedPeriod,
     );
@@ -5022,30 +5138,45 @@ class _Header extends StatelessWidget {
             ),
           ),
         ),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            IconButton(
-              onPressed: onNotificationsPressed,
-              icon: Icon(Icons.notifications_none_rounded),
-              color: _DashboardManagerState._textDark,
-              tooltip: 'Notifications',
-            ),
-            if (showNotificationBadge)
-              Positioned(
-                right: 11,
-                top: 10,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _DashboardManagerState._primaryBlue,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.4),
-                  ),
+        ValueListenableBuilder<int>(
+          valueListenable: _managerUnreadNotifications,
+          builder: (context, unread, child) {
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  onPressed: onNotificationsPressed,
+                  icon: Icon(Icons.notifications_none_rounded),
+                  color: _DashboardManagerState._textDark,
+                  tooltip: 'Notifications',
                 ),
-              ),
-          ],
+                if (unread > 0)
+                  Positioned(
+                    right: 7,
+                    top: 5,
+                    child: Container(
+                      constraints: BoxConstraints(minWidth: 18, minHeight: 18),
+                      padding: EdgeInsets.symmetric(horizontal: 5),
+                      decoration: BoxDecoration(
+                        color: _DashboardManagerState._primaryBlue,
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(color: Colors.white, width: 1.4),
+                      ),
+                      child: Center(
+                        child: Text(
+                          unread > 99 ? '99+' : '$unread',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -6510,7 +6641,8 @@ class _ManagerObjectiveCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: EdgeInsets.all(12),
+        width: double.infinity,
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
@@ -6529,17 +6661,25 @@ class _ManagerObjectiveCard extends StatelessWidget {
           ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: _DashboardManagerState.iconBlueBg,
+                Container(
+                  width: 50,
+                  height: 50,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _DashboardManagerState.iconBlueBg,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Text(
-                    _initials(commercial.name),
-                    style: GoogleFonts.poppins(
+                    _initials(commercial.name).ifEmpty('C'),
+                    style: TextStyle(
                       color: _DashboardManagerState.managerBlue,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
@@ -6552,30 +6692,20 @@ class _ManagerObjectiveCard extends StatelessWidget {
                         commercial.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
                           color: _DashboardManagerState.managerText,
-                          fontSize: 15,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        commercial.email.ifEmpty(commercial.role),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _DashboardManagerState.managerMuted,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        commercial.role,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          color: _DashboardManagerState.managerMuted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        '${commercial.city} • ${commercial.matricule}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          color: _DashboardManagerState.managerMuted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -6588,48 +6718,94 @@ class _ManagerObjectiveCard extends StatelessWidget {
               ],
             ),
             SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
               children: [
-                Expanded(
-                  child: _MiniCommercialMetric(
-                    label: 'Objectif CA',
-                    value: '${_formatNumber(commercial.objective.round())} DH',
-                  ),
+                _ObjectiveInfoPill(
+                  label: 'Objectif CA',
+                  value: '${_formatNumber(commercial.objective.round())} DH',
                 ),
-                Expanded(
-                  child: _MiniCommercialMetric(
-                    label: 'Objectif cmd',
-                    value: '${commercial.reportsCount}',
-                  ),
+                _ObjectiveInfoPill(
+                  label: 'Objectif cmd',
+                  value: '${commercial.reportsCount}',
                 ),
-                Expanded(
-                  child: _MiniCommercialMetric(
-                    label: 'CA atteint',
-                    value: '$rate%',
-                    color: color,
-                  ),
+                _ObjectiveInfoPill(
+                  label: 'CA atteint',
+                  value: '$rate%',
+                  valueColor: color,
                 ),
-                Expanded(
-                  child: _MiniCommercialMetric(
-                    label: 'Cmd atteint',
-                    value: '$orderRate%',
-                    color: _objectiveRateColor(orderRate),
-                  ),
+                _ObjectiveInfoPill(
+                  label: 'Cmd atteint',
+                  value: '$orderRate%',
+                  valueColor: _objectiveRateColor(orderRate),
                 ),
               ],
             ),
-            SizedBox(height: 9),
+            SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(99),
               child: LinearProgressIndicator(
                 value: (rate / 100).clamp(0, 1),
-                minHeight: 5,
+                minHeight: 6,
                 color: color,
                 backgroundColor: _DashboardManagerState.managerBorder,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ObjectiveInfoPill extends StatelessWidget {
+  const _ObjectiveInfoPill({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 138,
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: _DashboardManagerState.managerSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _DashboardManagerState.managerBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: _DashboardManagerState.managerMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 3),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: valueColor ?? _DashboardManagerState.managerText,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -8220,6 +8396,7 @@ _ManagerCommercialStatus _parseCommercialStatus(String raw) {
   final value = raw.toLowerCase().trim();
   if (value.contains('cong')) return _ManagerCommercialStatus.leave;
   if (value.contains('des') ||
+      value.contains('inact') ||
       value.contains('inactive') ||
       value == '0' ||
       value == 'false') {
@@ -8621,36 +8798,44 @@ class _OrdersHeader extends StatelessWidget {
             ),
           ),
         ),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            IconButton(
-              onPressed: onNotificationsPressed,
-              icon: Icon(Icons.notifications_none_rounded),
-              color: _DashboardManagerState._textDark,
-              tooltip: 'Notifications',
-            ),
-            if (badgeCount > 0)
-              Positioned(
-                right: 7,
-                top: 5,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _DashboardManagerState._primaryBlue,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    badgeCount > 9 ? '9' : badgeCount.toString(),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
+        ValueListenableBuilder<int>(
+          valueListenable: _managerUnreadNotifications,
+          builder: (context, unread, child) {
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  onPressed: onNotificationsPressed,
+                  icon: Icon(Icons.notifications_none_rounded),
+                  color: _DashboardManagerState._textDark,
+                  tooltip: 'Notifications',
+                ),
+                if (unread > 0)
+                  Positioned(
+                    right: 7,
+                    top: 5,
+                    child: Container(
+                      constraints: BoxConstraints(minWidth: 18, minHeight: 18),
+                      padding: EdgeInsets.symmetric(horizontal: 5),
+                      decoration: BoxDecoration(
+                        color: _DashboardManagerState._primaryBlue,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Center(
+                        child: Text(
+                          unread > 99 ? '99+' : '$unread',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         ),
       ],
     );
@@ -10351,6 +10536,7 @@ class _ProfileManagerScreenState extends State<ProfileManagerScreen> {
   }
 
   Future<_ManagerProfileData> _loadProfile() async {
+    await _syncManagerUnreadNotifications();
     final session = CurrentUserSession.currentUser;
     if (session == null || !session.isManager) {
       throw Exception('Session manager introuvable');
@@ -12391,9 +12577,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
                               _ManagerObjectiveChips(
                                 selected: _chipFilter,
                                 data: data,
-                                onChanged: (filter) {
-                                  setState(() => _chipFilter = filter);
-                                },
+                                onChanged: _setObjectiveChipFilter,
                               ),
                               SizedBox(height: 14),
                               if (visible.isEmpty)
@@ -12439,6 +12623,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
   }
 
   Future<_ManagerCommercialsData> _loadData() async {
+    await _syncManagerUnreadNotifications();
     final range = _selectedPeriod.range(_customRange);
     final results = await Future.wait<List<dynamic>>([
       _safeApiList(ApiService.getUsers),
@@ -12469,12 +12654,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
       items.add(
         _ManagerCommercialView(
           id: id,
-          name: _readString(userJson, [
-            'name',
-            'full_name',
-            'username',
-            'nom',
-          ]).ifEmpty('Commercial'),
+          name: _readUserDisplayName(userJson).ifEmpty('Commercial'),
           email: _readString(userJson, ['email']),
           phone: _readString(userJson, ['phone', 'telephone']),
           city: _readString(userJson, ['city', 'ville']).ifEmpty('-'),
@@ -12491,7 +12671,13 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
           objective: objective?.revenueTarget ?? 0,
           ordersCount: validated.length,
           clientsCount: results[2].whereType<Map>().where((client) {
-            return _readInt(client, ['commercial_id', 'user_id']) == id;
+            final commercialId = _readNullableInt(client, [
+              'commercial_id',
+              'id_commercial',
+              'user_id',
+              'created_by',
+            ]);
+            return commercialId == null || commercialId == id;
           }).length,
           activitiesCount: 0,
           reportsCount: objective?.orderTarget ?? 0,
@@ -12516,7 +12702,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
       'vendeur_id',
     ]);
     if (rawId != null) return rawId == id;
-    final name = _readString(user, ['name', 'full_name', 'username', 'nom']);
+    final name = _readUserDisplayName(user);
     return name.isNotEmpty &&
         order.commercialName.toLowerCase().contains(name.toLowerCase());
   }
@@ -12544,6 +12730,19 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
           (_minRate == null || item.objectiveRate >= _minRate!) &&
           (_maxRate == null || item.objectiveRate <= _maxRate!);
     }).toList();
+  }
+
+  void _setObjectiveChipFilter(_ObjectiveChipFilter filter) {
+    _searchController.clear();
+    setState(() {
+      _chipFilter = filter;
+      _cityFilter = '';
+      _commercialFilter = '';
+      _withObjective = null;
+      _objectiveReached = null;
+      _minRate = null;
+      _maxRate = null;
+    });
   }
 
   int get _activeFiltersCount {
@@ -13233,13 +13432,46 @@ class _ManagerOrderDetailHeader extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => NotificationsScreen()),
-          ),
-          icon: Icon(LucideIcons.bell),
-          color: Colors.white,
+        ValueListenableBuilder<int>(
+          valueListenable: _managerUnreadNotifications,
+          builder: (context, unread, child) {
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => NotificationsScreen()),
+                  ),
+                  icon: Icon(LucideIcons.bell),
+                  color: Colors.white,
+                ),
+                if (unread > 0)
+                  Positioned(
+                    right: 7,
+                    top: 5,
+                    child: Container(
+                      constraints: BoxConstraints(minWidth: 18, minHeight: 18),
+                      padding: EdgeInsets.symmetric(horizontal: 5),
+                      decoration: BoxDecoration(
+                        color: _DashboardManagerState.managerRed,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Center(
+                        child: Text(
+                          unread > 99 ? '99+' : '$unread',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
         CircleAvatar(
           radius: 24,
@@ -14081,6 +14313,7 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
 
   Future<_ManagerOrderView?> _load() async {
     try {
+      await _syncManagerUnreadNotifications();
       final json = await ApiService.getCommande(widget.orderId);
       final data = json['data'] is Map<String, dynamic>
           ? json['data'] as Map<String, dynamic>
@@ -15354,17 +15587,594 @@ class ModifierCommandeScreen extends StatelessWidget {
   }
 }
 
-class NotificationsScreen extends StatelessWidget {
+enum _ManagerNotificationFilter {
+  all,
+  unread,
+  commandes,
+  rapports,
+  clients,
+  activites,
+  objectifs,
+  utilisateurs,
+  systeme,
+}
+
+extension _ManagerNotificationFilterLabel on _ManagerNotificationFilter {
+  String get label {
+    return switch (this) {
+      _ManagerNotificationFilter.all => 'Toutes',
+      _ManagerNotificationFilter.unread => 'Non lues',
+      _ManagerNotificationFilter.commandes => 'Commandes',
+      _ManagerNotificationFilter.rapports => 'Rapports',
+      _ManagerNotificationFilter.clients => 'Clients',
+      _ManagerNotificationFilter.activites => 'Activités',
+      _ManagerNotificationFilter.objectifs => 'Objectifs',
+      _ManagerNotificationFilter.utilisateurs => 'Utilisateurs',
+      _ManagerNotificationFilter.systeme => 'Système',
+    };
+  }
+}
+
+class _ManagerNotificationItem {
+  _ManagerNotificationItem({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.type,
+    required this.isRead,
+    required this.createdAt,
+    this.commercialId,
+    this.managerId,
+    this.commandeId,
+    this.clientId,
+  });
+
+  final int id;
+  final String title;
+  final String description;
+  final String type;
+  final bool isRead;
+  final DateTime createdAt;
+  final int? commercialId;
+  final int? managerId;
+  final int? commandeId;
+  final int? clientId;
+
+  factory _ManagerNotificationItem.fromJson(Map<String, dynamic> json) {
+    return _ManagerNotificationItem(
+      id: _readInt(json, ['id']),
+      title: _readString(json, ['titre', 'title']).ifEmpty('Notification'),
+      description: _readString(json, [
+        'description',
+        'message',
+        'body',
+      ]).ifEmpty('-'),
+      type: _normalizeManagerNotificationType(_readString(json, ['type'])),
+      isRead: _readBool(json, ['is_read', 'read', 'lu']),
+      createdAt:
+          _readDate(json, ['created_at', 'date', 'sent_at']) ?? DateTime.now(),
+      commercialId: _readNullableInt(json, ['commercial_id']),
+      managerId: _readNullableInt(json, ['manager_id']),
+      commandeId: _readNullableInt(json, ['commande_id', 'order_id']),
+      clientId: _readNullableInt(json, ['client_id']),
+    );
+  }
+
+  _ManagerNotificationItem copyWith({bool? isRead}) {
+    return _ManagerNotificationItem(
+      id: id,
+      title: title,
+      description: description,
+      type: type,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt,
+      commercialId: commercialId,
+      managerId: managerId,
+      commandeId: commandeId,
+      clientId: clientId,
+    );
+  }
+}
+
+String _normalizeManagerNotificationType(String raw) {
+  final value = raw.toLowerCase().trim();
+  if (value.contains('commande') || value.contains('order')) return 'commandes';
+  if (value.contains('rapport') || value.contains('report')) return 'rapports';
+  if (value.contains('client') || value.contains('prospect')) return 'clients';
+  if (value.contains('activ')) return 'activites';
+  if (value.contains('objectif')) return 'objectifs';
+  if (value.contains('user') ||
+      value.contains('utilisateur') ||
+      value.contains('commercial') ||
+      value.contains('manager')) {
+    return 'utilisateurs';
+  }
+  if (value.contains('system') ||
+      value.contains('système') ||
+      value.contains('maintenance') ||
+      value.contains('erreur')) {
+    return 'systeme';
+  }
+  return 'generales';
+}
+
+class NotificationsScreen extends StatefulWidget {
   NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return _TemporaryManagerPage(
-      title: AppLocalizations.globalText('Notifications'),
-      subtitle: AppLocalizations.globalText('Centre de notifications manager'),
-      icon: Icons.notifications_none_rounded,
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  _ManagerNotificationFilter _filter = _ManagerNotificationFilter.all;
+  bool _loading = true;
+  String? _error;
+  List<_ManagerNotificationItem> _items = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  int? get _managerId => CurrentUserSession.currentUser?.id;
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final raw = await ApiService.getNotifications(managerId: _managerId);
+      final items =
+          raw
+              .whereType<Map>()
+              .map(
+                (item) => _ManagerNotificationItem.fromJson(
+                  item.cast<String, dynamic>(),
+                ),
+              )
+              .toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (!mounted) return;
+      setState(() {
+        _items = items;
+        _loading = false;
+      });
+      _managerUnreadNotifications.value = items
+          .where((item) => !item.isRead)
+          .length;
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Impossible de charger les notifications.';
+        _loading = false;
+      });
+    }
+  }
+
+  List<_ManagerNotificationItem> get _visibleItems {
+    return _items.where((item) {
+      return switch (_filter) {
+        _ManagerNotificationFilter.all => true,
+        _ManagerNotificationFilter.unread => !item.isRead,
+        _ManagerNotificationFilter.commandes => item.type == 'commandes',
+        _ManagerNotificationFilter.rapports => item.type == 'rapports',
+        _ManagerNotificationFilter.clients => item.type == 'clients',
+        _ManagerNotificationFilter.activites => item.type == 'activites',
+        _ManagerNotificationFilter.objectifs => item.type == 'objectifs',
+        _ManagerNotificationFilter.utilisateurs => item.type == 'utilisateurs',
+        _ManagerNotificationFilter.systeme => item.type == 'systeme',
+      };
+    }).toList();
+  }
+
+  Future<void> _openNotification(_ManagerNotificationItem item) async {
+    if (!item.isRead) {
+      await _markRead(item);
+    }
+    if (!mounted) return;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ManagerNotificationDetails(item: item),
     );
   }
+
+  Future<void> _markRead(_ManagerNotificationItem item) async {
+    setState(() {
+      _items = [
+        for (final current in _items)
+          current.id == item.id ? current.copyWith(isRead: true) : current,
+      ];
+    });
+    _managerUnreadNotifications.value = _items
+        .where((item) => !item.isRead)
+        .length;
+    try {
+      await ApiService.markNotificationRead(item.id);
+    } catch (_) {
+      await _load();
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    setState(() {
+      _items = [for (final item in _items) item.copyWith(isRead: true)];
+    });
+    _managerUnreadNotifications.value = 0;
+    try {
+      await ApiService.markAllNotificationsRead(managerId: _managerId);
+    } catch (_) {
+      await _load();
+    }
+  }
+
+  Future<void> _deleteNotification(_ManagerNotificationItem item) async {
+    final previous = _items;
+    setState(
+      () => _items = _items.where((current) => current.id != item.id).toList(),
+    );
+    _managerUnreadNotifications.value = _items
+        .where((item) => !item.isRead)
+        .length;
+    try {
+      await ApiService.deleteNotification(item.id);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _items = previous);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final unread = _items.where((item) => !item.isRead).length;
+    final visibleItems = _visibleItems;
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 430),
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 18, 20, 12),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.arrow_back_rounded),
+                        color: Color(0xFF14204A),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Notifications',
+                          style: TextStyle(
+                            color: Color(0xFF14204A),
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: unread == 0 ? null : _markAllRead,
+                        child: Text('Tout lu'),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  height: 46,
+                  child: ListView.separated(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _ManagerNotificationFilter.values.length,
+                    separatorBuilder: (context, index) => SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final filter = _ManagerNotificationFilter.values[index];
+                      final selected = filter == _filter;
+                      return ChoiceChip(
+                        selected: selected,
+                        label: Text(filter.label),
+                        onSelected: (_) => setState(() => _filter = filter),
+                        selectedColor: Color(0xFF2563EB),
+                        labelStyle: TextStyle(
+                          color: selected ? Colors.white : Color(0xFF6F7A90),
+                          fontWeight: FontWeight.w800,
+                        ),
+                        backgroundColor: Colors.white,
+                        side: BorderSide(color: Color(0xFFE2E8F0)),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(height: 12),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _load,
+                    child: _loading
+                        ? ListView(
+                            children: [
+                              SizedBox(height: 220),
+                              Center(child: CircularProgressIndicator()),
+                            ],
+                          )
+                        : _error != null
+                        ? ListView(
+                            padding: EdgeInsets.all(20),
+                            children: [
+                              _ManagerNotificationEmpty(text: _error!),
+                            ],
+                          )
+                        : visibleItems.isEmpty
+                        ? ListView(
+                            padding: EdgeInsets.all(20),
+                            children: [
+                              _ManagerNotificationEmpty(
+                                text: 'Aucune notification disponible.',
+                              ),
+                            ],
+                          )
+                        : ListView.separated(
+                            padding: EdgeInsets.fromLTRB(20, 0, 20, 24),
+                            itemBuilder: (context, index) {
+                              final item = visibleItems[index];
+                              return _ManagerNotificationTile(
+                                item: item,
+                                onTap: () => _openNotification(item),
+                                onDelete: () => _deleteNotification(item),
+                              );
+                            },
+                            separatorBuilder: (context, index) =>
+                                SizedBox(height: 10),
+                            itemCount: visibleItems.length,
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ManagerNotificationTile extends StatelessWidget {
+  const _ManagerNotificationTile({
+    required this.item,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final _ManagerNotificationItem item;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = _managerNotificationStyle(item.type);
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(14, 14, 8, 14),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 10,
+                child: item.isRead
+                    ? SizedBox.shrink()
+                    : Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: Color(0xFF2563EB),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+              ),
+              SizedBox(width: 10),
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: style.color.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(style.icon, color: style.color),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Color(0xFF14204A),
+                              fontWeight: item.isRead
+                                  ? FontWeight.w700
+                                  : FontWeight.w900,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          _managerNotificationTime(item.createdAt),
+                          style: TextStyle(
+                            color: Color(0xFF6F7A90),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xFF6F7A90),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: onDelete,
+                icon: Icon(Icons.delete_outline_rounded),
+                color: Color(0xFFEF4444),
+                tooltip: 'Supprimer',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ManagerNotificationDetails extends StatelessWidget {
+  const _ManagerNotificationDetails({required this.item});
+
+  final _ManagerNotificationItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = _managerNotificationStyle(item.type);
+    return Container(
+      padding: EdgeInsets.fromLTRB(22, 22, 22, 28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: style.color.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(style.icon, color: style.color, size: 30),
+            ),
+            SizedBox(height: 16),
+            Text(
+              item.title,
+              style: TextStyle(
+                color: Color(0xFF14204A),
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              item.description,
+              style: TextStyle(
+                color: Color(0xFF6F7A90),
+                fontSize: 14,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              '${_managerNotificationTypeLabel(item.type)} • ${_managerNotificationTime(item.createdAt)}',
+              style: TextStyle(color: style.color, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ManagerNotificationEmpty extends StatelessWidget {
+  const _ManagerNotificationEmpty({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.notifications_none_rounded,
+            size: 52,
+            color: Color(0xFF2563EB),
+          ),
+          SizedBox(height: 14),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF6F7A90),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+({IconData icon, Color color}) _managerNotificationStyle(String type) {
+  return switch (type) {
+    'commandes' => (icon: LucideIcons.receipt, color: Color(0xFFF59E0B)),
+    'rapports' => (icon: LucideIcons.fileText, color: Color(0xFF7C3AED)),
+    'clients' => (icon: LucideIcons.users, color: Color(0xFF22C55E)),
+    'activites' => (icon: LucideIcons.calendarClock, color: Color(0xFF2563EB)),
+    'objectifs' => (icon: LucideIcons.target, color: Color(0xFF0EA5E9)),
+    'utilisateurs' => (icon: LucideIcons.userCog, color: Color(0xFF64748B)),
+    'systeme' => (icon: LucideIcons.settings, color: Color(0xFFEF4444)),
+    _ => (icon: LucideIcons.bell, color: Color(0xFF2563EB)),
+  };
+}
+
+String _managerNotificationTypeLabel(String type) {
+  return switch (type) {
+    'commandes' => 'Commandes',
+    'rapports' => 'Rapports',
+    'clients' => 'Clients',
+    'activites' => 'Activités',
+    'objectifs' => 'Objectifs',
+    'utilisateurs' => 'Utilisateurs',
+    'systeme' => 'Système',
+    _ => 'Général',
+  };
+}
+
+String _managerNotificationTime(DateTime date) {
+  final now = DateTime.now();
+  if (DateUtils.isSameDay(date, now)) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+  return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 }
 
 class RevenueDetailsScreen extends StatelessWidget {

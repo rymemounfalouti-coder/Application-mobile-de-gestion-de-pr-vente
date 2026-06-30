@@ -16,6 +16,8 @@ class HomeCommercial extends StatefulWidget {
 class _HomeCommercialState extends State<HomeCommercial> {
   int _selectedIndex = 0;
   bool _initialIndexApplied = false;
+  List<CommercialClient> _persistedClients = [];
+  String? _clientsLoadedForEmail;
 
   static const primaryBlue = Color(0xFF2674F8);
   static const textDark = Color(0xFF14204A);
@@ -28,6 +30,29 @@ class _HomeCommercialState extends State<HomeCommercial> {
       if (!context.mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
     });
+  }
+
+  void _loadClientsIfNeeded(String email, int commercialId) {
+    if (email.trim().isEmpty || _clientsLoadedForEmail == email) return;
+    _clientsLoadedForEmail = email;
+    _loadPersistedClients(email, commercialId);
+  }
+
+  Future<void> _loadPersistedClients(String email, int commercialId) async {
+    try {
+      final raw = await ApiService.getClients(
+        commercialId: commercialId,
+        commercialEmail: email,
+      );
+      final clients = raw
+          .whereType<Map>()
+          .map(_homeCommercialClientFromApi)
+          .toList();
+      if (!mounted) return;
+      setState(() => _persistedClients = clients);
+    } catch (error) {
+      debugPrint('[COMMERCIAL][CLIENTS][ERROR] $error');
+    }
   }
 
   @override
@@ -50,8 +75,10 @@ class _HomeCommercialState extends State<HomeCommercial> {
     }
 
     final email = user?.email ?? sessionUser?.email ?? routeEmail;
+    final commercialId = user?.id ?? sessionUser?.id ?? 0;
+    _loadClientsIfNeeded(email, commercialId);
     final dashboard = MockPreSalesData.dashboardForUser(user);
-    final clients = MockPreSalesData.clientsForUser(user);
+    final clients = _mergeHomeCommercialClients([..._persistedClients]);
     final tourVisits = MockPreSalesData.tourVisitsForUser(user);
     final orders = MockPreSalesData.ordersForUser(user);
     final userName = user?.name ?? sessionUser?.fullName ?? fallbackName;
@@ -182,6 +209,111 @@ class _HomeCommercialState extends State<HomeCommercial> {
       ),
     );
   }
+}
+
+List<CommercialClient> _mergeHomeCommercialClients(
+  List<CommercialClient> clients,
+) {
+  final byId = <int, CommercialClient>{};
+  for (final client in clients) {
+    byId[client.id] = client;
+  }
+  return byId.values.toList();
+}
+
+CommercialClient _homeCommercialClientFromApi(Map<dynamic, dynamic> json) {
+  final name = _homeApiString(json, ['name', 'nom', 'nom_client'], 'Client');
+  return CommercialClient(
+    id: _homeApiInt(json, ['id', 'client_id']),
+    name: name,
+    city: _homeApiString(json, ['city', 'ville'], 'Casablanca'),
+    category: _homeApiString(json, [
+      'category',
+      'business_type',
+      'categorie',
+    ], 'Commerce general'),
+    status: ClientStatus.values.firstWhere(
+      (status) =>
+          status.name ==
+          _homeApiString(json, ['computed_status', 'status', 'statut'], ''),
+      orElse: () => ClientStatus.toVisit,
+    ),
+    initials: name.isEmpty
+        ? 'CL'
+        : name
+              .trim()
+              .split(RegExp(r'\s+'))
+              .where((part) => part.isNotEmpty)
+              .take(2)
+              .map((part) => part[0].toUpperCase())
+              .join(),
+    phone: _homeApiString(json, ['phone', 'telephone'], ''),
+    email: _homeApiString(json, ['email'], ''),
+    address: _homeApiString(json, ['address', 'adresse'], ''),
+    creditLimit: 0,
+    discount: 0,
+    balance: 0,
+    lastOrderDate: _homeApiString(json, [
+      'computed_last_order_date',
+      'last_order_date',
+    ], '-'),
+    risk: ClientRisk.low,
+    orders: _homeClientOrdersFromStats(json),
+    documents: const [],
+  );
+}
+
+List<ClientOrder> _homeClientOrdersFromStats(Map<dynamic, dynamic> json) {
+  final count = _homeApiInt(json, ['orders_count', 'commandes_count']);
+  if (count <= 0) return const [];
+  final revenue = _homeApiDouble(json, ['ca_total', 'revenue', 'total_ca']);
+  final date = _homeApiString(json, [
+    'computed_last_order_date',
+    'last_order_date',
+  ], '-');
+  return List<ClientOrder>.generate(
+    count,
+    (index) => ClientOrder(
+      reference: 'CMD-${index + 1}',
+      date: date,
+      amount: index == 0 ? revenue : 0,
+    ),
+  );
+}
+
+String _homeApiString(
+  Map<dynamic, dynamic> json,
+  List<String> keys,
+  String fallback,
+) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value != null && value.toString().trim().isNotEmpty) {
+      return value.toString().trim();
+    }
+  }
+  return fallback;
+}
+
+int _homeApiInt(Map<dynamic, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    final parsed = int.tryParse(value?.toString() ?? '');
+    if (parsed != null) return parsed;
+  }
+  return 0;
+}
+
+double _homeApiDouble(Map<dynamic, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is num) return value.toDouble();
+    final parsed = double.tryParse(value?.toString() ?? '');
+    if (parsed != null) return parsed;
+  }
+  return 0;
 }
 
 class ClientsCommercial extends StatefulWidget {
@@ -3040,6 +3172,8 @@ class NouvelleCommande extends StatefulWidget {
 class _NouvelleCommandeState extends State<NouvelleCommande> {
   final _searchController = TextEditingController();
   final Map<int, int> _quantities = {};
+  List<OrderProduct> _products = [];
+  bool _isLoadingProducts = true;
   String _query = '';
   late DateTime _orderDate;
   late DateTime _deliveryDate;
@@ -3049,9 +3183,32 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
     super.initState();
     _orderDate = DateTime.now();
     _deliveryDate = _orderDate.add(Duration(days: 1));
+    _loadProducts();
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.trim().toLowerCase());
     });
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final rows = await ApiService.getProduits();
+      final products = rows
+          .whereType<Map>()
+          .map(_commercialOrderProductFromApi)
+          .where((product) => product.id > 0)
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _products = products;
+        _isLoadingProducts = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _products = [];
+        _isLoadingProducts = false;
+      });
+    }
   }
 
   @override
@@ -3061,7 +3218,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
   }
 
   List<OrderProduct> get _filteredProducts {
-    return MockPreSalesData.orderProducts.where((product) {
+    return _products.where((product) {
       return _query.isEmpty ||
           product.name.toLowerCase().contains(_query) ||
           product.category.toLowerCase().contains(_query) ||
@@ -3070,7 +3227,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
   }
 
   double get _subtotal {
-    return MockPreSalesData.orderProducts.fold(0, (total, product) {
+    return _products.fold(0, (total, product) {
       return total + (product.unitPrice * (_quantities[product.id] ?? 0));
     });
   }
@@ -3149,9 +3306,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => _ScannerSimulationSheet(
-        products: MockPreSalesData.orderProducts
-            .where((product) => product.stock > 0)
-            .toList(),
+        products: _products.where((product) => product.stock > 0).toList(),
       ),
     );
     if (product == null) return;
@@ -3214,7 +3369,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
   }
 
   ValidatedOrder _buildOrder(String status) {
-    final items = MockPreSalesData.orderProducts
+    final items = _products
         .where((product) => (_quantities[product.id] ?? 0) > 0)
         .map((product) {
           final quantity = _quantities[product.id] ?? 0;
@@ -3242,7 +3397,10 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
     return {
       'order_number': order.orderNumber,
       'client_id': widget.client.id,
+      'client_code': widget.client.clientCode,
+      'client_name': widget.client.name,
       'commercial_id': session?.id,
+      'commercial_email': session?.email ?? widget.currentEmail,
       'commercial_name': widget.currentUserName,
       'date': order.date.toIso8601String(),
       'created_at': DateTime.now().toIso8601String(),
@@ -3254,6 +3412,8 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
           .map(
             (item) => {
               'product_id': item.product.id,
+              'product_reference': item.product.reference,
+              'product_name': item.product.name,
               'quantity': item.quantity,
               'unit_price': item.product.unitPrice,
               'total': item.lineTotal,
@@ -3339,7 +3499,11 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
                                       onScan: _openScanner,
                                     ),
                                     SizedBox(height: 18),
-                                    if (products.isEmpty)
+                                    if (_isLoadingProducts)
+                                      _EmptyDetailMessage(
+                                        text: 'Chargement des produits...',
+                                      )
+                                    else if (products.isEmpty)
                                       _EmptyDetailMessage(
                                         text: 'Aucun produit trouvé',
                                       )
@@ -3439,6 +3603,74 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
       ),
     );
   }
+}
+
+OrderProduct _commercialOrderProductFromApi(Map<dynamic, dynamic> json) {
+  final name = _commercialApiString(json, [
+    'nom_produit',
+    'name',
+    'nom',
+  ], 'Produit');
+  final price = _commercialApiDouble(json, [
+    'prix',
+    'price',
+    'unit_price',
+    'prix_vente',
+  ]);
+  return OrderProduct(
+    id: _commercialApiInt(json, ['id', 'produit_id']),
+    name: name,
+    reference: _commercialApiString(json, ['reference', 'ref', 'code'], ''),
+    category: _commercialApiString(json, [
+      'categorie',
+      'category',
+      'nom_cat',
+    ], 'Thé Vert Classique'),
+    description: _commercialApiString(json, ['description'], ''),
+    image: _commercialApiString(json, ['image', 'photo'], ''),
+    unitPrice: price,
+    stock: _commercialApiInt(json, ['stock', 'quantite_stock', 'quantity']),
+    icon: Icons.local_cafe_rounded,
+    imageColor: _HomeCommercialState.primaryBlue,
+  );
+}
+
+String _commercialApiString(
+  Map<dynamic, dynamic> json,
+  List<String> keys,
+  String fallback,
+) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value != null && value.toString().trim().isNotEmpty) {
+      return value.toString().trim();
+    }
+  }
+  return fallback;
+}
+
+int _commercialApiInt(Map<dynamic, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    final parsed = int.tryParse(value?.toString() ?? '');
+    if (parsed != null) return parsed;
+  }
+  return 0;
+}
+
+double _commercialApiDouble(Map<dynamic, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    final parsed = double.tryParse(
+      (value?.toString() ?? '').replaceAll(',', '.'),
+    );
+    if (parsed != null) return parsed;
+  }
+  return 0;
 }
 
 class _NewOrderHeader extends StatelessWidget {
@@ -5626,49 +5858,7 @@ class _DashboardTab extends StatelessWidget {
   }
 
   static List<CommercialOrder> get _dashboardOrders {
-    return [
-      CommercialOrder(
-        id: 1024,
-        orderNumber: 'CMD-1024',
-        clientName: 'Marjane Californie',
-        date: '02/06/2026',
-        productsCount: 6,
-        total: 4850,
-        status: OrderStatus.pending,
-        items: [
-          OrderLine(
-            productName: 'Assortiment boissons',
-            quantity: 12,
-            total: 1850,
-          ),
-          OrderLine(productName: 'Snacking premium', quantity: 8, total: 3000),
-        ],
-      ),
-      CommercialOrder(
-        id: 1023,
-        orderNumber: 'CMD-1023',
-        clientName: 'Café Atlas',
-        date: '02/06/2026',
-        productsCount: 4,
-        total: 2300,
-        status: OrderStatus.delivered,
-        items: [
-          OrderLine(productName: 'Pack café & jus', quantity: 10, total: 2300),
-        ],
-      ),
-      CommercialOrder(
-        id: 1022,
-        orderNumber: 'CMD-1022',
-        clientName: 'Superette Amal',
-        date: '01/06/2026',
-        productsCount: 3,
-        total: 1780,
-        status: OrderStatus.cancelled,
-        items: [
-          OrderLine(productName: 'Commande mixte', quantity: 7, total: 1780),
-        ],
-      ),
-    ];
+    return const [];
   }
 }
 

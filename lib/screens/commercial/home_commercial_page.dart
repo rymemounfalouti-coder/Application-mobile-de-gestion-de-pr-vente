@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../api_service.dart';
 import '../../auth/current_user_session.dart';
 import '../../data/mock_presales_data.dart';
 import '../../l10n/app_localizations.dart';
@@ -125,6 +128,16 @@ class _HomeCommercialState extends State<HomeCommercial> {
   bool _initialIndexApplied = false;
   final List<CommercialClient> _addedClients = [];
   final List<_CommercialActivityItem> _addedActivities = [];
+  List<CommercialOrder> _persistedOrders = const [];
+  List<CommercialClient> _persistedClients = const [];
+  List<_ActivityHistoryItem> _persistedRecentActivities = const [];
+  List<_CommercialActivityItem> _persistedActivityItems = const [];
+  Timer? _ordersRefreshTimer;
+  Timer? _clientsRefreshTimer;
+  Timer? _recentActivitiesRefreshTimer;
+  String? _ordersLoadedForEmail;
+  String? _clientsLoadedForEmail;
+  String? _recentActivitiesLoadedForEmail;
   int? _objectiveCommercialId;
   CommercialObjective? _commercialObjective;
 
@@ -154,6 +167,111 @@ class _HomeCommercialState extends State<HomeCommercial> {
       if (!mounted || _objectiveCommercialId != commercialId) return;
       setState(() => _commercialObjective = objective);
     });
+  }
+
+  void _loadOrdersIfNeeded(String email, int commercialId) {
+    if (email.trim().isEmpty || _ordersLoadedForEmail == email) return;
+    _ordersLoadedForEmail = email;
+    _ordersRefreshTimer?.cancel();
+    _loadPersistedOrders(email, commercialId);
+    _ordersRefreshTimer = Timer.periodic(Duration(seconds: 5), (_) {
+      if (mounted) _loadPersistedOrders(email, commercialId);
+    });
+  }
+
+  void _loadClientsIfNeeded(String email, int commercialId) {
+    if (email.trim().isEmpty || _clientsLoadedForEmail == email) return;
+    _clientsLoadedForEmail = email;
+    _clientsRefreshTimer?.cancel();
+    _loadPersistedClients(email, commercialId);
+    _clientsRefreshTimer = Timer.periodic(Duration(seconds: 5), (_) {
+      if (mounted) _loadPersistedClients(email, commercialId);
+    });
+  }
+
+  void _loadRecentActivitiesIfNeeded(String email, int commercialId) {
+    if (email.trim().isEmpty || _recentActivitiesLoadedForEmail == email) {
+      return;
+    }
+    _recentActivitiesLoadedForEmail = email;
+    _recentActivitiesRefreshTimer?.cancel();
+    _loadPersistedRecentActivities(email, commercialId);
+    _recentActivitiesRefreshTimer = Timer.periodic(Duration(seconds: 5), (_) {
+      if (mounted) _loadPersistedRecentActivities(email, commercialId);
+    });
+  }
+
+  Future<void> _loadPersistedOrders(String email, int commercialId) async {
+    try {
+      final raw = await ApiService.getCommercialCommandes(
+        commercialId: commercialId,
+        commercialEmail: email,
+      );
+      final orders = raw
+          .whereType<Map>()
+          .map((item) => _commercialOrderFromApi(item.cast<String, dynamic>()))
+          .toList();
+      if (!mounted) return;
+      setState(() => _persistedOrders = orders);
+    } catch (error) {
+      debugPrint('[COMMERCIAL][COMMANDES][ERROR] $error');
+    }
+  }
+
+  Future<void> _loadPersistedClients(String email, int commercialId) async {
+    try {
+      final raw = await ApiService.getClients(
+        commercialId: commercialId,
+        commercialEmail: email,
+      );
+      final clients = raw
+          .whereType<Map>()
+          .map((item) => _commercialClientFromApi(item.cast<String, dynamic>()))
+          .toList();
+      if (!mounted) return;
+      setState(() => _persistedClients = clients);
+    } catch (error) {
+      debugPrint('[COMMERCIAL][CLIENTS][ERROR] $error');
+    }
+  }
+
+  Future<void> _loadPersistedRecentActivities(
+    String email,
+    int commercialId,
+  ) async {
+    try {
+      final raw = await ApiService.getCommercialRecentActivities(
+        commercialId: commercialId,
+        commercialEmail: email,
+      );
+      final activities = <_ActivityHistoryItem>[];
+      final activityItems = <_CommercialActivityItem>[];
+      for (final item in raw.whereType<Map>()) {
+        final json = item.cast<String, dynamic>();
+        activities.add(_activityHistoryItemFromApi(json));
+        final activity = _commercialActivityItemFromActivityApi(json);
+        if (activity != null) activityItems.add(activity);
+        _addRuntimeCommercialNotification(
+          email,
+          _commercialNotificationFromActivityApi(json, email),
+        );
+      }
+      if (!mounted) return;
+      setState(() {
+        _persistedRecentActivities = activities;
+        _persistedActivityItems = activityItems;
+      });
+    } catch (error) {
+      debugPrint('[COMMERCIAL][ACTIVITES_RECENTES][ERROR] $error');
+    }
+  }
+
+  @override
+  void dispose() {
+    _ordersRefreshTimer?.cancel();
+    _clientsRefreshTimer?.cancel();
+    _recentActivitiesRefreshTimer?.cancel();
+    super.dispose();
   }
 
   void _redirectAfterBuild(BuildContext context, String route) {
@@ -186,16 +304,21 @@ class _HomeCommercialState extends State<HomeCommercial> {
     final email = user?.email ?? sessionUser?.email ?? routeEmail;
     final commercialId = user?.id ?? sessionUser?.id ?? 0;
     _loadObjectiveIfNeeded(commercialId);
+    _loadOrdersIfNeeded(email, commercialId);
+    _loadClientsIfNeeded(email, commercialId);
+    _loadRecentActivitiesIfNeeded(email, commercialId);
     final dashboard = MockPreSalesData.dashboardForUser(user);
-    final clients = [
-      ...MockPreSalesData.clientsForUser(user),
+    final clients = _mergeCommercialClients([
+      ..._persistedClients,
+      ..._runtimeClientsForEmail(email),
       ..._addedClients,
-    ];
+    ]);
     final tourVisits = MockPreSalesData.tourVisitsForUser(user);
-    final orders = [
+    final orders = _mergeCommercialOrders([
       ...MockPreSalesData.ordersForUser(user),
+      ..._persistedOrders,
       ..._runtimeOrdersForEmail(email),
-    ];
+    ]);
     final userName = user?.name ?? sessionUser?.fullName ?? fallbackName;
     if (!_initialIndexApplied && args is Map) {
       final initialIndex = args['initialIndex'];
@@ -250,19 +373,50 @@ class _HomeCommercialState extends State<HomeCommercial> {
                                 visits: tourVisits,
                                 clients: clients,
                                 createdActivities: _addedActivities,
+                                recentActivities: _persistedRecentActivities,
                                 currentEmail: email,
                                 unreadNotificationCount:
                                     _commercialUnreadNotificationCount(),
                                 onClientAdded: (client) {
-                                  setState(() => _addedClients.add(client));
+                                  setState(() {
+                                    _addedClients.add(client);
+                                    _persistedClients = _mergeCommercialClients(
+                                      [client, ..._persistedClients],
+                                    );
+                                  });
                                   _addRuntimeClientForEmail(email, client);
                                   _notifyClientAdded(email, client);
+                                  _loadPersistedClients(email, commercialId);
+                                  _loadPersistedRecentActivities(
+                                    email,
+                                    commercialId,
+                                  );
                                 },
                                 onActivityCreated: (activity) {
                                   setState(
                                     () => _addedActivities.insert(0, activity),
                                   );
                                   _notifyActivityPlanned(email, activity);
+                                  ApiService.createCommercialRecentActivity({
+                                        'type_action': 'activite_creee',
+                                        'titre': 'Nouvelle activité créée',
+                                        'description':
+                                            '${activity.subtitle} • ${activity.location}',
+                                        'commercial_id': commercialId,
+                                      })
+                                      .then((_) {
+                                        if (mounted) {
+                                          _loadPersistedRecentActivities(
+                                            email,
+                                            commercialId,
+                                          );
+                                        }
+                                      })
+                                      .catchError((error) {
+                                        debugPrint(
+                                          '[COMMERCIAL][ACTIVITES_RECENTES][POST][ERROR] $error',
+                                        );
+                                      });
                                 },
                                 onNavigate: (index) {
                                   setState(() => _selectedIndex = index);
@@ -270,14 +424,25 @@ class _HomeCommercialState extends State<HomeCommercial> {
                               ),
                               ClientsCommercial(
                                 clients: clients,
+                                orders: orders,
                                 currentEmail: email,
                                 currentUserName: userName,
                                 unreadNotificationCount:
                                     _commercialUnreadNotificationCount(),
                                 onClientAdded: (client) {
-                                  setState(() => _addedClients.add(client));
+                                  setState(() {
+                                    _addedClients.add(client);
+                                    _persistedClients = _mergeCommercialClients(
+                                      [client, ..._persistedClients],
+                                    );
+                                  });
                                   _addRuntimeClientForEmail(email, client);
                                   _notifyClientAdded(email, client);
+                                  _loadPersistedClients(email, commercialId);
+                                  _loadPersistedRecentActivities(
+                                    email,
+                                    commercialId,
+                                  );
                                 },
                               ),
                               if (_selectedIndex == -3)
@@ -314,6 +479,10 @@ class _HomeCommercialState extends State<HomeCommercial> {
                               ActivitiesCommercial(
                                 visits: tourVisits,
                                 clients: clients,
+                                createdActivities: _mergeCommercialActivities([
+                                  ..._persistedActivityItems,
+                                  ..._addedActivities,
+                                ]),
                                 currentEmail: email,
                                 currentUserName: userName,
                                 unreadNotificationCount:
@@ -364,6 +533,7 @@ class ClientsCommercial extends StatefulWidget {
   ClientsCommercial({
     super.key,
     required this.clients,
+    required this.orders,
     required this.currentEmail,
     required this.currentUserName,
     required this.unreadNotificationCount,
@@ -371,6 +541,7 @@ class ClientsCommercial extends StatefulWidget {
   });
 
   final List<CommercialClient> clients;
+  final List<CommercialOrder> orders;
   final String currentEmail;
   final String currentUserName;
   final int unreadNotificationCount;
@@ -419,7 +590,8 @@ class _ClientsCommercialState extends State<ClientsCommercial> {
     // Depend on _clientRevision so Flutter recomputes counts after external changes.
     final _ = _clientRevision;
     return [
-      for (final client in widget.clients) _withConvertedOrderStatus(client),
+      for (final client in widget.clients)
+        _withClientOrders(_withConvertedOrderStatus(client), widget.orders),
     ];
   }
 
@@ -629,8 +801,8 @@ class _ClientViewData {
       name: preset.name ?? effectiveClient.name,
       type: effectiveClient.businessType,
       uiStatus: _clientUiStatusFromStatus(effectiveClient.status),
-      orderCount: preset.orders ?? effectiveClient.orders.length,
-      revenue: preset.revenue ?? calculatedRevenue,
+      orderCount: effectiveClient.orders.length,
+      revenue: calculatedRevenue,
       lastActivityRank: preset.rank,
       logoIcon: preset.icon,
       logoColor: preset.color,
@@ -690,6 +862,33 @@ final ValueNotifier<int> _clientDataRevision = ValueNotifier<int>(0);
 CommercialClient _withConvertedOrderStatus(CommercialClient client) {
   if (!_convertedOrderClientIds.contains(client.id)) return client;
   return client.copyWith(status: ClientStatus.visited);
+}
+
+CommercialClient _withClientOrders(
+  CommercialClient client,
+  List<CommercialOrder> orders,
+) {
+  final clientName = _clientMatchKey(client.name);
+  final matchingOrders = orders.where((order) {
+    if (order.status == OrderStatus.cancelled) return false;
+    return _clientMatchKey(order.clientName) == clientName;
+  }).toList();
+  if (matchingOrders.isEmpty) return client;
+
+  return client.copyWith(
+    orders: [
+      for (final order in matchingOrders)
+        ClientOrder(
+          reference: order.orderNumber,
+          date: order.date,
+          amount: order.total,
+        ),
+    ],
+  );
+}
+
+String _clientMatchKey(String value) {
+  return value.toLowerCase().trim().replaceAll(RegExp(r'\s+'), ' ');
 }
 
 _ClientPreset _clientPreset(String rawName, int index) {
@@ -3267,6 +3466,7 @@ class ActivitiesCommercial extends StatefulWidget {
     super.key,
     required this.visits,
     required this.clients,
+    required this.createdActivities,
     required this.currentEmail,
     required this.currentUserName,
     required this.unreadNotificationCount,
@@ -3274,6 +3474,8 @@ class ActivitiesCommercial extends StatefulWidget {
 
   final List<TourVisit> visits;
   final List<CommercialClient> clients;
+  // ignore: library_private_types_in_public_api
+  final List<_CommercialActivityItem> createdActivities;
   final String currentEmail;
   final String currentUserName;
   final int unreadNotificationCount;
@@ -3330,6 +3532,7 @@ class _ActivitiesCommercialState extends State<ActivitiesCommercial> {
     return PremiumActivitiesPage(
       visits: widget.visits,
       clients: widget.clients,
+      createdActivities: widget.createdActivities,
       currentEmail: widget.currentEmail,
       currentUserName: widget.currentUserName,
       unreadNotificationCount: widget.unreadNotificationCount,
@@ -3466,11 +3669,60 @@ _CommercialActivityStatus _visitActivityStatus(TourVisit visit) {
   return _CommercialActivityStatus.todo;
 }
 
+List<_CommercialActivityItem> _mergeCommercialActivities(
+  List<_CommercialActivityItem> activities,
+) {
+  final byId = <int, _CommercialActivityItem>{};
+  for (final activity in activities) {
+    byId[activity.id] = activity;
+  }
+  return byId.values.toList()..sort((a, b) {
+    final dateCompare = b.date.compareTo(a.date);
+    if (dateCompare != 0) return dateCompare;
+    return a.time.compareTo(b.time);
+  });
+}
+
+_CommercialActivityItem? _commercialActivityItemFromActivityApi(
+  Map<String, dynamic> json,
+) {
+  final typeAction = _apiString(json, ['type_action', 'type']);
+  if (typeAction != 'activite_creee') return null;
+  final createdAt = _apiDateTime(
+    _apiString(json, ['created_at', 'date_creation', 'date']),
+  );
+  final description = _apiString(json, [
+    'description',
+    'message',
+  ]).ifEmpty('Activité commerciale');
+  final parts = description.split('•').map((part) => part.trim()).toList();
+  final subtitle = parts.isNotEmpty && parts.first.isNotEmpty
+      ? parts.first
+      : 'Activité commerciale';
+  final location = parts.length > 1 ? parts.sublist(1).join(' • ') : '';
+  return _CommercialActivityItem(
+    id: _apiInt(json, ['id']),
+    title: _apiString(json, [
+      'titre',
+      'title',
+    ]).ifEmpty('Nouvelle activité créée'),
+    subtitle: subtitle,
+    location: location,
+    time: _timeOnlyLabel(createdAt),
+    date: DateUtils.dateOnly(createdAt),
+    status: _CommercialActivityStatus.todo,
+    icon: Icons.event_available_rounded,
+    color: _HomeCommercialState.primaryBlue,
+    notes: description,
+  );
+}
+
 class PremiumActivitiesPage extends StatefulWidget {
   PremiumActivitiesPage({
     super.key,
     required this.visits,
     required this.clients,
+    required this.createdActivities,
     required this.currentEmail,
     required this.currentUserName,
     required this.unreadNotificationCount,
@@ -3478,6 +3730,8 @@ class PremiumActivitiesPage extends StatefulWidget {
 
   final List<TourVisit> visits;
   final List<CommercialClient> clients;
+  // ignore: library_private_types_in_public_api
+  final List<_CommercialActivityItem> createdActivities;
   final String currentEmail;
   final String currentUserName;
   final int unreadNotificationCount;
@@ -3494,7 +3748,9 @@ class _PremiumActivitiesPageState extends State<PremiumActivitiesPage> {
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateUtils.dateOnly(DateTime.now());
+    _selectedDate = widget.createdActivities.isNotEmpty
+        ? DateUtils.dateOnly(widget.createdActivities.first.date)
+        : DateUtils.dateOnly(DateTime.now());
   }
 
   CommercialClient? _clientForVisit(TourVisit visit) {
@@ -3525,7 +3781,14 @@ class _PremiumActivitiesPageState extends State<PremiumActivitiesPage> {
             date: DateUtils.dateOnly(DateTime.now()),
           ),
         );
-    return [...visitActivities, ..._createdActivities]
+    final byId = <int, _CommercialActivityItem>{};
+    for (final activity in [
+      ...widget.createdActivities,
+      ..._createdActivities,
+    ]) {
+      byId[activity.id] = activity;
+    }
+    return [...visitActivities, ...byId.values]
         .where((activity) => DateUtils.isSameDay(activity.date, _selectedDate))
         .toList()
       ..sort((left, right) => left.time.compareTo(right.time));
@@ -3573,6 +3836,19 @@ class _PremiumActivitiesPageState extends State<PremiumActivitiesPage> {
     setState(() {
       _createdActivities.add(created);
       _selectedDate = DateUtils.dateOnly(created.date);
+    });
+    final commercialId =
+        MockPreSalesData.userByEmail(widget.currentEmail)?.id ??
+        CurrentUserSession.currentUser?.id;
+    ApiService.createCommercialRecentActivity({
+      'type_action': 'activite_creee',
+      'titre': 'Nouvelle activité créée',
+      'description': '${created.subtitle} • ${created.location}',
+      'commercial_id': commercialId,
+      'client_id': created.client?.id,
+    }).catchError((error) {
+      debugPrint('[COMMERCIAL][ACTIVITES][POST][ERROR] $error');
+      return <String, dynamic>{};
     });
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -6074,6 +6350,9 @@ class _DetailClientState extends State<DetailClient> {
   @override
   Widget build(BuildContext context) {
     final client = _client;
+    final clientOrders = client == null
+        ? const <CommercialOrder>[]
+        : _ordersForClient(widget.currentEmail, client);
 
     return Scaffold(
       backgroundColor: _HomeCommercialState.surface,
@@ -6128,7 +6407,10 @@ class _DetailClientState extends State<DetailClient> {
                                           SizedBox(height: 16),
                                           _ClientIdentity(client: client),
                                           SizedBox(height: 16),
-                                          _ClientSummaryCard(client: client),
+                                          _ClientSummaryCard(
+                                            client: client,
+                                            orders: clientOrders,
+                                          ),
                                           SizedBox(height: 18),
                                           _DetailTabs(
                                             selectedIndex: _selectedTab,
@@ -6145,10 +6427,7 @@ class _DetailClientState extends State<DetailClient> {
                                               key: ValueKey(_selectedTab),
                                               selectedIndex: _selectedTab,
                                               client: client,
-                                              orders: _ordersForClient(
-                                                widget.currentEmail,
-                                                client,
-                                              ),
+                                              orders: clientOrders,
                                               notes: _notes,
                                               onCall: () => _launch(
                                                 Uri(
@@ -6764,6 +7043,8 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
   final _remarkController = TextEditingController();
   final Map<int, int> _quantities = {};
   final Map<int, ValidatedOrderItem> _draftItemsByProductId = {};
+  List<OrderProduct> _products = [];
+  bool _isLoadingProducts = true;
   String _query = '';
   late final DateTime _orderDate;
   late DateTime _deliveryDate;
@@ -6782,11 +7063,38 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
         _draftItemsByProductId[item.product.id] = item;
       }
       _remarkController.text = draft.remark;
-      _visibleProductCount = MockPreSalesData.orderProducts.length;
     }
+    _loadProducts();
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.trim().toLowerCase());
     });
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final rows = await ApiService.getProduits();
+      final products = rows
+          .whereType<Map>()
+          .map((row) => _orderProductFromApi(row.cast<String, dynamic>()))
+          .where((product) => product.id > 0)
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _products = products;
+        _isLoadingProducts = false;
+        if (widget.draft != null) {
+          _visibleProductCount = products.length;
+        } else {
+          _visibleProductCount = products.length < 3 ? products.length : 3;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _products = [];
+        _isLoadingProducts = false;
+      });
+    }
   }
 
   @override
@@ -6797,7 +7105,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
   }
 
   List<OrderProduct> get _filteredProducts {
-    return MockPreSalesData.orderProducts.where((product) {
+    return _products.where((product) {
       return _query.isEmpty ||
           _productDisplayName(product).toLowerCase().contains(_query) ||
           _productCategory(product).toLowerCase().contains(_query) ||
@@ -6826,14 +7134,14 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
   }
 
   double get _grossSubtotal {
-    return MockPreSalesData.orderProducts.fold(0, (total, product) {
+    return _products.fold(0, (total, product) {
       final quantity = _quantities[product.id] ?? 0;
       return total + _pricingFor(product, quantity).grossTotal;
     });
   }
 
   double get _discountTotal {
-    return MockPreSalesData.orderProducts.fold(0, (total, product) {
+    return _products.fold(0, (total, product) {
       final quantity = _quantities[product.id] ?? 0;
       return total + _pricingFor(product, quantity).discountAmount;
     });
@@ -6887,7 +7195,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
       context: context,
       child: _ScannerSimulationSheet(
         client: widget.client,
-        products: MockPreSalesData.orderProducts
+        products: _products
             .where((product) => _productStock(product) > 0)
             .toList(),
       ),
@@ -6947,14 +7255,20 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
     setState(() {
       _visibleProductCount = (_visibleProductCount + 3).clamp(
         0,
-        MockPreSalesData.orderProducts.length,
+        _products.length,
       );
     });
   }
 
-  void _changeClient() {
-    final user = MockPreSalesData.userByEmail(widget.currentEmail);
-    final clients = MockPreSalesData.clientsForUser(user);
+  Future<void> _changeClient() async {
+    final rows = await ApiService.getClients(
+      commercialEmail: widget.currentEmail,
+    );
+    final clients = rows
+        .whereType<Map>()
+        .map((row) => _commercialClientFromApi(Map<String, dynamic>.from(row)))
+        .toList();
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -7007,10 +7321,25 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
     }
 
     final order = _buildOrder("En attente");
+    try {
+      await ApiService.createCommande(_orderPayload(order));
+    } catch (error) {
+      await _showOrderWorkflowSheet(
+        icon: Icons.cloud_off_rounded,
+        iconColor: Color(0xFFEF4444),
+        title: "Envoi impossible",
+        message:
+            "La commande n'a pas pu etre enregistree dans PostgreSQL. Verifiez le backend puis reessayez.",
+        buttonLabel: "Compris",
+      );
+      return;
+    }
+
+    final session = CurrentUserSession.currentUser;
     final user = MockPreSalesData.userByEmail(widget.currentEmail);
     final commercialOrder = _commercialOrderFromValidated(
       order,
-      commercialId: user?.id ?? 0,
+      commercialId: session?.id ?? user?.id ?? 0,
     );
     _addRuntimeOrderForEmail(widget.currentEmail, commercialOrder);
     _notifyOrderAction(widget.currentEmail, commercialOrder);
@@ -7028,8 +7357,39 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
     );
   }
 
+  Map<String, dynamic> _orderPayload(ValidatedOrder order) {
+    final session = CurrentUserSession.currentUser;
+    return {
+      'order_number': order.orderNumber,
+      'client_id': widget.client.id,
+      'client_code': widget.client.clientCode,
+      'client_name': widget.client.name,
+      'commercial_id': session?.id,
+      'commercial_email': session?.email ?? widget.currentEmail,
+      'commercial_name': widget.currentUserName,
+      'date': order.date.toIso8601String(),
+      'created_at': DateTime.now().toIso8601String(),
+      'delivery_date': (order.deliveryDate ?? _deliveryDate).toIso8601String(),
+      'status': 'en_attente',
+      'total': order.total,
+      'notes': '',
+      'lines': order.items
+          .map(
+            (item) => {
+              'product_id': item.product.id,
+              'product_reference': item.product.reference,
+              'product_name': item.product.name,
+              'quantity': item.quantity,
+              'unit_price': item.unitPriceApplied ?? item.product.unitPrice,
+              'total': item.lineTotal,
+            },
+          )
+          .toList(),
+    };
+  }
+
   ValidatedOrder _buildOrder(String status) {
-    final items = MockPreSalesData.orderProducts
+    final items = _products
         .where((product) => (_quantities[product.id] ?? 0) > 0)
         .map((product) {
           final quantity = _quantities[product.id] ?? 0;
@@ -7160,7 +7520,12 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
                                             onScan: _openScanner,
                                           ),
                                           SizedBox(height: 14),
-                                          if (products.isEmpty)
+                                          if (_isLoadingProducts)
+                                            _EmptyDetailMessage(
+                                              text:
+                                                  'Chargement des produits...',
+                                            )
+                                          else if (products.isEmpty)
                                             _EmptyDetailMessage(
                                               text: 'Aucun produit trouv\u00E9',
                                             )
@@ -8923,6 +9288,32 @@ String _productDisplayName(OrderProduct product) {
   return product.name;
 }
 
+OrderProduct _orderProductFromApi(Map<String, dynamic> json) {
+  final name = _apiString(json, [
+    'nom_produit',
+    'name',
+    'nom',
+  ]).ifEmpty('Produit');
+  final category = _apiString(json, [
+    'categorie',
+    'category',
+    'nom_cat',
+  ]).ifEmpty('Thé Vert Classique');
+  final price = _apiDouble(json, ['prix', 'price', 'unit_price', 'prix_vente']);
+  return OrderProduct(
+    id: _apiInt(json, ['id', 'produit_id']),
+    name: name,
+    reference: _apiString(json, ['reference', 'ref', 'code']),
+    category: category,
+    description: _apiString(json, ['description']),
+    image: _apiString(json, ['image', 'photo']),
+    unitPrice: price,
+    stock: _apiInt(json, ['stock', 'quantite_stock', 'quantity']),
+    icon: Icons.local_cafe_rounded,
+    imageColor: Color(0xFF1B7F4B),
+  );
+}
+
 String _productCategory(OrderProduct product) {
   return product.category;
 }
@@ -9345,6 +9736,317 @@ CommercialOrder _commercialOrderFromValidated(
   );
 }
 
+CommercialOrder _commercialOrderFromApi(Map<String, dynamic> json) {
+  final id = _apiInt(json, ['id', 'facture_id']);
+  final linesRaw =
+      json['details'] ??
+      json['details_facture'] ??
+      json['lignes'] ??
+      json['items'] ??
+      const [];
+  final lines = linesRaw is List
+      ? linesRaw
+            .whereType<Map>()
+            .map((line) => _orderLineFromApi(line.cast<String, dynamic>()))
+            .toList()
+      : const <OrderLine>[];
+  final productsCount = _apiInt(json, [
+    'products_count',
+    'items_count',
+    'nombre_produits',
+  ]);
+  return CommercialOrder(
+    commercialId: _apiInt(json, ['commercial_id', 'id_commercial']),
+    id: id,
+    orderNumber: _apiString(json, [
+      'order_number',
+      'numero_facture',
+      'numero',
+      'reference',
+    ]).ifEmpty('CMD-$id'),
+    clientName: _apiString(json, [
+      'client_name',
+      'client',
+      'client_nom',
+    ]).ifEmpty('Client'),
+    date: _apiDateLabel(
+      _apiString(json, ['date', 'created_at', 'date_facture']),
+    ),
+    productsCount: productsCount > 0
+        ? productsCount
+        : lines.fold(0, (sum, line) => sum + line.quantity),
+    total: _apiDouble(json, ['total', 'montant_total', 'amount']),
+    status: _orderStatusFromApi(_apiString(json, ['status', 'statut', 'etat'])),
+    items: lines,
+  );
+}
+
+CommercialClient _commercialClientFromApi(Map<String, dynamic> json) {
+  final id = _apiInt(json, ['id', 'client_id']);
+  final name = _apiString(json, [
+    'name',
+    'nom',
+    'client_name',
+  ]).ifEmpty('Client');
+  final businessType = _apiString(json, [
+    'business_type',
+    'category',
+    'categorie',
+  ]).ifEmpty('Commerce general');
+  return CommercialClient(
+    commercialId: _apiInt(json, [
+      'commercial_id',
+      'id_commercial',
+      'user_id',
+      'created_by',
+    ]),
+    id: id,
+    clientCode: _apiString(json, [
+      'client_code',
+      'code_client',
+      'reference',
+    ]).ifEmpty('CL$id'),
+    name: name,
+    city: _apiString(json, ['city', 'ville']).ifEmpty('Casablanca'),
+    businessType: businessType,
+    category: businessType,
+    contactName: _apiString(json, ['contact_name', 'contact']),
+    latitude: _apiDouble(json, ['latitude', 'lat']).nonZero(33.5731),
+    longitude: _apiDouble(json, ['longitude', 'lng']).nonZero(-7.5898),
+    status: _clientStatusFromApi(
+      _apiString(json, ['computed_status', 'status', 'statut']),
+    ),
+    initials: _initialsFromName(name),
+    phone: _apiString(json, ['phone', 'telephone', 'tel']),
+    email: _apiString(json, ['email']),
+    address: _apiString(json, ['address', 'adresse']).ifEmpty('Casablanca'),
+    creditLimit: _apiDouble(json, ['credit_limit', 'plafond_credit']),
+    discount: _apiDouble(json, ['discount', 'remise']),
+    balance: _apiDouble(json, ['balance', 'solde']),
+    lastOrderDate: _apiString(json, [
+      'computed_last_order_date',
+      'last_order_date',
+      'last_order',
+    ]).ifEmpty('Nouveau'),
+    risk: ClientRisk.low,
+    orders: _clientOrdersFromApiStats(json),
+    documents: const [],
+  );
+}
+
+List<ClientOrder> _clientOrdersFromApiStats(Map<String, dynamic> json) {
+  final count = _apiInt(json, ['orders_count', 'commandes_count']);
+  if (count <= 0) return const [];
+  final revenue = _apiDouble(json, ['ca_total', 'revenue', 'total_ca']);
+  final date = _apiString(json, [
+    'computed_last_order_date',
+    'last_order_date',
+  ]).ifEmpty('Nouveau');
+  return List<ClientOrder>.generate(
+    count,
+    (index) => ClientOrder(
+      reference: 'CMD-${index + 1}',
+      date: date,
+      amount: index == 0 ? revenue : 0,
+    ),
+  );
+}
+
+Map<String, dynamic> _commercialClientToApi(
+  CommercialClient client,
+  int commercialId,
+) {
+  return {
+    'client_code': client.clientCode,
+    'name': client.name,
+    'phone': client.phone,
+    'email': client.email,
+    'city': client.city,
+    'address': client.address,
+    'business_type': client.businessType,
+    'category': client.category,
+    'contact_name': client.contactName,
+    'initials': client.initials,
+    'latitude': client.latitude,
+    'longitude': client.longitude,
+    'last_order_date': client.lastOrderDate,
+    'risk': 'low',
+    'status': _clientStatusToApi(client.status),
+    'commercial_id': commercialId,
+  };
+}
+
+ClientStatus _clientStatusFromApi(String raw) {
+  final value = raw.toLowerCase().trim();
+  if (value.contains('inactive') || value.contains('inactif')) {
+    return ClientStatus.inactive;
+  }
+  if (value.contains('active') ||
+      value.contains('actif') ||
+      value.contains('visited') ||
+      value.contains('visite')) {
+    return ClientStatus.visited;
+  }
+  return ClientStatus.toVisit;
+}
+
+String _clientStatusToApi(ClientStatus status) {
+  return switch (status) {
+    ClientStatus.visited => 'visited',
+    ClientStatus.inactive => 'inactive',
+    ClientStatus.toVisit => 'toVisit',
+  };
+}
+
+String _initialsFromName(String name) {
+  final parts = name.trim().split(RegExp(r'\s+')).where((part) {
+    return part.isNotEmpty;
+  }).toList();
+  if (parts.isEmpty) return 'CL';
+  return parts.take(2).map((part) => part[0].toUpperCase()).join();
+}
+
+OrderLine _orderLineFromApi(Map<String, dynamic> json) {
+  final quantity = _apiInt(json, ['quantity', 'quantite', 'qty', 'qte']);
+  final unitPrice = _apiDouble(json, [
+    'unit_price',
+    'prix_unitaire',
+    'prix_vendu',
+    'price',
+  ]);
+  return OrderLine(
+    productName: _apiString(json, [
+      'product_name',
+      'produit',
+      'name',
+      'designation',
+    ]).ifEmpty('Produit'),
+    quantity: quantity,
+    total: _apiDouble(json, [
+      'total',
+      'total_ligne',
+      'line_total',
+    ]).nonZero(quantity * unitPrice),
+  );
+}
+
+List<CommercialOrder> _mergeCommercialOrders(List<CommercialOrder> orders) {
+  final byNumber = <String, CommercialOrder>{};
+  for (final order in orders) {
+    byNumber[order.orderNumber] = order;
+  }
+  return byNumber.values.toList()..sort((a, b) {
+    final aDate = _parseOrderDate(a.date) ?? DateTime(1900);
+    final bDate = _parseOrderDate(b.date) ?? DateTime(1900);
+    return bDate.compareTo(aDate);
+  });
+}
+
+List<CommercialClient> _mergeCommercialClients(List<CommercialClient> clients) {
+  final byKey = <String, CommercialClient>{};
+  for (final client in clients) {
+    final key = client.id > 0
+        ? 'id:${client.id}'
+        : 'name:${client.name.trim().toLowerCase()}';
+    byKey[key] = client;
+  }
+  return byKey.values.toList()
+    ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+}
+
+OrderStatus _orderStatusFromApi(String raw) {
+  final value = raw.toLowerCase().trim();
+  if (value.contains('refus') ||
+      value.contains('cancel') ||
+      value.contains('reject')) {
+    return OrderStatus.cancelled;
+  }
+  if (value.contains('valid') ||
+      value.contains('delivered') ||
+      value.contains('synced')) {
+    return OrderStatus.synced;
+  }
+  return OrderStatus.pending;
+}
+
+String _apiString(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value != null) return value.toString();
+  }
+  return '';
+}
+
+int _apiInt(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+  }
+  return 0;
+}
+
+double _apiDouble(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final parsed = double.tryParse(value.replaceAll(',', '.'));
+      if (parsed != null) return parsed;
+    }
+  }
+  return 0;
+}
+
+String _apiDateLabel(String value) {
+  final parsed = DateTime.tryParse(value) ?? _parseHttpDate(value);
+  if (parsed == null) return value.ifEmpty('-');
+  return _dateOnlyLabel(parsed.toLocal());
+}
+
+DateTime? _parseHttpDate(String value) {
+  final match = RegExp(
+    r'^[A-Za-z]{3},\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+'
+    r'(\d{2}):(\d{2}):(\d{2})\s+GMT$',
+  ).firstMatch(value.trim());
+  if (match == null) return null;
+  const months = {
+    'Jan': 1,
+    'Feb': 2,
+    'Mar': 3,
+    'Apr': 4,
+    'May': 5,
+    'Jun': 6,
+    'Jul': 7,
+    'Aug': 8,
+    'Sep': 9,
+    'Oct': 10,
+    'Nov': 11,
+    'Dec': 12,
+  };
+  final month = months[match.group(2)];
+  if (month == null) return null;
+  return DateTime.utc(
+    int.parse(match.group(3)!),
+    month,
+    int.parse(match.group(1)!),
+    int.parse(match.group(4)!),
+    int.parse(match.group(5)!),
+    int.parse(match.group(6)!),
+  ).toLocal();
+}
+
+extension _CommercialStringFallback on String {
+  String ifEmpty(String fallback) => trim().isEmpty ? fallback : this;
+}
+
+extension _CommercialDoubleFallback on double {
+  double nonZero(double fallback) => this == 0 ? fallback : this;
+}
+
 // ignore: unused_element
 class _LegacyNouvelleCommande extends StatelessWidget {
   _LegacyNouvelleCommande({required this.client});
@@ -9544,12 +10246,20 @@ class _ClientIdentity extends StatelessWidget {
 }
 
 class _ClientSummaryCard extends StatelessWidget {
-  _ClientSummaryCard({required this.client});
+  _ClientSummaryCard({required this.client, required this.orders});
 
   final CommercialClient client;
+  final List<CommercialOrder> orders;
 
   @override
   Widget build(BuildContext context) {
+    final latestOrder = _latestClientOrder(orders);
+    final fallbackLastOrder = client.lastOrderDate.trim();
+    final lastOrderLabel =
+        latestOrder?.date ??
+        (fallbackLastOrder.isEmpty || fallbackLastOrder == 'Nouveau'
+            ? '-'
+            : fallbackLastOrder);
     return Container(
       padding: EdgeInsets.symmetric(vertical: 14),
       decoration: _activityCardDecoration(13),
@@ -9564,7 +10274,7 @@ class _ClientSummaryCard extends StatelessWidget {
           _SummaryDivider(),
           _SummaryItem(
             label: AppLocalizations.globalText('Derni\u00E8re commande'),
-            value: client.lastOrderDate,
+            value: lastOrderLabel,
           ),
           _SummaryDivider(),
           _SummaryItem(
@@ -9969,8 +10679,16 @@ class _HistoryCard extends StatelessWidget {
                     title: 'Montant moyen par commande',
                     subtitle: 'Calcul automatique',
                     value: '${_money(average)} MAD',
-                    isLast: notes.isEmpty,
+                    isLast: false,
                   ),
+                  for (var i = 0; i < orders.length; i++)
+                    _SimpleDetailRow(
+                      icon: Icons.receipt_rounded,
+                      title: orders[i].orderNumber,
+                      subtitle: '${orders[i].date} • ${orders[i].status.label}',
+                      value: '${_money(orders[i].total)} MAD',
+                      isLast: notes.isEmpty && i == orders.length - 1,
+                    ),
                 ],
                 for (var i = 0; i < notes.length; i++)
                   _SimpleDetailRow(
@@ -10298,10 +11016,26 @@ String _clientTypeLabel(CommercialClient client) {
 }
 
 List<CommercialOrder> _ordersForClient(String email, CommercialClient client) {
-  final normalizedName = client.name.toLowerCase().trim();
-  final orders = _runtimeOrdersForEmail(email).where((order) {
-    return order.clientName.toLowerCase().trim() == normalizedName;
-  }).toList();
+  final normalizedName = _clientMatchKey(client.name);
+  final byReference = <String, CommercialOrder>{};
+  for (final order in client.orders) {
+    byReference[order.reference] = CommercialOrder(
+      id: 0,
+      orderNumber: order.reference,
+      clientName: client.name,
+      date: order.date,
+      productsCount: 0,
+      total: order.amount,
+      status: OrderStatus.synced,
+      items: const [],
+    );
+  }
+  for (final order in _runtimeOrdersForEmail(email)) {
+    if (_clientMatchKey(order.clientName) == normalizedName) {
+      byReference[order.orderNumber] = order;
+    }
+  }
+  final orders = byReference.values.toList();
   orders.sort((a, b) {
     final aDate = _parseOrderDate(a.date) ?? DateTime(1900);
     final bDate = _parseOrderDate(b.date) ?? DateTime(1900);
@@ -11273,6 +12007,7 @@ class _DashboardTab extends StatelessWidget {
     required this.visits,
     required this.clients,
     required this.createdActivities,
+    required this.recentActivities,
     required this.currentEmail,
     required this.unreadNotificationCount,
     required this.onClientAdded,
@@ -11289,6 +12024,7 @@ class _DashboardTab extends StatelessWidget {
   final List<TourVisit> visits;
   final List<CommercialClient> clients;
   final List<_CommercialActivityItem> createdActivities;
+  final List<_ActivityHistoryItem> recentActivities;
   final String currentEmail;
   final int unreadNotificationCount;
   final ValueChanged<CommercialClient> onClientAdded;
@@ -11357,6 +12093,7 @@ class _DashboardTab extends StatelessWidget {
           visits: visits,
           clients: clients,
           createdActivities: createdActivities,
+          recentActivities: recentActivities,
         ),
       ),
     );
@@ -11476,6 +12213,7 @@ class _DashboardTab extends StatelessWidget {
       visits: visits,
       clients: clients,
       createdActivities: createdActivities,
+      persistedActivities: this.recentActivities,
       today: DateTime.now(),
     );
 
@@ -11588,6 +12326,7 @@ class _ActivityHistoryPage extends StatefulWidget {
     required this.visits,
     required this.clients,
     required this.createdActivities,
+    required this.recentActivities,
   });
 
   final String commercialName;
@@ -11595,6 +12334,7 @@ class _ActivityHistoryPage extends StatefulWidget {
   final List<TourVisit> visits;
   final List<CommercialClient> clients;
   final List<_CommercialActivityItem> createdActivities;
+  final List<_ActivityHistoryItem> recentActivities;
 
   @override
   State<_ActivityHistoryPage> createState() => _ActivityHistoryPageState();
@@ -11627,6 +12367,7 @@ class _ActivityHistoryPageState extends State<_ActivityHistoryPage> {
       visits: widget.visits,
       clients: widget.clients,
       createdActivities: widget.createdActivities,
+      persistedActivities: widget.recentActivities,
       today: DateUtils.dateOnly(_today),
     ).where(_matchesFilters).toList()..sort((a, b) {
       final dateCompare = b.date.compareTo(a.date);
@@ -11919,6 +12660,134 @@ class _ActivityHistoryItem {
   final bool completedIndicator;
 
   String get searchText => '$title $subtitle ${_historyTypeLabel(type)}';
+}
+
+_ActivityHistoryItem _activityHistoryItemFromApi(Map<String, dynamic> json) {
+  final typeAction = _apiString(json, ['type_action', 'type']).trim();
+  final createdAt = _apiDateTime(
+    _apiString(json, ['created_at', 'date_creation', 'date']),
+  );
+  final style = _activityLogStyle(typeAction);
+  return _ActivityHistoryItem(
+    title: _apiString(json, ['titre', 'title']).ifEmpty(style.title),
+    subtitle: _apiString(json, [
+      'description',
+      'message',
+      'subtitle',
+    ]).ifEmpty('-'),
+    timeLabel: _timeOnlyLabel(createdAt),
+    date: DateUtils.dateOnly(createdAt),
+    icon: style.icon,
+    color: style.color,
+    type: style.type,
+    status: style.status,
+    target: style.target,
+    targetId: _apiInt(json, [
+      style.target == _ActivityHistoryTarget.client
+          ? 'client_id'
+          : 'commande_id',
+      'target_id',
+      'id',
+    ]),
+    completedIndicator:
+        style.status == _ActivityHistoryStatus.completed ||
+        style.status == _ActivityHistoryStatus.validated,
+  );
+}
+
+({
+  String title,
+  IconData icon,
+  Color color,
+  _ActivityHistoryType type,
+  _ActivityHistoryStatus status,
+  _ActivityHistoryTarget target,
+})
+_activityLogStyle(String typeAction) {
+  switch (typeAction) {
+    case 'nouveau_client':
+      return (
+        title: 'Nouveau client ajouté',
+        icon: Icons.person_add_alt_1_rounded,
+        color: _DashboardTab._green,
+        type: _ActivityHistoryType.clients,
+        status: _ActivityHistoryStatus.completed,
+        target: _ActivityHistoryTarget.client,
+      );
+    case 'commande_creee':
+      return (
+        title: 'Commande créée',
+        icon: Icons.receipt_long_rounded,
+        color: _DashboardTab._orange,
+        type: _ActivityHistoryType.orders,
+        status: _ActivityHistoryStatus.pending,
+        target: _ActivityHistoryTarget.order,
+      );
+    case 'commande_envoyee_manager':
+      return (
+        title: 'Commande envoyée au manager',
+        icon: Icons.send_rounded,
+        color: _HomeCommercialState.primaryBlue,
+        type: _ActivityHistoryType.orders,
+        status: _ActivityHistoryStatus.completed,
+        target: _ActivityHistoryTarget.order,
+      );
+    case 'commande_validee_manager':
+      return (
+        title: 'Commande validée par le manager',
+        icon: Icons.assignment_turned_in_rounded,
+        color: _DashboardTab._green,
+        type: _ActivityHistoryType.orders,
+        status: _ActivityHistoryStatus.validated,
+        target: _ActivityHistoryTarget.order,
+      );
+    case 'commande_refusee_manager':
+      return (
+        title: 'Commande refusée par le manager',
+        icon: Icons.close_rounded,
+        color: _HomeCommercialState.error,
+        type: _ActivityHistoryType.orders,
+        status: _ActivityHistoryStatus.refused,
+        target: _ActivityHistoryTarget.order,
+      );
+    case 'rapport_journalier':
+      return (
+        title: 'Rapport journalier envoyé',
+        icon: Icons.summarize_rounded,
+        color: Color(0xFF7C3AED),
+        type: _ActivityHistoryType.reports,
+        status: _ActivityHistoryStatus.completed,
+        target: _ActivityHistoryTarget.report,
+      );
+    case 'activite_creee':
+      return (
+        title: 'Nouvelle activité créée',
+        icon: Icons.event_available_rounded,
+        color: _HomeCommercialState.primaryBlue,
+        type: _ActivityHistoryType.visits,
+        status: _ActivityHistoryStatus.pending,
+        target: _ActivityHistoryTarget.visit,
+      );
+    default:
+      return (
+        title: 'Activité récente',
+        icon: Icons.history_rounded,
+        color: _HomeCommercialState.primaryBlue,
+        type: _ActivityHistoryType.all,
+        status: _ActivityHistoryStatus.completed,
+        target: _ActivityHistoryTarget.report,
+      );
+  }
+}
+
+DateTime _apiDateTime(String value) {
+  return DateTime.tryParse(value)?.toLocal() ??
+      _parseHttpDate(value) ??
+      DateTime.now();
+}
+
+String _timeOnlyLabel(DateTime date) {
+  return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 }
 
 class _ActivityHistoryGroup {
@@ -12453,8 +13322,18 @@ List<_ActivityHistoryItem> _buildActivityHistoryItems({
   required List<TourVisit> visits,
   required List<CommercialClient> clients,
   required List<_CommercialActivityItem> createdActivities,
+  required List<_ActivityHistoryItem> persistedActivities,
   required DateTime today,
 }) {
+  final postgresActivities = [...persistedActivities]
+    ..sort((a, b) => b.date.compareTo(a.date));
+  if (DateTime.now().year > 0) return postgresActivities;
+
+  if (persistedActivities.isNotEmpty) {
+    final sorted = [...persistedActivities]
+      ..sort((a, b) => b.date.compareTo(a.date));
+    return sorted;
+  }
   final yesterday = today.subtract(Duration(days: 1));
   final weekDate = today.subtract(Duration(days: 2));
   final items = <_ActivityHistoryItem>[];
@@ -12861,11 +13740,44 @@ class _DailyReportPageState extends State<_DailyReportPage> {
     );
   }
 
-  void _sendToManager() {
+  Future<void> _sendToManager() async {
     if (!_hasReportData) {
       _showReportUnavailableMessage();
       return;
     }
+    final commercialId =
+        MockPreSalesData.userByEmail(widget.currentEmail)?.id ??
+        CurrentUserSession.currentUser?.id;
+    try {
+      await ApiService.createRapport({
+        'commercial_id': commercialId,
+        'commercial_name': widget.commercialName,
+        'city': widget.city,
+        'email': widget.currentEmail,
+        'report_date': _reportDate.toIso8601String(),
+        'summary':
+            '${_reportOrders.length} commandes, $_visitedCount visites, $_followUpCalls appels',
+        'activities_count': _reportActivities.length,
+        'clients_count': _newClients,
+        'calls': _followUpCalls,
+        'meetings': _reportVisits.length,
+        'tasks': _reportActivities.length,
+        'claims': 0,
+        'orders_count': _reportOrders.length,
+        'revenue': _revenue,
+        'comments': _commentController.text.trim(),
+      });
+      await ApiService.createCommercialRecentActivity({
+        'type_action': 'rapport_journalier',
+        'titre': 'Rapport journalier envoyé',
+        'description':
+            '${_dailyReportDateLabel(_reportDate)} • ${_reportOrders.length} commandes',
+        'commercial_id': commercialId,
+      });
+    } catch (error) {
+      debugPrint('[COMMERCIAL][RAPPORT][ACTIVITE][ERROR] $error');
+    }
+    if (!mounted) return;
     setState(() => _reportSent = true);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -16003,6 +16915,36 @@ class _CommercialNotificationsPageState
     _email = user?.email ?? '';
     _userName = user?.fullName ?? '';
     _notifications = _buildNotificationsForCurrentUser();
+    _loadPersistedNotifications();
+  }
+
+  Future<void> _loadPersistedNotifications() async {
+    try {
+      final user = CurrentUserSession.currentUser;
+      final raw = await ApiService.getCommercialRecentActivities(
+        commercialId: user?.id,
+        commercialEmail: _email,
+      );
+      final persisted = <_CommercialNotification>[];
+      for (final item in raw.whereType<Map>()) {
+        final json = item.cast<String, dynamic>();
+        final notification = _commercialNotificationFromActivityApi(
+          json,
+          _email,
+        );
+        _addRuntimeCommercialNotification(_email, notification);
+        persisted.add(notification);
+      }
+      if (!mounted) return;
+      setState(() {
+        _notifications = _mergeCommercialNotifications([
+          ...persisted,
+          ..._buildNotificationsForCurrentUser(),
+        ]);
+      });
+    } catch (error) {
+      debugPrint('[COMMERCIAL][NOTIFICATIONS][GET][ERROR] $error');
+    }
   }
 
   List<_CommercialNotification> get _visibleNotifications {
@@ -16036,7 +16978,7 @@ class _CommercialNotificationsPageState
     _commercialNotificationRevision.value++;
   }
 
-  void _openNotification(_CommercialNotification notification) {
+  Future<void> _openNotification(_CommercialNotification notification) async {
     setState(() {
       _readCommercialNotificationIds.add(notification.id);
       _notifications = [
@@ -16065,9 +17007,14 @@ class _CommercialNotificationsPageState
 
     if (notification.clientId != null) {
       final clients = [
-        ...MockPreSalesData.clientsForUser(user),
+        ...((await ApiService.getClients(
+          commercialEmail: _email,
+        )).whereType<Map>().map(
+          (row) => _commercialClientFromApi(Map<String, dynamic>.from(row)),
+        )),
         ..._runtimeClientsForEmail(_email),
       ];
+      if (!mounted) return;
       for (final client in clients) {
         if (client.id == notification.clientId) {
           Navigator.push(
@@ -16564,6 +17511,17 @@ List<_CommercialNotification> _runtimeNotificationsForEmail(String email) {
   return [...notifications]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 }
 
+List<_CommercialNotification> _mergeCommercialNotifications(
+  List<_CommercialNotification> notifications,
+) {
+  final byId = <String, _CommercialNotification>{};
+  for (final notification in notifications) {
+    byId[notification.id] = notification;
+  }
+  return byId.values.toList()
+    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+}
+
 void _addRuntimeCommercialNotification(
   String email,
   _CommercialNotification notification,
@@ -16689,6 +17647,47 @@ void _notifyOrderAction(String email, CommercialOrder order) {
       isRead: false,
       orderId: order.id,
       style: _NotificationStyle(icon: statusData.icon, color: statusData.color),
+    ),
+  );
+}
+
+_CommercialNotification _commercialNotificationFromActivityApi(
+  Map<String, dynamic> json,
+  String email,
+) {
+  final typeAction = _apiString(json, ['type_action', 'type']);
+  final createdAt = _apiDateTime(
+    _apiString(json, ['created_at', 'date_creation', 'date']),
+  );
+  final activityStyle = _activityLogStyle(typeAction);
+  final notificationType = switch (activityStyle.type) {
+    _ActivityHistoryType.orders => _NotificationType.order,
+    _ActivityHistoryType.clients => _NotificationType.client,
+    _ => _NotificationType.system,
+  };
+  final id = 'postgres-activity-${_apiInt(json, ['id'])}';
+  return _CommercialNotification(
+    id: id,
+    title: _apiString(json, ['titre', 'title']).ifEmpty(activityStyle.title),
+    message: _apiString(json, [
+      'description',
+      'message',
+      'subtitle',
+    ]).ifEmpty('-'),
+    type: notificationType,
+    createdAt: createdAt,
+    timeLabel: _notificationTimeLabel(createdAt),
+    userId: _notificationUserId(email),
+    isRead: _readCommercialNotificationIds.contains(id),
+    orderId: _apiInt(json, ['commande_id']) == 0
+        ? null
+        : _apiInt(json, ['commande_id']),
+    clientId: _apiInt(json, ['client_id']) == 0
+        ? null
+        : _apiInt(json, ['client_id']),
+    style: _NotificationStyle(
+      icon: activityStyle.icon,
+      color: activityStyle.color,
     ),
   );
 }
@@ -17339,6 +18338,35 @@ class _NouveauClientScreenState extends State<NouveauClientScreen> {
       color: _DashboardTab._blue,
     );
 
+    var savedClient = client;
+    if (editingClient == null) {
+      try {
+        final commercialId =
+            MockPreSalesData.userByEmail(widget.currentEmail)?.id ??
+            CurrentUserSession.currentUser?.id ??
+            client.commercialId;
+        final response = await ApiService.createClient(
+          _commercialClientToApi(client, commercialId),
+        );
+        savedClient = _commercialClientFromApi(response);
+        _addRuntimeClientForEmail(widget.currentEmail, savedClient);
+        debugPrint(
+          '[COMMERCIAL][CLIENTS][CREATED] id=${savedClient.id} '
+          'name=${savedClient.name} commercial_id=$commercialId',
+        );
+      } catch (error) {
+        debugPrint('[COMMERCIAL][CLIENTS][CREATE][ERROR] $error');
+        await _showNewClientInfoSheet(
+          icon: Icons.cloud_off_rounded,
+          iconColor: Color(0xFFEF4444),
+          title: 'Client non enregistré',
+          message: 'Le client n\u2019a pas pu être enregistré dans PostgreSQL.',
+          buttonLabel: 'Compris',
+        );
+        return;
+      }
+    }
+
     _clientDataRevision.value++;
     await _showNewClientInfoSheet(
       icon: Icons.check_circle_rounded,
@@ -17350,7 +18378,7 @@ class _NouveauClientScreenState extends State<NouveauClientScreen> {
       buttonLabel: 'Continuer',
     );
     if (!mounted) return;
-    Navigator.pop(context, client);
+    Navigator.pop(context, savedClient);
   }
 
   @override

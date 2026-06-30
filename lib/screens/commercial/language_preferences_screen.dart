@@ -285,19 +285,19 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
     final options = [
       _LanguageOption(
         locale: Locale('fr'),
-        flag: 'ðŸ‡«ðŸ‡·',
+        flag: '🇫🇷',
         nativeName: l10n.frenchNative,
         displayName: l10n.french,
       ),
       _LanguageOption(
         locale: Locale('ar'),
-        flag: 'ðŸ‡¸ðŸ‡¦',
+        flag: '🇸🇦',
         nativeName: l10n.arabicNative,
         displayName: l10n.arabic,
       ),
       _LanguageOption(
         locale: Locale('en'),
-        flag: 'ðŸ‡ºðŸ‡¸',
+        flag: '🇺🇸',
         nativeName: l10n.englishNative,
         displayName: l10n.english,
       ),
@@ -525,13 +525,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
   List<String> _previewLabels(Locale locale) {
     return switch (locale.languageCode) {
       'en' => ['Home', 'Clients', 'Orders', 'Activities', 'Profile'],
-      'ar' => [
-        'Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©',
-        'Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡',
-        'Ø§Ù„Ø·Ù„Ø¨Ø§Øª',
-        'Ø§Ù„Ø£Ù†Ø´Ø·Ø©',
-        'Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ',
-      ],
+      'ar' => ['الرئيسية', 'العملاء', 'الطلبات', 'الأنشطة', 'الملف الشخصي'],
       _ => ['Accueil', 'Clients', 'Commandes', 'Activités', 'Profil'],
     };
   }

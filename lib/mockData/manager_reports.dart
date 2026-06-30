@@ -1,4 +1,4 @@
-﻿import '../data/mock_presales_data.dart';
+import '../data/mock_presales_data.dart';
 import 'manager_dashboard.dart';
 
 class ManagerReportsMockData {
