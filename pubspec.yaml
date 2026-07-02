@@ -46,7 +46,6 @@ dependencies:
   sqflite_common_ffi: ^2.4.0+3
   url_launcher: ^6.3.2
   mailer: ^7.1.0
-  lucide_icons: ^0.257.0
 
 dev_dependencies:
   flutter_test:

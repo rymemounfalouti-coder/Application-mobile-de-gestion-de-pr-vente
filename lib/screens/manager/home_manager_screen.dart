@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../api_service.dart';
@@ -1007,7 +1006,7 @@ class _ManagerHomeHeader extends StatelessWidget {
         children: [
           IconButton(
             onPressed: onMenuPressed,
-            icon: Icon(LucideIcons.menu, size: 32),
+            icon: Icon(Icons.menu, size: 32),
             color: Colors.white,
             padding: EdgeInsets.zero,
             constraints: BoxConstraints.tightFor(width: 42, height: 42),
@@ -1051,7 +1050,7 @@ class _ManagerHomeHeader extends StatelessWidget {
                 children: [
                   IconButton(
                     onPressed: onNotificationsPressed,
-                    icon: Icon(LucideIcons.bell, size: 27),
+                    icon: Icon(Icons.notifications_outlined, size: 27),
                     color: Colors.white,
                   ),
                   if (effectiveUnread > 0)
@@ -1132,7 +1131,7 @@ class _ManagerHomePeriodSelector extends StatelessWidget {
             value: selectedPeriod,
             isExpanded: true,
             borderRadius: BorderRadius.circular(16),
-            icon: Icon(LucideIcons.chevronDown, size: 16),
+            icon: Icon(Icons.keyboard_arrow_down, size: 16),
             padding: EdgeInsets.symmetric(horizontal: 8),
             style: TextStyle(
               fontFamily: 'Roboto',
@@ -1147,7 +1146,7 @@ class _ManagerHomePeriodSelector extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(LucideIcons.calendar, size: 16),
+                        Icon(Icons.calendar_today, size: 16),
                         SizedBox(width: 5),
                         Flexible(
                           child: Text(
@@ -1272,7 +1271,7 @@ class _ManagerKpiGrid extends StatelessWidget {
       _ManagerKpiData(
         title: "Chiffre d'affaires",
         value: '${_formatNumber(data.revenue.round())} DH',
-        icon: LucideIcons.dollarSign,
+        icon: Icons.attach_money,
         color: _DashboardManagerState.managerBlue,
         iconBackground: _DashboardManagerState.iconBlueBg,
         onTap: () => onOpenCommands('validee'),
@@ -1280,7 +1279,7 @@ class _ManagerKpiGrid extends StatelessWidget {
       _ManagerKpiData(
         title: 'Total commandes',
         value: '${data.totalOrders}',
-        icon: LucideIcons.shoppingCart,
+        icon: Icons.shopping_cart,
         color: _DashboardManagerState.managerGreen,
         iconBackground: _DashboardManagerState.iconGreenBg,
         onTap: () => onOpenCommands('all'),
@@ -1289,7 +1288,7 @@ class _ManagerKpiGrid extends StatelessWidget {
         title: 'Commandes en attente',
         value: '${data.pendingOrders}',
         link: 'Voir plus',
-        icon: LucideIcons.clock,
+        icon: Icons.access_time,
         color: _DashboardManagerState.managerOrange,
         iconBackground: _DashboardManagerState.iconOrangeBg,
         onTap: () => onOpenCommands('en_attente'),
@@ -1297,7 +1296,7 @@ class _ManagerKpiGrid extends StatelessWidget {
       _ManagerKpiData(
         title: 'Commandes validees',
         value: '${data.validatedOrders}',
-        icon: LucideIcons.checkCircle,
+        icon: Icons.check_circle,
         color: _DashboardManagerState.managerGreen,
         iconBackground: _DashboardManagerState.iconGreenBg,
         onTap: () => onOpenCommands('validee'),
@@ -1305,7 +1304,7 @@ class _ManagerKpiGrid extends StatelessWidget {
       _ManagerKpiData(
         title: 'Commandes refusees',
         value: '${data.refusedOrders}',
-        icon: LucideIcons.xCircle,
+        icon: Icons.cancel,
         color: _DashboardManagerState.managerRed,
         iconBackground: _DashboardManagerState.iconRedBg,
         onTap: () => onOpenCommands('refusee'),
@@ -1314,7 +1313,7 @@ class _ManagerKpiGrid extends StatelessWidget {
         title: 'Commerciaux actifs',
         value: '${data.activeCommercials}',
         link: 'Voir la liste',
-        icon: LucideIcons.users,
+        icon: Icons.people,
         color: _DashboardManagerState.managerPurple,
         iconBackground: _DashboardManagerState.iconPurpleBg,
         onTap: () => Navigator.pushNamed(context, '/manager-commerciaux'),
@@ -1322,7 +1321,7 @@ class _ManagerKpiGrid extends StatelessWidget {
       _ManagerKpiData(
         title: 'Clients actifs',
         value: '${data.activeClients}',
-        icon: LucideIcons.user,
+        icon: Icons.person,
         color: _DashboardManagerState.managerCyan,
         iconBackground: _DashboardManagerState.iconCyanBg,
         onTap: () => Navigator.pushNamed(context, '/manager-commerciaux'),
@@ -1330,7 +1329,7 @@ class _ManagerKpiGrid extends StatelessWidget {
       _ManagerKpiData(
         title: 'Objectif global atteint',
         value: '${data.objectiveRate}%',
-        icon: LucideIcons.target,
+        icon: Icons.gps_fixed,
         color: _DashboardManagerState.managerOrange,
         iconBackground: _DashboardManagerState.iconOrangeBg,
         onTap: () => Navigator.pushNamed(context, '/manager-commerciaux'),
@@ -1495,7 +1494,7 @@ class _RevenueEvolutionCard extends StatelessWidget {
           Expanded(
             child: points.isEmpty || points.every((point) => point.amount == 0)
                 ? _ManagerEmptyInline(
-                    icon: LucideIcons.lineChart,
+                    icon: Icons.show_chart,
                     text: 'Aucune donnée disponible pour cette période.',
                   )
                 : CustomPaint(
@@ -1559,7 +1558,7 @@ class _OrderStatusDonutCard extends StatelessWidget {
           if (total == 0)
             Expanded(
               child: _ManagerEmptyInline(
-                icon: LucideIcons.pieChart,
+                icon: Icons.pie_chart,
                 text: 'Aucune donnee disponible.',
               ),
             )
@@ -1690,7 +1689,7 @@ class _TopCommercialsCard extends StatelessWidget {
           ),
           if (commercials.isEmpty)
             _ManagerEmptyInline(
-              icon: LucideIcons.users,
+              icon: Icons.people,
               text: 'Aucune performance disponible pour le moment.',
             )
           else
@@ -1857,7 +1856,7 @@ class _RecentActivitiesCard extends StatelessWidget {
           ),
           if (activities.isEmpty)
             _ManagerEmptyInline(
-              icon: LucideIcons.bell,
+              icon: Icons.notifications_outlined,
               text: 'Aucune activité récente.',
             )
           else
@@ -1938,10 +1937,10 @@ class _QuickActionsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = [
-      ('Commandes', 'En attente', LucideIcons.receipt, onPendingOrders),
-      ('Objectifs', 'Mensuels', LucideIcons.target, onObjectives),
-      ('Rapports', 'Journaliers', LucideIcons.fileText, onReports),
-      ('Equipe', 'Commerciaux', LucideIcons.users, onCommercials),
+      ('Commandes', 'En attente', Icons.receipt_long, onPendingOrders),
+      ('Objectifs', 'Mensuels', Icons.gps_fixed, onObjectives),
+      ('Rapports', 'Journaliers', Icons.description, onReports),
+      ('Equipe', 'Commerciaux', Icons.people, onCommercials),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2018,7 +2017,7 @@ class _QuickActionsGrid extends StatelessWidget {
                           ),
                         ),
                         Icon(
-                          LucideIcons.chevronRight,
+                          Icons.chevron_right,
                           color: _DashboardManagerState.managerMuted,
                           size: 18,
                         ),
@@ -2168,11 +2167,11 @@ BoxDecoration _managerCardDecoration(double radius) {
 
 IconData _activityIcon(_ManagerRecentActivityType type) {
   return switch (type) {
-    _ManagerRecentActivityType.order => LucideIcons.shoppingCart,
-    _ManagerRecentActivityType.report => LucideIcons.fileText,
-    _ManagerRecentActivityType.objective => LucideIcons.target,
-    _ManagerRecentActivityType.activity => LucideIcons.alertTriangle,
-    _ManagerRecentActivityType.claim => LucideIcons.heartHandshake,
+    _ManagerRecentActivityType.order => Icons.shopping_cart,
+    _ManagerRecentActivityType.report => Icons.description,
+    _ManagerRecentActivityType.objective => Icons.gps_fixed,
+    _ManagerRecentActivityType.activity => Icons.warning_amber,
+    _ManagerRecentActivityType.claim => Icons.handshake,
   };
 }
 
@@ -3365,7 +3364,7 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
         onPressed: _openFilterSheet,
         backgroundColor: _DashboardManagerState.managerBlue,
         foregroundColor: Colors.white,
-        child: Icon(LucideIcons.slidersHorizontal, size: 24),
+        child: Icon(Icons.tune, size: 24),
       ),
     );
   }
@@ -3557,8 +3556,8 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
                       onTap: () => setDialogState(() => selected = reason),
                       leading: Icon(
                         selected == reason
-                            ? LucideIcons.checkCircle
-                            : LucideIcons.circle,
+                            ? Icons.check_circle
+                            : Icons.circle_outlined,
                         color: selected == reason
                             ? _DashboardManagerState.managerBlue
                             : _DashboardManagerState.managerMuted,
@@ -4580,7 +4579,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(LucideIcons.fileText),
+                leading: Icon(Icons.description),
                 title: Text('Export PDF'),
                 onTap: () {
                   Navigator.pop(context);
@@ -4588,12 +4587,12 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
                 },
               ),
               ListTile(
-                leading: Icon(LucideIcons.table),
+                leading: Icon(Icons.table_chart),
                 title: Text('Export Excel'),
                 onTap: () => Navigator.pop(context),
               ),
               ListTile(
-                leading: Icon(LucideIcons.fileDown),
+                leading: Icon(Icons.file_download),
                 title: Text('Export CSV'),
                 onTap: () => Navigator.pop(context),
               ),
@@ -5412,7 +5411,7 @@ class _ManagerObjectivesTitleRow extends StatelessWidget {
                 height: 42,
                 child: ElevatedButton.icon(
                   onPressed: onDefine,
-                  icon: Icon(LucideIcons.plus, size: 18),
+                  icon: Icon(Icons.add, size: 18),
                   label: FittedBox(child: Text('Définir objectifs')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _DashboardManagerState.managerBlue,
@@ -5481,7 +5480,7 @@ class _ManagerReportsTitleRow extends StatelessWidget {
                 height: 48,
                 child: OutlinedButton.icon(
                   onPressed: onExport,
-                  icon: Icon(LucideIcons.download, size: 17),
+                  icon: Icon(Icons.download, size: 17),
                   label: Text('Exporter'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _DashboardManagerState.managerBlue,
@@ -5515,7 +5514,7 @@ class _ReportPeriodSelector extends StatelessWidget {
             value: period,
             isExpanded: true,
             padding: EdgeInsets.symmetric(horizontal: 8),
-            icon: Icon(LucideIcons.chevronDown, size: 16),
+            icon: Icon(Icons.keyboard_arrow_down, size: 16),
             items: _ReportPeriod.values
                 .map(
                   (p) => DropdownMenuItem(
@@ -5549,7 +5548,7 @@ class _ManagerReportsKpis extends StatelessWidget {
         data.sent,
         'Sur $expected commerciaux attendus',
         data.sent / math.max(1, expected),
-        LucideIcons.fileText,
+        Icons.description,
         _DashboardManagerState.managerBlue,
       ),
       (
@@ -5557,7 +5556,7 @@ class _ManagerReportsKpis extends StatelessWidget {
         data.read,
         '${_pct(data.read, data.sent)}% des reçus',
         data.read / math.max(1, data.sent),
-        LucideIcons.checkCircle,
+        Icons.check_circle,
         _DashboardManagerState.managerGreen,
       ),
       (
@@ -5565,7 +5564,7 @@ class _ManagerReportsKpis extends StatelessWidget {
         data.unread,
         '${_pct(data.unread, data.sent)}% des reçus',
         data.unread / math.max(1, data.sent),
-        LucideIcons.clock,
+        Icons.access_time,
         _DashboardManagerState.managerOrange,
       ),
       (
@@ -5573,7 +5572,7 @@ class _ManagerReportsKpis extends StatelessWidget {
         data.missing,
         'Sur $expected commerciaux',
         data.missing / math.max(1, expected),
-        LucideIcons.xCircle,
+        Icons.cancel,
         _DashboardManagerState.managerRed,
       ),
     ];
@@ -5676,7 +5675,7 @@ class _ManagerReportsSearchFilter extends StatelessWidget {
             decoration: InputDecoration(
               border: InputBorder.none,
               prefixIcon: Icon(
-                LucideIcons.search,
+                Icons.search,
                 color: _DashboardManagerState.managerMuted,
                 size: 20,
               ),
@@ -5686,7 +5685,7 @@ class _ManagerReportsSearchFilter extends StatelessWidget {
                       tooltip: 'Effacer',
                       onPressed: controller.clear,
                       icon: Icon(
-                        LucideIcons.x,
+                        Icons.close,
                         color: _DashboardManagerState.managerMuted,
                         size: 18,
                       ),
@@ -5715,7 +5714,7 @@ class _ManagerReportsSearchFilter extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                LucideIcons.filter,
+                Icons.filter_list,
                 color: _DashboardManagerState.managerText,
                 size: 19,
               ),
@@ -6145,7 +6144,7 @@ class _ManagerDailyReportCard extends StatelessWidget {
               IconButton(
                 onPressed: onPdf,
                 icon: Icon(
-                  LucideIcons.download,
+                  Icons.download,
                   color: _DashboardManagerState.managerBlue,
                   size: 20,
                 ),
@@ -6154,7 +6153,7 @@ class _ManagerDailyReportCard extends StatelessWidget {
               radius: 17,
               backgroundColor: _DashboardManagerState.iconBlueBg,
               child: Icon(
-                LucideIcons.chevronRight,
+                Icons.chevron_right,
                 color: _DashboardManagerState.managerBlue,
                 size: 18,
               ),
@@ -6181,7 +6180,7 @@ class _ManagerReportsEmptyState extends StatelessWidget {
     child: Column(
       children: [
         _ManagerSoftIcon(
-          icon: LucideIcons.fileText,
+          icon: Icons.description,
           color: _DashboardManagerState.managerBlue,
           backgroundColor: _DashboardManagerState.iconBlueBg,
           size: 76,
@@ -6213,7 +6212,7 @@ class _ManagerReportsEmptyState extends StatelessWidget {
           SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: onReset,
-            icon: Icon(LucideIcons.rotateCcw, size: 17),
+            icon: Icon(Icons.refresh, size: 17),
             label: Text('Réinitialiser les filtres'),
           ),
         ],
@@ -6236,7 +6235,7 @@ class _ManagerReportHint extends StatelessWidget {
     ),
     child: Row(
       children: [
-        Icon(LucideIcons.info, color: _DashboardManagerState.managerBlue),
+        Icon(Icons.info_outline, color: _DashboardManagerState.managerBlue),
         SizedBox(width: 10),
         Expanded(
           child: Text(
@@ -6265,7 +6264,7 @@ class _ReportDetailScreen extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(LucideIcons.arrowLeft),
+            icon: Icon(Icons.arrow_back),
             color: _DashboardManagerState.managerText,
           ),
           SizedBox(height: 12),
@@ -6311,14 +6310,14 @@ class _ReportDetailScreen extends StatelessWidget {
                 children: [
                   _DetailActionChip(
                     'Marquer comme lu',
-                    LucideIcons.checkCircle,
+                    Icons.check_circle,
                   ),
                   _DetailActionChip(
                     'Ajouter commentaire',
-                    LucideIcons.messageSquare,
+                    Icons.message,
                   ),
-                  _DetailActionChip('Télécharger PDF', LucideIcons.download),
-                  _DetailActionChip('Partager', LucideIcons.share2),
+                  _DetailActionChip('Télécharger PDF', Icons.download),
+                  _DetailActionChip('Partager', Icons.share),
                 ],
               ),
             ],
@@ -6463,7 +6462,7 @@ class _ManagerObjectivesKpis extends StatelessWidget {
         'Commerciaux',
         '${data.total}',
         'Total de l’équipe',
-        LucideIcons.target,
+        Icons.gps_fixed,
         _DashboardManagerState.managerBlue,
         _DashboardManagerState.iconBlueBg,
       ),
@@ -6471,7 +6470,7 @@ class _ManagerObjectivesKpis extends StatelessWidget {
         'Objectif CA total',
         '${_formatNumber(revenueTarget.round())} DH',
         'Mois sélectionné',
-        LucideIcons.trendingUp,
+        Icons.trending_up,
         _DashboardManagerState.managerGreen,
         _DashboardManagerState.iconGreenBg,
       ),
@@ -6479,7 +6478,7 @@ class _ManagerObjectivesKpis extends StatelessWidget {
         'Objectif Commandes',
         '$orderTarget',
         'Mois sélectionné',
-        LucideIcons.shoppingCart,
+        Icons.shopping_cart,
         _DashboardManagerState.managerPurple,
         _DashboardManagerState.iconPurpleBg,
       ),
@@ -6487,7 +6486,7 @@ class _ManagerObjectivesKpis extends StatelessWidget {
         'Atteinte moyenne',
         '${data.objectiveRate}%',
         'vs mois précédent',
-        LucideIcons.clock,
+        Icons.access_time,
         _DashboardManagerState.managerOrange,
         _DashboardManagerState.iconOrangeBg,
       ),
@@ -6763,7 +6762,7 @@ class _ManagerObjectiveCard extends StatelessWidget {
                   ),
                 ),
                 Icon(
-                  LucideIcons.chevronRight,
+                  Icons.chevron_right,
                   color: _DashboardManagerState.managerMuted,
                 ),
               ],
@@ -6881,7 +6880,7 @@ class _ManagerObjectiveEmptyState extends StatelessWidget {
       child: Column(
         children: [
           _ManagerSoftIcon(
-            icon: LucideIcons.target,
+            icon: Icons.gps_fixed,
             color: _DashboardManagerState.managerBlue,
             backgroundColor: _DashboardManagerState.iconBlueBg,
             size: 76,
@@ -6914,7 +6913,7 @@ class _ManagerObjectiveEmptyState extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: hasFilters ? onReset : onDefine,
             icon: Icon(
-              hasFilters ? LucideIcons.rotateCcw : LucideIcons.plus,
+              hasFilters ? Icons.refresh : Icons.add,
               size: 17,
             ),
             label: Text(
@@ -6948,7 +6947,7 @@ class _ManagerObjectiveHint extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(LucideIcons.info, color: _DashboardManagerState.managerBlue),
+          Icon(Icons.info_outline, color: _DashboardManagerState.managerBlue),
           SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -6990,7 +6989,7 @@ class _ManagerCommercialsKpis extends StatelessWidget {
         'Total commerciaux',
         data.total.toString(),
         'Tous les commerciaux',
-        LucideIcons.users,
+        Icons.people,
         _DashboardManagerState.managerBlue,
         _DashboardManagerState.iconBlueBg,
       ),
@@ -6998,7 +6997,7 @@ class _ManagerCommercialsKpis extends StatelessWidget {
         "Actifs aujourd'hui",
         data.active.toString(),
         '$activePct% de l’équipe active',
-        LucideIcons.userCheck,
+        Icons.how_to_reg,
         _DashboardManagerState.managerGreen,
         _DashboardManagerState.iconGreenBg,
       ),
@@ -7006,7 +7005,7 @@ class _ManagerCommercialsKpis extends StatelessWidget {
         'CA total du mois',
         '${_formatNumber(data.revenue.round())} DH',
         'Commandes validées',
-        LucideIcons.coins,
+        Icons.monetization_on,
         _DashboardManagerState.managerPurple,
         _DashboardManagerState.iconPurpleBg,
       ),
@@ -7014,7 +7013,7 @@ class _ManagerCommercialsKpis extends StatelessWidget {
         'Objectif atteint',
         '${data.objectiveRate}%',
         'Objectif global',
-        LucideIcons.target,
+        Icons.gps_fixed,
         _DashboardManagerState.managerOrange,
         _DashboardManagerState.iconOrangeBg,
       ),
@@ -7236,7 +7235,7 @@ class _ManagerCommercialTop3 extends StatelessWidget {
           ),
           if (items.isEmpty)
             _ManagerEmptyInline(
-              icon: LucideIcons.users,
+              icon: Icons.people,
               text: 'Aucune performance disponible.',
             )
           else
@@ -7409,7 +7408,7 @@ class _ManagerCommercialModernCard extends StatelessWidget {
                         runSpacing: 4,
                         children: [
                           _SmallPill(
-                            icon: LucideIcons.mapPin,
+                            icon: Icons.location_on,
                             label: commercial.city,
                           ),
                           _SmallPill(label: 'ID : ${commercial.matricule}'),
@@ -7420,7 +7419,7 @@ class _ManagerCommercialModernCard extends StatelessWidget {
                 ),
                 _CommercialStatusBadge(status: commercial.status),
                 Icon(
-                  LucideIcons.chevronRight,
+                  Icons.chevron_right,
                   color: _DashboardManagerState.managerMuted,
                   size: 20,
                 ),
@@ -7491,28 +7490,28 @@ class _ManagerOrdersKpiGrid extends StatelessWidget {
         summary.pending,
         _DashboardManagerState.managerOrange,
         _DashboardManagerState.iconOrangeBg,
-        LucideIcons.clock,
+        Icons.access_time,
       ),
       (
         'Validées',
         summary.validated,
         _DashboardManagerState.managerGreen,
         _DashboardManagerState.iconGreenBg,
-        LucideIcons.checkCircle,
+        Icons.check_circle,
       ),
       (
         'Refusées',
         summary.refused,
         _DashboardManagerState.managerRed,
         _DashboardManagerState.iconRedBg,
-        LucideIcons.xCircle,
+        Icons.cancel,
       ),
       (
         'Total commandes',
         total,
         _DashboardManagerState.managerBlue,
         _DashboardManagerState.iconBlueBg,
-        LucideIcons.shoppingCart,
+        Icons.shopping_cart,
       ),
     ];
 
@@ -7619,7 +7618,7 @@ class _ManagerOrdersSearchAndFilter extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
                 prefixIcon: Icon(
-                  LucideIcons.search,
+                  Icons.search,
                   color: _DashboardManagerState.managerMuted,
                   size: 20,
                 ),
@@ -7627,7 +7626,7 @@ class _ManagerOrdersSearchAndFilter extends StatelessWidget {
                     ? null
                     : IconButton(
                         onPressed: controller.clear,
-                        icon: Icon(LucideIcons.x, size: 18),
+                        icon: Icon(Icons.close, size: 18),
                         color: _DashboardManagerState.managerMuted,
                       ),
                 filled: true,
@@ -7659,7 +7658,7 @@ class _ManagerOrdersSearchAndFilter extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(LucideIcons.filter, size: 18),
+                Icon(Icons.filter_list, size: 18),
                 SizedBox(width: 6),
                 Flexible(
                   child: Text(
@@ -7850,7 +7849,7 @@ class _ManagerOrdersEmptyState extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
             ),
             child: Icon(
-              LucideIcons.receipt,
+              Icons.receipt_long,
               color: _DashboardManagerState.managerBlue,
               size: 38,
             ),
@@ -7883,7 +7882,7 @@ class _ManagerOrdersEmptyState extends StatelessWidget {
             SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: onReset,
-              icon: Icon(LucideIcons.rotateCcw, size: 17),
+              icon: Icon(Icons.refresh, size: 17),
               label: Text('Réinitialiser les filtres'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: _DashboardManagerState.managerBlue,
@@ -8032,7 +8031,7 @@ class _ManagerOrderModernCard extends StatelessWidget {
                   radius: 17,
                   backgroundColor: _DashboardManagerState.iconBlueBg,
                   child: Icon(
-                    LucideIcons.chevronRight,
+                    Icons.chevron_right,
                     color: _DashboardManagerState.managerBlue,
                     size: 18,
                   ),
@@ -8058,13 +8057,13 @@ class _ManagerOrderModernCard extends StatelessWidget {
       background: _ManagerSwipeBackground(
         alignment: Alignment.centerLeft,
         color: _DashboardManagerState.managerGreen,
-        icon: LucideIcons.checkCircle,
+        icon: Icons.check_circle,
         label: 'Valider',
       ),
       secondaryBackground: _ManagerSwipeBackground(
         alignment: Alignment.centerRight,
         color: _DashboardManagerState.managerRed,
-        icon: LucideIcons.xCircle,
+        icon: Icons.cancel,
         label: 'Refuser',
       ),
       child: card,
@@ -8214,25 +8213,25 @@ _OrderStatusStyle _apiStatusStyle(_ManagerOrderApiStatus status) {
   return switch (status) {
     _ManagerOrderApiStatus.validated => _OrderStatusStyle(
       label: 'Validée',
-      icon: LucideIcons.checkCircle,
+      icon: Icons.check_circle,
       fg: _DashboardManagerState.managerGreen,
       bg: _DashboardManagerState.iconGreenBg,
     ),
     _ManagerOrderApiStatus.pending => _OrderStatusStyle(
       label: 'En attente',
-      icon: LucideIcons.clock,
+      icon: Icons.access_time,
       fg: _DashboardManagerState.managerOrange,
       bg: _DashboardManagerState.iconOrangeBg,
     ),
     _ManagerOrderApiStatus.refused => _OrderStatusStyle(
       label: 'Refusée',
-      icon: LucideIcons.xCircle,
+      icon: Icons.cancel,
       fg: _DashboardManagerState.managerRed,
       bg: _DashboardManagerState.iconRedBg,
     ),
     _ManagerOrderApiStatus.all => _OrderStatusStyle(
       label: 'Toutes',
-      icon: LucideIcons.shoppingCart,
+      icon: Icons.shopping_cart,
       fg: _DashboardManagerState.managerBlue,
       bg: _DashboardManagerState.iconBlueBg,
     ),
@@ -8370,7 +8369,7 @@ class _ManagerCommercialEmptyState extends StatelessWidget {
       child: Column(
         children: [
           _ManagerSoftIcon(
-            icon: LucideIcons.users,
+            icon: Icons.people,
             color: _DashboardManagerState.managerBlue,
             backgroundColor: _DashboardManagerState.iconBlueBg,
             size: 76,
@@ -8403,7 +8402,7 @@ class _ManagerCommercialEmptyState extends StatelessWidget {
             SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: onReset,
-              icon: Icon(LucideIcons.rotateCcw, size: 17),
+              icon: Icon(Icons.refresh, size: 17),
               label: Text('Réinitialiser les filtres'),
             ),
           ],
@@ -8460,25 +8459,25 @@ _OrderStatusStyle _commercialStatusStyle(_ManagerCommercialStatus status) {
   return switch (status) {
     _ManagerCommercialStatus.active => _OrderStatusStyle(
       label: 'Actif',
-      icon: LucideIcons.userCheck,
+      icon: Icons.how_to_reg,
       fg: _DashboardManagerState.managerGreen,
       bg: _DashboardManagerState.iconGreenBg,
     ),
     _ManagerCommercialStatus.leave => _OrderStatusStyle(
       label: 'En congé',
-      icon: LucideIcons.clock,
+      icon: Icons.access_time,
       fg: _DashboardManagerState.managerOrange,
       bg: _DashboardManagerState.iconOrangeBg,
     ),
     _ManagerCommercialStatus.disabled => _OrderStatusStyle(
       label: 'Désactivé',
-      icon: LucideIcons.userX,
+      icon: Icons.person_off,
       fg: _DashboardManagerState.managerRed,
       bg: _DashboardManagerState.iconRedBg,
     ),
     _ManagerCommercialStatus.all => _OrderStatusStyle(
       label: 'Tous',
-      icon: LucideIcons.users,
+      icon: Icons.people,
       fg: _DashboardManagerState.managerBlue,
       bg: _DashboardManagerState.iconBlueBg,
     ),
@@ -10969,7 +10968,7 @@ class _ManagerProfileContent extends StatelessWidget {
           child: Column(
             children: [
               _ManagerProfileSettingTile(
-                icon: LucideIcons.user,
+                icon: Icons.person,
                 iconColor: _DashboardManagerState.managerBlue,
                 iconBg: _DashboardManagerState.iconBlueBg,
                 title: 'Informations personnelles',
@@ -10978,7 +10977,7 @@ class _ManagerProfileContent extends StatelessWidget {
               ),
               _ManagerSettingDivider(),
               _ManagerProfileSettingTile(
-                icon: LucideIcons.lock,
+                icon: Icons.lock,
                 iconColor: _DashboardManagerState.managerGreen,
                 iconBg: _DashboardManagerState.iconGreenBg,
                 title: 'Sécurité',
@@ -10987,7 +10986,7 @@ class _ManagerProfileContent extends StatelessWidget {
               ),
               _ManagerSettingDivider(),
               _ManagerProfileSettingTile(
-                icon: LucideIcons.bell,
+                icon: Icons.notifications_outlined,
                 iconColor: _DashboardManagerState.managerOrange,
                 iconBg: _DashboardManagerState.iconOrangeBg,
                 title: 'Notifications',
@@ -11000,7 +10999,7 @@ class _ManagerProfileContent extends StatelessWidget {
               ),
               _ManagerSettingDivider(),
               _ManagerProfileSettingTile(
-                icon: LucideIcons.globe2,
+                icon: Icons.language,
                 iconColor: _DashboardManagerState.managerPurple,
                 iconBg: _DashboardManagerState.iconPurpleBg,
                 title: 'Langue',
@@ -11012,7 +11011,7 @@ class _ManagerProfileContent extends StatelessWidget {
               ),
               _ManagerSettingDivider(),
               _ManagerProfileSettingTile(
-                icon: LucideIcons.moon,
+                icon: Icons.dark_mode,
                 iconColor: _DashboardManagerState.managerBlue,
                 iconBg: _DashboardManagerState.iconBlueBg,
                 title: 'Thème',
@@ -11024,7 +11023,7 @@ class _ManagerProfileContent extends StatelessWidget {
               ),
               _ManagerSettingDivider(),
               _ManagerProfileSettingTile(
-                icon: LucideIcons.helpCircle,
+                icon: Icons.help_outline,
                 iconColor: _DashboardManagerState.managerOrange,
                 iconBg: _DashboardManagerState.iconOrangeBg,
                 title: 'Aide et support',
@@ -11033,7 +11032,7 @@ class _ManagerProfileContent extends StatelessWidget {
               ),
               _ManagerSettingDivider(),
               _ManagerProfileSettingTile(
-                icon: LucideIcons.info,
+                icon: Icons.info_outline,
                 iconColor: _DashboardManagerState.managerGreen,
                 iconBg: _DashboardManagerState.iconGreenBg,
                 title: 'À propos',
@@ -11082,7 +11081,7 @@ class _ManagerProfileCard extends StatelessWidget {
                     border: Border.all(color: Colors.white, width: 3),
                   ),
                   child: Icon(
-                    LucideIcons.camera,
+                    Icons.camera_alt,
                     color: Colors.white,
                     size: 16,
                   ),
@@ -11115,14 +11114,14 @@ class _ManagerProfileCard extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: 10),
-                _ManagerProfileInfoLine(LucideIcons.mail, data.email),
+                _ManagerProfileInfoLine(Icons.email, data.email),
                 _ManagerProfileInfoLine(
-                  LucideIcons.phone,
+                  Icons.phone,
                   data.phone.ifEmpty('-'),
                 ),
-                _ManagerProfileInfoLine(LucideIcons.mapPin, data.city),
+                _ManagerProfileInfoLine(Icons.location_on, data.city),
                 _ManagerProfileInfoLine(
-                  LucideIcons.calendar,
+                  Icons.calendar_today,
                   data.createdAt == null
                       ? 'Compte créé'
                       : 'Compte créé le ${_dateLabel(data.createdAt!)}',
@@ -11132,7 +11131,7 @@ class _ManagerProfileCard extends StatelessWidget {
           ),
           SizedBox(width: 8),
           Icon(
-            LucideIcons.chevronRight,
+            Icons.chevron_right,
             color: _DashboardManagerState.managerMuted,
             size: 22,
           ),
@@ -11307,7 +11306,7 @@ class _ManagerProfileSettingTile extends StatelessWidget {
                 ),
               ),
             Icon(
-              LucideIcons.chevronRight,
+              Icons.chevron_right,
               color: _DashboardManagerState.managerMuted,
               size: 19,
             ),
@@ -11347,7 +11346,7 @@ class _ManagerLogoutCard extends StatelessWidget {
       child: Row(
         children: [
           _ManagerSoftIcon(
-            icon: LucideIcons.logOut,
+            icon: Icons.logout,
             color: _DashboardManagerState.managerRed,
             backgroundColor: _DashboardManagerState.iconRedBg,
             size: 48,
@@ -11629,7 +11628,7 @@ class _ManagerChangePasswordPageState
 
   Widget _passwordToggle() => IconButton(
     onPressed: () => setState(() => _obscure = !_obscure),
-    icon: Icon(_obscure ? LucideIcons.eye : LucideIcons.eyeOff, size: 18),
+    icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off, size: 18),
   );
 
   Future<void> _save() async {
@@ -11711,7 +11710,7 @@ class _ManagerSimplePageShell extends StatelessWidget {
           children: [
             IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: Icon(LucideIcons.arrowLeft),
+              icon: Icon(Icons.arrow_back),
               color: _DashboardManagerState.managerBlue,
               tooltip: 'Retour',
             ),
@@ -11867,7 +11866,7 @@ class _ManagerChoiceTile extends StatelessWidget {
     title: Text(label),
     trailing: selected
         ? Icon(
-            LucideIcons.checkCircle,
+            Icons.check_circle,
             color: _DashboardManagerState.managerBlue,
           )
         : null,
@@ -11974,32 +11973,32 @@ class _ManagerBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<(IconData, String, _ManagerTab, String?)> items = [
-      (LucideIcons.home, 'Accueil', _ManagerTab.dashboard, '/home-manager'),
+      (Icons.home, 'Accueil', _ManagerTab.dashboard, '/home-manager'),
       (
-        LucideIcons.receipt,
+        Icons.receipt_long,
         'Commandes',
         _ManagerTab.commandes,
         '/manager-commandes',
       ),
       (
-        LucideIcons.users,
+        Icons.people,
         'Commerciaux',
         _ManagerTab.commerciaux,
         '/manager-commerciaux',
       ),
       (
-        LucideIcons.target,
+        Icons.gps_fixed,
         'Objectifs',
         _ManagerTab.objectifs,
         '/manager-objectifs',
       ),
       (
-        LucideIcons.barChart3,
+        Icons.bar_chart,
         'Rapports',
         _ManagerTab.rapports,
         '/manager-rapports',
       ),
-      (LucideIcons.user, 'Profil', _ManagerTab.profil, '/manager-profil'),
+      (Icons.person, 'Profil', _ManagerTab.profil, '/manager-profil'),
     ];
 
     return DecoratedBox(
@@ -12406,7 +12405,7 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(LucideIcons.arrowLeft),
+            icon: Icon(Icons.arrow_back),
             color: _DashboardManagerState.managerText,
           ),
           SizedBox(height: 12),
@@ -12483,34 +12482,34 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
               _DetailKpi(
                 'CA du mois',
                 '${_formatNumber(commercial.revenue.round())} DH',
-                LucideIcons.coins,
+                Icons.monetization_on,
               ),
               _DetailKpi(
                 'Objectif',
                 commercial.objective <= 0
                     ? '0 DH'
                     : '${_formatNumber(commercial.objective.round())} DH',
-                LucideIcons.target,
+                Icons.gps_fixed,
               ),
               _DetailKpi(
                 'Commandes',
                 '${commercial.ordersCount}',
-                LucideIcons.receipt,
+                Icons.receipt_long,
               ),
               _DetailKpi(
                 'Clients',
                 '${commercial.clientsCount}',
-                LucideIcons.users,
+                Icons.people,
               ),
               _DetailKpi(
                 'Activités',
                 '${commercial.activitiesCount}',
-                LucideIcons.calendarCheck,
+                Icons.event_available,
               ),
               _DetailKpi(
                 'Rapports',
                 '${commercial.reportsCount}',
-                LucideIcons.fileText,
+                Icons.description,
               ),
             ],
           ),
@@ -12519,7 +12518,7 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
             title: 'Graphiques',
             children: [
               _ManagerEmptyInline(
-                icon: LucideIcons.lineChart,
+                icon: Icons.show_chart,
                 text:
                     'Évolution disponible dès que les données historiques existent.',
               ),
@@ -12533,10 +12532,10 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _DetailActionChip('Clients', LucideIcons.users),
-                  _DetailActionChip('Commandes', LucideIcons.receipt),
-                  _DetailActionChip('Activités', LucideIcons.calendarCheck),
-                  _DetailActionChip('Rapports', LucideIcons.fileText),
+                  _DetailActionChip('Clients', Icons.people),
+                  _DetailActionChip('Commandes', Icons.receipt_long),
+                  _DetailActionChip('Activités', Icons.event_available),
+                  _DetailActionChip('Rapports', Icons.description),
                 ],
               ),
             ],
@@ -12546,7 +12545,7 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: onSetObjectives,
-              icon: Icon(LucideIcons.target),
+              icon: Icon(Icons.gps_fixed),
               label: Text('Définir les objectifs'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _DashboardManagerState.managerBlue,
@@ -13166,7 +13165,7 @@ class _ObjectiveDetailScreen extends StatelessWidget {
           children: [
             IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: Icon(LucideIcons.arrowLeft),
+              icon: Icon(Icons.arrow_back),
               color: _DashboardManagerState.managerText,
             ),
             SizedBox(height: 12),
@@ -13272,7 +13271,7 @@ class _ObjectiveDetailScreen extends StatelessWidget {
               title: 'Graphiques',
               children: [
                 _ManagerEmptyInline(
-                  icon: LucideIcons.lineChart,
+                  icon: Icons.show_chart,
                   text:
                       'Évolution du CA et des commandes disponible avec l’historique.',
                 ),
@@ -13350,7 +13349,7 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
           children: [
             IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: Icon(LucideIcons.arrowLeft),
+              icon: Icon(Icons.arrow_back),
               color: _DashboardManagerState.managerText,
             ),
             SizedBox(height: 12),
@@ -13524,7 +13523,7 @@ class _ManagerOrderDetailHeader extends StatelessWidget {
       children: [
         IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(LucideIcons.arrowLeft, size: 30),
+          icon: Icon(Icons.arrow_back, size: 30),
           color: Colors.white,
         ),
         SizedBox(width: 4),
@@ -13569,7 +13568,7 @@ class _ManagerOrderDetailHeader extends StatelessWidget {
                     context,
                     MaterialPageRoute(builder: (_) => NotificationsScreen()),
                   ),
-                  icon: Icon(LucideIcons.bell),
+                  icon: Icon(Icons.notifications_outlined),
                   color: Colors.white,
                 ),
                 if (unread > 0)
@@ -13772,7 +13771,7 @@ class _ManagerOrderMainCard extends StatelessWidget {
         Row(
           children: [
             Icon(
-              LucideIcons.calendar,
+              Icons.calendar_today,
               size: 16,
               color: _DashboardManagerState.managerMuted,
             ),
@@ -13814,7 +13813,7 @@ class _ManagerOrderPersonCard extends StatelessWidget {
     code: order.commercialMatricule.ifEmpty('-'),
     phone: order.commercialPhone.ifEmpty('-'),
     city: order.commercialCity.ifEmpty('-'),
-    icon: LucideIcons.user,
+    icon: Icons.person,
     color: _DashboardManagerState.managerBlue,
     onTap: onTap,
   );
@@ -13828,7 +13827,7 @@ class _ManagerOrderPersonCard extends StatelessWidget {
     code: order.clientCode.ifEmpty('-'),
     phone: order.clientPhone.ifEmpty('-'),
     city: order.clientCity.ifEmpty('-'),
-    icon: LucideIcons.store,
+    icon: Icons.store,
     color: _DashboardManagerState.managerGreen,
     onTap: onTap,
   );
@@ -13871,7 +13870,7 @@ class _ManagerOrderPersonCard extends StatelessWidget {
                 ),
               ),
               Icon(
-                LucideIcons.chevronRight,
+                Icons.chevron_right,
                 size: 18,
                 color: _DashboardManagerState.managerMuted,
               ),
@@ -13916,8 +13915,8 @@ class _ManagerOrderPersonCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8),
-          _MiniInfo(icon: LucideIcons.phone, text: phone),
-          _MiniInfo(icon: LucideIcons.mapPin, text: city),
+          _MiniInfo(icon: Icons.phone, text: phone),
+          _MiniInfo(icon: Icons.location_on, text: city),
         ],
       ),
     ),
@@ -13988,7 +13987,7 @@ class _ManagerOrderProductsCard extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                LucideIcons.shoppingCart,
+                Icons.shopping_cart,
                 color: _DashboardManagerState.managerBlue,
               ),
               SizedBox(width: 10),
@@ -14067,7 +14066,7 @@ class _ManagerOrderProductLine extends StatelessWidget {
                   child: Image.network(line.image, fit: BoxFit.cover),
                 )
               : Icon(
-                  LucideIcons.package,
+                  Icons.inventory_2,
                   color: _DashboardManagerState.managerBlue,
                 ),
         ),
@@ -14370,7 +14369,7 @@ class _ManagerOrderStickyActions extends StatelessWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: saving ? null : onPdf,
-                icon: Icon(LucideIcons.download, size: 17),
+                icon: Icon(Icons.download, size: 17),
                 label: Text('PDF'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _DashboardManagerState.managerBlue,
@@ -14383,7 +14382,7 @@ class _ManagerOrderStickyActions extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: saving ? null : onRefuse,
-                  icon: Icon(LucideIcons.x, size: 17),
+                  icon: Icon(Icons.close, size: 17),
                   label: Text('Refuser'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _DashboardManagerState.managerRed,
@@ -14398,7 +14397,7 @@ class _ManagerOrderStickyActions extends StatelessWidget {
                 flex: 2,
                 child: ElevatedButton.icon(
                   onPressed: saving ? null : onValidate,
-                  icon: Icon(LucideIcons.checkCircle, size: 17),
+                  icon: Icon(Icons.check_circle, size: 17),
                   label: Text('Valider'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _DashboardManagerState.managerGreen,
@@ -14514,7 +14513,7 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
                 ),
                 Expanded(
                   child: _ManagerOrderDetailMessage(
-                    icon: LucideIcons.searchX,
+                    icon: Icons.search_off,
                     title: snapshot.hasError
                         ? 'Impossible de charger cette commande.'
                         : 'Commande introuvable.',
@@ -14662,8 +14661,8 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
                     onTap: () => setSheetState(() => selected = option),
                     leading: Icon(
                       selected == option
-                          ? LucideIcons.checkCircle
-                          : LucideIcons.circle,
+                          ? Icons.check_circle
+                          : Icons.circle_outlined,
                       color: selected == option
                           ? _DashboardManagerState.managerBlue
                           : _DashboardManagerState.managerMuted,
@@ -15019,7 +15018,7 @@ class _ManagerApiOrderDetailState extends State<_ManagerApiOrderDetail> {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(LucideIcons.arrowLeft),
+            icon: Icon(Icons.arrow_back),
             color: _DashboardManagerState.managerText,
             tooltip: 'Retour',
           ),
@@ -15183,8 +15182,8 @@ class _ManagerApiOrderDetailState extends State<_ManagerApiOrderDetail> {
                       onTap: () => setDialogState(() => selected = reason),
                       leading: Icon(
                         selected == reason
-                            ? LucideIcons.checkCircle
-                            : LucideIcons.circle,
+                            ? Icons.check_circle
+                            : Icons.circle_outlined,
                         color: selected == reason
                             ? _DashboardManagerState.managerBlue
                             : _DashboardManagerState.managerMuted,
@@ -16304,14 +16303,14 @@ class _ManagerNotificationEmpty extends StatelessWidget {
 
 ({IconData icon, Color color}) _managerNotificationStyle(String type) {
   return switch (type) {
-    'commandes' => (icon: LucideIcons.receipt, color: Color(0xFFF59E0B)),
-    'rapports' => (icon: LucideIcons.fileText, color: Color(0xFF7C3AED)),
-    'clients' => (icon: LucideIcons.users, color: Color(0xFF22C55E)),
-    'activites' => (icon: LucideIcons.calendarClock, color: Color(0xFF2563EB)),
-    'objectifs' => (icon: LucideIcons.target, color: Color(0xFF0EA5E9)),
-    'utilisateurs' => (icon: LucideIcons.userCog, color: Color(0xFF64748B)),
-    'systeme' => (icon: LucideIcons.settings, color: Color(0xFFEF4444)),
-    _ => (icon: LucideIcons.bell, color: Color(0xFF2563EB)),
+    'commandes' => (icon: Icons.receipt_long, color: Color(0xFFF59E0B)),
+    'rapports' => (icon: Icons.description, color: Color(0xFF7C3AED)),
+    'clients' => (icon: Icons.people, color: Color(0xFF22C55E)),
+    'activites' => (icon: Icons.event, color: Color(0xFF2563EB)),
+    'objectifs' => (icon: Icons.gps_fixed, color: Color(0xFF0EA5E9)),
+    'utilisateurs' => (icon: Icons.manage_accounts, color: Color(0xFF64748B)),
+    'systeme' => (icon: Icons.settings, color: Color(0xFFEF4444)),
+    _ => (icon: Icons.notifications_outlined, color: Color(0xFF2563EB)),
   };
 }
 
