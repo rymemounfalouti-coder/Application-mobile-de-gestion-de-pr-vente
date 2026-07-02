@@ -35,7 +35,6 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _passwordError;
 
   static const _primaryBlue = Color(0xFF2674F8);
-  static const _deepBlue = Color(0xFF2F7D12);
   static const _violet = Color(0xFF8CCB2F);
   static const _premiumText = Color(0xFF24301F);
   static const _premiumMuted = Color(0xFF7D8677);
@@ -308,215 +307,221 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF7F7F4),
-      body: SafeArea(
-        child: DefaultTextStyle.merge(
-          style: TextStyle(fontFamily: 'Poppins'),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxHeight < 760;
-              final fieldGap = isCompact ? 13.0 : 16.0;
+    final media = MediaQuery.of(context);
+    final safeHeight = media.size.height - media.padding.vertical;
+    final scale = (safeHeight / 1040).clamp(.5, 1.0).toDouble();
+    final fieldGap = 22.0 * scale;
 
-              return Column(
-                children: [
-                  Expanded(
-                    flex: isCompact ? 2 : 3,
-                    child: Center(child: _TeaSudLogo(compact: isCompact)),
-                  ),
-                  Expanded(
-                    flex: isCompact ? 7 : 8,
-                    child: Center(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: 370),
-                          child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isCompact ? 22 : 28,
-                              vertical: isCompact ? 24 : 30,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(30),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color(
-                                    0xFF28391E,
-                                  ).withValues(alpha: .10),
-                                  blurRadius: 34,
-                                  spreadRadius: 1,
-                                  offset: Offset(0, 18),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 54,
-                                  height: 54,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xFFEAF5E2),
-                                  ),
-                                  child: Icon(
-                                    Icons.person_outline_rounded,
-                                    color: _deepBlue,
-                                    size: 31,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  AppLocalizations.globalText('Bienvenue !'),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: _textDark,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  AppLocalizations.globalText(
-                                    'Connectez-vous pour accéder à votre espace',
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: _textMuted,
-                                    fontSize: 14,
-                                    height: 1.3,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                SizedBox(height: isCompact ? 22 : 24),
-                                _AuthField(
-                                  controller: _emailController,
-                                  label: AppLocalizations.globalText('Email'),
-                                  hintText: AppLocalizations.globalText(
-                                    'Entrez votre email',
-                                  ),
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  errorText: _emailError,
-                                  prefixIcon: Icons.mail_outline_rounded,
-                                  darkMode: true,
-                                  compact: isCompact,
-                                ),
-                                SizedBox(height: fieldGap),
-                                _AuthField(
-                                  controller: _passwordController,
-                                  label: AppLocalizations.globalText(
-                                    'Mot de passe',
-                                  ),
-                                  hintText: AppLocalizations.globalText(
-                                    'Entrez votre mot de passe',
-                                  ),
-                                  obscureText: _obscurePassword,
-                                  textInputAction: TextInputAction.done,
-                                  errorText: _passwordError,
-                                  onSubmitted: (_) => _login(),
-                                  prefixIcon: Icons.lock_outline_rounded,
-                                  darkMode: true,
-                                  compact: isCompact,
-                                  suffixIcon: IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      size: 22,
-                                    ),
-                                    color: _premiumMuted,
-                                    splashRadius: 20,
-                                    tooltip: _obscurePassword
-                                        ? 'Afficher'
-                                        : 'Masquer',
-                                  ),
-                                ),
-                                SizedBox(height: isCompact ? 14 : 16),
-                                _PremiumRememberForgotRow(
-                                  rememberMe: _rememberMe,
-                                  onRememberChanged: _onRememberChanged,
-                                  onForgotPassword: _openForgotPassword,
-                                  compact: isCompact,
-                                ),
-                                SizedBox(height: isCompact ? 18 : 22),
-                                _PremiumLoginButton(
-                                  isLoading: _isLoading,
-                                  onPressed: _isLoading ? null : _login,
-                                  compact: isCompact,
-                                ),
-                                SizedBox(height: isCompact ? 20 : 24),
-                                _SecureLoginFooter(compact: isCompact),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(20, 14, 20, 18),
-                    child: Column(
+    return Scaffold(
+      backgroundColor: Color(0xFFF5F5F2),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color(0xFFF5F5F2),
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: .86,
+                  colors: [Colors.white, Color(0xFFF5F5F2)],
+                  stops: [.0, 1],
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(child: CustomPaint(painter: _LoginLeavesPainter())),
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24 * scale),
+              child: DefaultTextStyle.merge(
+                style: TextStyle(fontFamily: 'Roboto'),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        SizedBox(height: 50 * scale),
+                        _TeaSudLogo(scale: scale),
+                        SizedBox(height: 16 * scale),
                         Text(
                           AppLocalizations.globalText(
-                            '© 2026 TeaSud. Tous droits réservés.',
+                            'QUALITÉ • CONFIANCE • PERFORMANCE',
                           ),
+                          maxLines: 1,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: _premiumMuted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                            fontFamily: 'Roboto',
+                            color: Color(0xFF163B1B),
+                            fontSize: 16 * scale,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 2 * scale,
                           ),
                         ),
-                        SizedBox(height: 5),
-                        Text(
-                          AppLocalizations.globalText('Version 1.0.0'),
-                          style: TextStyle(
-                            color: _premiumMuted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        SizedBox(height: 30 * scale),
                       ],
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TeaSudLogo extends StatelessWidget {
-  _TeaSudLogo({required this.compact});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 288,
-      child: Column(
-        children: [
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 288, maxHeight: 118),
-            child: Image.asset(
-              'assets/images/teasud_logo (2).png',
-              width: 288,
-              fit: BoxFit.contain,
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(30 * scale),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(35 * scale),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: .08),
+                            blurRadius: 30 * scale,
+                            offset: Offset(0, 10 * scale),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 100 * scale,
+                            height: 100 * scale,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFFF1F6E8),
+                            ),
+                            child: Icon(
+                              Icons.person_outline,
+                              color: Color(0xFF1E7D1A),
+                              size: 45 * scale,
+                            ),
+                          ),
+                          SizedBox(height: 26 * scale),
+                          Text(
+                            AppLocalizations.globalText('Bienvenue !'),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              color: Color(0xFF0F1737),
+                              fontSize: 34 * scale,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                          SizedBox(height: 12 * scale),
+                          Text(
+                            AppLocalizations.globalText(
+                              'Connectez-vous pour accéder à votre espace',
+                            ),
+                            maxLines: 1,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              color: Color(0xFF7B8398),
+                              fontSize: 16 * scale,
+                              fontWeight: FontWeight.w500,
+                              height: 1.2,
+                            ),
+                          ),
+                          SizedBox(height: 30 * scale),
+                          _AuthField(
+                            controller: _emailController,
+                            label: AppLocalizations.globalText('Email'),
+                            hintText: AppLocalizations.globalText(
+                              'Entrez votre email',
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            errorText: _emailError,
+                            prefixIcon: Icons.mail_outline,
+                            darkMode: true,
+                            scale: scale,
+                          ),
+                          SizedBox(height: fieldGap),
+                          _AuthField(
+                            controller: _passwordController,
+                            label: AppLocalizations.globalText('Mot de passe'),
+                            hintText: AppLocalizations.globalText(
+                              'Entrez votre mot de passe',
+                            ),
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            errorText: _passwordError,
+                            onSubmitted: (_) => _login(),
+                            prefixIcon: Icons.lock_outline,
+                            darkMode: true,
+                            scale: scale,
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                size: 30 * scale,
+                              ),
+                              color: Color(0xFF8A8F84),
+                              splashRadius: 20 * scale,
+                              tooltip: _obscurePassword
+                                  ? 'Afficher'
+                                  : 'Masquer',
+                            ),
+                          ),
+                          SizedBox(height: 24 * scale),
+                          _PremiumRememberForgotRow(
+                            rememberMe: _rememberMe,
+                            onRememberChanged: _onRememberChanged,
+                            onForgotPassword: _openForgotPassword,
+                            scale: scale,
+                          ),
+                          SizedBox(height: 26 * scale),
+                          _PremiumLoginButton(
+                            isLoading: _isLoading,
+                            onPressed: _isLoading ? null : _login,
+                            scale: scale,
+                          ),
+                          SizedBox(height: 28 * scale),
+                          _SecureLoginFooter(scale: scale),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: 24 * scale,
+                        bottom: 18 * scale,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            AppLocalizations.globalText(
+                              '© 2026 TeaSud. Tous droits réservés.',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              color: Color(0xFF6E726B),
+                              fontSize: 15 * scale,
+                              fontWeight: FontWeight.w500,
+                              height: 1.15,
+                            ),
+                          ),
+                          SizedBox(height: 8 * scale),
+                          Text(
+                            AppLocalizations.globalText('Version 1.0.0'),
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              color: Color(0xFF4A5A4A),
+                              fontSize: 15 * scale,
+                              fontWeight: FontWeight.w500,
+                              height: 1.15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -525,35 +530,91 @@ class _TeaSudLogo extends StatelessWidget {
   }
 }
 
+class _TeaSudLogo extends StatelessWidget {
+  _TeaSudLogo({required this.scale});
+
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 220 * scale,
+      height: 80 * scale,
+      child: Image.asset(
+        'assets/images/teasud_logo.png',
+        width: 220 * scale,
+        height: 80 * scale,
+        fit: BoxFit.contain,
+      ),
+    );
+  }
+}
+
+class _LoginLeavesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Color(0xFFDCE6D3).withValues(alpha: .25)
+      ..style = PaintingStyle.fill;
+
+    void leaf(Offset center, double width, double height, double angle) {
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(angle);
+      final path = Path()
+        ..moveTo(0, -height / 2)
+        ..cubicTo(width / 2, -height / 5, width / 2, height / 4, 0, height / 2)
+        ..cubicTo(
+          -width / 2,
+          height / 4,
+          -width / 2,
+          -height / 5,
+          0,
+          -height / 2,
+        );
+      canvas.drawPath(path, paint);
+      canvas.restore();
+    }
+
+    leaf(Offset(size.width - 42, 35), 44, 116, -.18);
+    leaf(Offset(size.width - 82, 86), 35, 88, -1.05);
+    leaf(Offset(size.width - 27, 151), 39, 108, .62);
+    leaf(Offset(size.width - 71, 190), 32, 92, 1.1);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class _PremiumLoginButton extends StatelessWidget {
   _PremiumLoginButton({
     required this.isLoading,
     required this.onPressed,
-    this.compact = false,
+    this.scale = 1,
   });
 
   final bool isLoading;
   final VoidCallback? onPressed;
-  final bool compact;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(38 * scale),
         gradient: LinearGradient(
           colors: onPressed == null
               ? [
-                  _LoginScreenState._violet.withValues(alpha: .55),
-                  _LoginScreenState._deepBlue.withValues(alpha: .55),
+                  Color(0xFFA7DD1A).withValues(alpha: .55),
+                  Color(0xFF0F8D14).withValues(alpha: .55),
                 ]
-              : [_LoginScreenState._violet, _LoginScreenState._deepBlue],
+              : [Color(0xFFA7DD1A), Color(0xFF0F8D14)],
         ),
         boxShadow: [
           BoxShadow(
-            color: _LoginScreenState._deepBlue.withValues(alpha: .30),
-            blurRadius: 18,
-            offset: Offset(0, 10),
+            color: Color(0x400F8D14),
+            blurRadius: 30 * scale,
+            offset: Offset(0, 15 * scale),
           ),
         ],
       ),
@@ -561,14 +622,14 @@ class _PremiumLoginButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(38 * scale),
           child: SizedBox(
-            height: compact ? 50 : 54,
+            height: 74 * scale,
             child: Center(
               child: isLoading
                   ? SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 22 * scale,
+                      height: 22 * scale,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.2,
                         color: Colors.white,
@@ -581,8 +642,9 @@ class _PremiumLoginButton extends StatelessWidget {
                         Text(
                           AppLocalizations.globalText('Se connecter'),
                           style: TextStyle(
+                            fontFamily: 'Roboto',
                             color: Colors.white,
-                            fontSize: 17,
+                            fontSize: 20 * scale,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0,
                           ),
@@ -593,24 +655,18 @@ class _PremiumLoginButton extends StatelessWidget {
                             child: Padding(
                               padding: EdgeInsets.only(right: 12),
                               child: Container(
-                                width: 42,
-                                height: 42,
+                                width: 58 * scale,
+                                height: 58 * scale,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: _LoginScreenState._deepBlue,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: _LoginScreenState._deepBlue
-                                          .withValues(alpha: .28),
-                                      blurRadius: 12,
-                                      offset: Offset(0, 6),
-                                    ),
-                                  ],
+                                  color: Color(
+                                    0xFF0B7A12,
+                                  ).withValues(alpha: .4),
                                 ),
                                 child: Icon(
                                   Icons.arrow_forward_rounded,
                                   color: Colors.white,
-                                  size: 25,
+                                  size: 34 * scale,
                                 ),
                               ),
                             ),
@@ -631,42 +687,43 @@ class _PremiumRememberForgotRow extends StatelessWidget {
     required this.rememberMe,
     required this.onRememberChanged,
     required this.onForgotPassword,
-    this.compact = false,
+    this.scale = 1,
   });
 
   final bool rememberMe;
   final ValueChanged<bool?> onRememberChanged;
   final VoidCallback onForgotPassword;
-  final bool compact;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         SizedBox(
-          width: compact ? 20 : 24,
-          height: compact ? 20 : 24,
+          width: 20 * scale,
+          height: 20 * scale,
           child: Checkbox(
             value: rememberMe,
             onChanged: onRememberChanged,
-            activeColor: _LoginScreenState._violet,
+            activeColor: Color(0xFF1E7D1A),
             checkColor: Colors.white,
-            side: BorderSide(color: _LoginScreenState._premiumBorder, width: 2),
+            side: BorderSide(color: Color(0xFFD8D8D8), width: 1.6 * scale),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(5 * scale),
             ),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ),
-        SizedBox(width: compact ? 8 : 12),
+        SizedBox(width: 12 * scale),
         Expanded(
           child: Text(
             AppLocalizations.globalText('Se souvenir de moi'),
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: _LoginScreenState._textDark,
-              fontSize: compact ? 13 : 15,
-              fontWeight: FontWeight.w600,
+              fontFamily: 'Roboto',
+              color: Color(0xFF222222),
+              fontSize: 15 * scale,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -674,14 +731,15 @@ class _PremiumRememberForgotRow extends StatelessWidget {
           onPressed: onForgotPassword,
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
-            minimumSize: Size(0, compact ? 28 : 32),
+            minimumSize: Size(0, 28 * scale),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            foregroundColor: _LoginScreenState._violet,
+            foregroundColor: Color(0xFF7AC91F),
           ),
           child: Text(
             AppLocalizations.globalText('Mot de passe oubli\u00E9 ?'),
             style: TextStyle(
-              fontSize: compact ? 13 : 15,
+              fontFamily: 'Roboto',
+              fontSize: 15 * scale,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -692,9 +750,9 @@ class _PremiumRememberForgotRow extends StatelessWidget {
 }
 
 class _SecureLoginFooter extends StatelessWidget {
-  _SecureLoginFooter({this.compact = false});
+  _SecureLoginFooter({this.scale = 1});
 
-  final bool compact;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -702,38 +760,39 @@ class _SecureLoginFooter extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Divider(color: Color(0xFFE5E9DF), thickness: 1)),
+            Expanded(child: Divider(color: Color(0xFFE6E6E6), thickness: 1)),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 14),
+              padding: EdgeInsets.symmetric(horizontal: 18 * scale),
               child: Text(
                 AppLocalizations.globalText('OU'),
                 style: TextStyle(
-                  color: _LoginScreenState._premiumMuted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
+                  fontFamily: 'Roboto',
+                  color: Color(0xFF7A7A6A),
+                  fontSize: 16 * scale,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            Expanded(child: Divider(color: Color(0xFFE5E9DF), thickness: 1)),
+            Expanded(child: Divider(color: Color(0xFFE6E6E6), thickness: 1)),
           ],
         ),
-        SizedBox(height: compact ? 10 : 12),
+        SizedBox(height: 22 * scale),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.verified_user_outlined,
-              color: _LoginScreenState._deepBlue,
-              size: 18,
+              Icons.shield_outlined,
+              color: Color(0xFF1E7D1A),
+              size: 26 * scale,
             ),
-            SizedBox(width: 7),
+            SizedBox(width: 10 * scale),
             Text(
               AppLocalizations.globalText('Connexion sécurisée'),
               style: TextStyle(
-                color: _LoginScreenState._premiumMuted,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontFamily: 'Roboto',
+                color: Color(0xFF4B664B),
+                fontSize: 16 * scale,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -1371,7 +1430,7 @@ class _AuthField extends StatelessWidget {
     this.suffixIcon,
     this.onSubmitted,
     this.darkMode = false,
-    this.compact = false,
+    this.scale = 1,
   });
 
   final TextEditingController controller;
@@ -1387,7 +1446,7 @@ class _AuthField extends StatelessWidget {
   final Widget? suffixIcon;
   final ValueChanged<String>? onSubmitted;
   final bool darkMode;
-  final bool compact;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -1409,90 +1468,98 @@ class _AuthField extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: 'Roboto',
+              color: Color(0xFF1E7D1A),
+              fontSize: 15 * scale,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 12 * scale),
           Container(
-            height: compact ? 54 : 58,
+            height: 72 * scale,
             decoration: BoxDecoration(
-              color: fillColor,
-              borderRadius: BorderRadius.circular(18),
+              color: Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(22 * scale),
               border: Border.all(
                 color: errorText == null
-                    ? borderColor
+                    ? Color(0xFFE5E7E1)
                     : _LoginScreenState._danger,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0xFF314524).withValues(alpha: .04),
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
+                  color: Colors.black.withValues(alpha: .025),
+                  blurRadius: 10 * scale,
+                  offset: Offset(0, 4 * scale),
                 ),
               ],
             ),
             child: Row(
               children: [
-                SizedBox(
-                  width: 56,
-                  child: Icon(
-                    prefixIcon,
-                    color: _LoginScreenState._deepBlue,
-                    size: 24,
+                Padding(
+                  padding: EdgeInsets.only(left: 0),
+                  child: Container(
+                    width: 56 * scale,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFF3F6EA),
+                      borderRadius: BorderRadius.circular(18 * scale),
+                    ),
+                    child: Icon(
+                      prefixIcon,
+                      color: Color(0xFF1E7D1A),
+                      size: 30 * scale,
+                    ),
                   ),
                 ),
+                SizedBox(width: 22 * scale),
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: _LoginScreenState._deepBlue,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: keyboardType,
+                    obscureText: obscureText,
+                    textInputAction: textInputAction,
+                    onSubmitted: onSubmitted,
+                    maxLength: maxLength,
+                    inputFormatters: inputFormatters,
+                    cursorColor: Color(0xFF1E7D1A),
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      color: Color(0xFF0F1737),
+                      fontSize: 17 * scale,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration.collapsed(
+                      hintText: hintText,
+                      hintStyle: TextStyle(
+                        fontFamily: 'Roboto',
+                        color: Color(0xFF8A8F84),
+                        fontSize: 17 * scale,
+                        fontWeight: FontWeight.w500,
                       ),
-                      SizedBox(height: 2),
-                      SizedBox(
-                        height: 20,
-                        child: TextField(
-                          controller: controller,
-                          keyboardType: keyboardType,
-                          obscureText: obscureText,
-                          textInputAction: textInputAction,
-                          onSubmitted: onSubmitted,
-                          maxLength: maxLength,
-                          inputFormatters: inputFormatters,
-                          cursorColor: _LoginScreenState._deepBlue,
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          decoration: InputDecoration.collapsed(
-                            hintText: hintText,
-                            hintStyle: TextStyle(
-                              color: mutedColor,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ).copyWith(counterText: ''),
-                        ),
-                      ),
-                    ],
+                    ).copyWith(counterText: ''),
                   ),
                 ),
-                if (suffixIcon != null) SizedBox(width: 42, child: suffixIcon),
+                if (suffixIcon != null)
+                  SizedBox(
+                    width: 56 * scale,
+                    child: Center(child: suffixIcon),
+                  ),
               ],
             ),
           ),
           if (errorText != null) ...[
-            SizedBox(height: 6),
+            SizedBox(height: 6 * scale),
             Text(
               errorText!,
               style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _LoginScreenState._danger,
-                fontSize: 12,
+                fontSize: 12 * scale,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1500,7 +1567,6 @@ class _AuthField extends StatelessWidget {
         ],
       );
     }
-
     return TextField(
       controller: controller,
       keyboardType: keyboardType,

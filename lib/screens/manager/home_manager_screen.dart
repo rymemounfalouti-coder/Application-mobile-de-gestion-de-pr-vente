@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -1023,7 +1022,8 @@ class _ManagerHomeHeader extends StatelessWidget {
                   'Bonjour, Manager',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -1032,7 +1032,8 @@ class _ManagerHomeHeader extends StatelessWidget {
                 SizedBox(height: 3),
                 Text(
                   'Manager',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: Color(0xFFD8E2F3),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -1070,7 +1071,8 @@ class _ManagerHomeHeader extends StatelessWidget {
                         child: Center(
                           child: Text(
                             effectiveUnread > 99 ? '99+' : '$effectiveUnread',
-                            style: GoogleFonts.poppins(
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
                               color: Colors.white,
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -1092,7 +1094,8 @@ class _ManagerHomeHeader extends StatelessWidget {
               backgroundColor: Color(0xFFE7EFFD),
               child: Text(
                 initials.isEmpty ? 'MB' : initials,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerBlue,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -1131,7 +1134,8 @@ class _ManagerHomePeriodSelector extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             icon: Icon(LucideIcons.chevronDown, size: 16),
             padding: EdgeInsets.symmetric(horizontal: 8),
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -1400,7 +1404,8 @@ class _ManagerKpiCard extends StatelessWidget {
               data.title,
               maxLines: hasLink ? 1 : 2,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerText,
                 fontSize: hasLink ? 10.2 : 10.8,
                 fontWeight: FontWeight.w600,
@@ -1411,7 +1416,8 @@ class _ManagerKpiCard extends StatelessWidget {
               data.value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: data.color,
                 fontSize: hasLink ? 15.5 : 17,
                 fontWeight: FontWeight.w700,
@@ -1423,7 +1429,8 @@ class _ManagerKpiCard extends StatelessWidget {
                 data.link!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerBlue,
                   fontSize: 8.8,
                   fontWeight: FontWeight.w500,
@@ -1456,7 +1463,8 @@ class _RevenueEvolutionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   "Evolution du chiffre d'affaires",
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerText,
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -1473,7 +1481,8 @@ class _RevenueEvolutionCard extends StatelessWidget {
                 ),
                 child: Text(
                   '6 mois',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -1539,7 +1548,8 @@ class _OrderStatusDonutCard extends StatelessWidget {
         children: [
           Text(
             'Repartition des commandes',
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -1938,7 +1948,8 @@ class _QuickActionsGrid extends StatelessWidget {
       children: [
         Text(
           'Actions rapides',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerText,
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -1984,7 +1995,8 @@ class _QuickActionsGrid extends StatelessWidget {
                                 action.$1,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
                                   color: _DashboardManagerState.managerText,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -1995,7 +2007,8 @@ class _QuickActionsGrid extends StatelessWidget {
                                 action.$2,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
                                   color: _DashboardManagerState.managerMuted,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
@@ -2787,7 +2800,8 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
                     children: [
                       Text(
                         'Filtres commerciaux',
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerText,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -3631,7 +3645,8 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
                     children: [
                       Text(
                         'Filtres avancés',
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerText,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -4468,7 +4483,8 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
                   children: [
                     Text(
                       'Filtres rapports',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
                         color: _DashboardManagerState.managerText,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -4875,7 +4891,8 @@ class _DashboardManagerState extends State<DashboardManager> {
                                     AppLocalizations.globalText(
                                       'Tableau de bord',
                                     ),
-                                    style: GoogleFonts.poppins(
+                                    style: TextStyle(
+                                      fontFamily: 'Roboto',
                                       color: managerText,
                                       fontSize: 24,
                                       fontWeight: FontWeight.w700,
@@ -5241,7 +5258,8 @@ class _ManagerOrdersTitleRow extends StatelessWidget {
                 'Commandes',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
@@ -5252,7 +5270,8 @@ class _ManagerOrdersTitleRow extends StatelessWidget {
                 'Gérez et suivez toutes les commandes de votre équipe',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -5300,7 +5319,8 @@ class _ManagerCommercialsTitleRow extends StatelessWidget {
                 'Commerciaux',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
@@ -5311,7 +5331,8 @@ class _ManagerCommercialsTitleRow extends StatelessWidget {
                 'Suivez et analysez les performances de votre équipe commerciale',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -5355,7 +5376,8 @@ class _ManagerObjectivesTitleRow extends StatelessWidget {
       children: [
         Text(
           'Objectifs',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerText,
             fontSize: 30,
             fontWeight: FontWeight.w700,
@@ -5364,7 +5386,8 @@ class _ManagerObjectivesTitleRow extends StatelessWidget {
         SizedBox(height: 5),
         Text(
           'Définissez et suivez les objectifs mensuels de votre équipe commerciale.',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerMuted,
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -5426,7 +5449,8 @@ class _ManagerReportsTitleRow extends StatelessWidget {
       children: [
         Text(
           'Rapports',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerText,
             fontSize: 30,
             fontWeight: FontWeight.w700,
@@ -5435,7 +5459,8 @@ class _ManagerReportsTitleRow extends StatelessWidget {
         SizedBox(height: 5),
         Text(
           'Consultez et suivez les rapports journaliers envoyés par votre équipe.',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerMuted,
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -5582,7 +5607,8 @@ class _ManagerReportsKpis extends StatelessWidget {
                 c.$1,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 10.5,
                   fontWeight: FontWeight.w600,
@@ -5591,7 +5617,8 @@ class _ManagerReportsKpis extends StatelessWidget {
               SizedBox(height: 2),
               Text(
                 '${c.$2}',
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: c.$6,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -5601,7 +5628,8 @@ class _ManagerReportsKpis extends StatelessWidget {
                 c.$3,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 9.5,
                 ),
@@ -5639,7 +5667,8 @@ class _ManagerReportsSearchFilter extends StatelessWidget {
           decoration: _managerCardDecoration(16),
           child: TextField(
             controller: controller,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -5663,7 +5692,8 @@ class _ManagerReportsSearchFilter extends StatelessWidget {
                       ),
                     ),
               hintText: 'Rechercher un rapport ou un commercial...',
-              hintStyle: GoogleFonts.poppins(
+              hintStyle: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerMuted,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w500,
@@ -5694,7 +5724,8 @@ class _ManagerReportsSearchFilter extends StatelessWidget {
                 activeFiltersCount > 0
                     ? 'Filtres ($activeFiltersCount)'
                     : 'Filtres',
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -5785,7 +5816,8 @@ class _ReportChip extends StatelessWidget {
             label,
             maxLines: 1,
             softWrap: false,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: selected
                   ? Colors.white
                   : _DashboardManagerState.managerText,
@@ -5808,7 +5840,8 @@ class _ReportChip extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Text(
                 '$count',
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: selected
                       ? _DashboardManagerState.managerBlue
                       : _DashboardManagerState.managerGreen,
@@ -5899,7 +5932,8 @@ class _ManagerReportTabButton extends StatelessWidget {
             label,
             maxLines: 1,
             softWrap: false,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: selected
                   ? _DashboardManagerState.managerBlue
                   : _DashboardManagerState.managerText,
@@ -5922,7 +5956,8 @@ class _ManagerReportTabButton extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Text(
                 '$count',
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: selected
                       ? Colors.white
                       : _DashboardManagerState.managerMuted,
@@ -5998,7 +6033,8 @@ class _ManagerDailyReportCard extends StatelessWidget {
               backgroundColor: _DashboardManagerState.iconBlueBg,
               child: Text(
                 _initials(report.commercialName),
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerBlue,
                   fontWeight: FontWeight.w700,
                 ),
@@ -6013,7 +6049,8 @@ class _ManagerDailyReportCard extends StatelessWidget {
                     report.commercialName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: _DashboardManagerState.managerText,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -6023,7 +6060,8 @@ class _ManagerDailyReportCard extends StatelessWidget {
                     report.city,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: _DashboardManagerState.managerMuted,
                       fontSize: 11,
                     ),
@@ -6032,7 +6070,8 @@ class _ManagerDailyReportCard extends StatelessWidget {
                     'Matricule : ${report.matricule}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: _DashboardManagerState.managerMuted,
                       fontSize: 10,
                     ),
@@ -6049,7 +6088,8 @@ class _ManagerDailyReportCard extends StatelessWidget {
                     _dateLabel(report.date),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: _DashboardManagerState.managerText,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -6061,7 +6101,8 @@ class _ManagerDailyReportCard extends StatelessWidget {
                         : 'Non envoyé',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: report.sent
                           ? _DashboardManagerState.managerMuted
                           : _DashboardManagerState.managerRed,
@@ -6077,7 +6118,8 @@ class _ManagerDailyReportCard extends StatelessWidget {
                     ),
                     child: Text(
                       label,
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
                         color: color,
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
@@ -6090,7 +6132,8 @@ class _ManagerDailyReportCard extends StatelessWidget {
                         : 'Aucun rapport',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: _DashboardManagerState.managerMuted,
                       fontSize: 10,
                     ),
@@ -6147,7 +6190,8 @@ class _ManagerReportsEmptyState extends StatelessWidget {
         Text(
           'Aucun rapport disponible pour cette période.',
           textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerText,
             fontSize: 17,
             fontWeight: FontWeight.w700,
@@ -6159,7 +6203,8 @@ class _ManagerReportsEmptyState extends StatelessWidget {
               ? 'Aucun rapport ne correspond aux filtres.'
               : 'Les rapports envoyés apparaîtront ici.',
           textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerMuted,
             fontSize: 12,
           ),
@@ -6196,7 +6241,8 @@ class _ManagerReportHint extends StatelessWidget {
         Expanded(
           child: Text(
             'Les rapports sont générés par les commerciaux chaque jour.',
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 12,
             ),
@@ -6475,7 +6521,8 @@ class _ManagerObjectivesKpis extends StatelessWidget {
                 item.$1,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
@@ -6486,7 +6533,8 @@ class _ManagerObjectivesKpis extends StatelessWidget {
                 item.$2,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: item.$5,
                   fontSize: 19,
                   fontWeight: FontWeight.w700,
@@ -6497,7 +6545,8 @@ class _ManagerObjectivesKpis extends StatelessWidget {
                 item.$3,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
@@ -6584,7 +6633,8 @@ class _ManagerObjectiveChips extends StatelessWidget {
                   children: [
                     Text(
                       chip.$2,
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
                         color: selected == chip.$1
                             ? Colors.white
                             : _DashboardManagerState.managerText,
@@ -6604,7 +6654,8 @@ class _ManagerObjectiveChips extends StatelessWidget {
                       ),
                       child: Text(
                         '${chip.$3}',
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: selected == chip.$1
                               ? _DashboardManagerState.managerBlue
                               : _DashboardManagerState.managerOrange,
@@ -6839,7 +6890,8 @@ class _ManagerObjectiveEmptyState extends StatelessWidget {
           Text(
             'Aucun objectif défini pour cette période.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 17,
               fontWeight: FontWeight.w700,
@@ -6851,7 +6903,8 @@ class _ManagerObjectiveEmptyState extends StatelessWidget {
                 ? 'Aucun objectif ne correspond aux filtres.'
                 : 'Définissez des objectifs pour suivre les performances.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerMuted,
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -6900,7 +6953,8 @@ class _ManagerObjectiveHint extends StatelessWidget {
           Expanded(
             child: Text(
               'Définissez les objectifs manquants pour améliorer le suivi.',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerText,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -6994,7 +7048,8 @@ class _ManagerCommercialsKpis extends StatelessWidget {
                 item.$1,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
@@ -7005,7 +7060,8 @@ class _ManagerCommercialsKpis extends StatelessWidget {
                 item.$2,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: item.$5,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -7016,7 +7072,8 @@ class _ManagerCommercialsKpis extends StatelessWidget {
                 item.$3,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
@@ -7098,7 +7155,8 @@ class _ManagerCommercialChips extends StatelessWidget {
                   children: [
                     Text(
                       chip.$2,
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
                         color: selected == chip.$1
                             ? Colors.white
                             : _DashboardManagerState.managerText,
@@ -7118,7 +7176,8 @@ class _ManagerCommercialChips extends StatelessWidget {
                       ),
                       child: Text(
                         '${chip.$3}',
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: selected == chip.$1
                               ? _DashboardManagerState.managerBlue
                               : _commercialStatusStyle(chip.$1).fg,
@@ -7164,7 +7223,8 @@ class _ManagerCommercialTop3 extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Top 3 des commerciaux',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerText,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -7208,7 +7268,8 @@ class _ManagerCommercialTop3 extends StatelessWidget {
                                   _DashboardManagerState.iconBlueBg,
                               child: Text(
                                 _initials(items[i].name),
-                                style: GoogleFonts.poppins(
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
                                   color: _DashboardManagerState.managerBlue,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -7220,7 +7281,8 @@ class _ManagerCommercialTop3 extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
                                 color: _DashboardManagerState.managerText,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -7230,7 +7292,8 @@ class _ManagerCommercialTop3 extends StatelessWidget {
                               '${_formatNumber(items[i].revenue.round())} DH',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
                                 color: _DashboardManagerState.managerBlue,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -7249,7 +7312,8 @@ class _ManagerCommercialTop3 extends StatelessWidget {
                             SizedBox(height: 4),
                             Text(
                               '${items[i].objectiveRate}%',
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
                                 color: _DashboardManagerState.managerText,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -7297,7 +7361,8 @@ class _ManagerCommercialModernCard extends StatelessWidget {
                       backgroundColor: _DashboardManagerState.iconBlueBg,
                       child: Text(
                         _initials(commercial.name),
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerBlue,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -7320,7 +7385,8 @@ class _ManagerCommercialModernCard extends StatelessWidget {
                         commercial.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerText,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -7330,7 +7396,8 @@ class _ManagerCommercialModernCard extends StatelessWidget {
                         commercial.role,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerMuted,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -7479,7 +7546,8 @@ class _ManagerOrdersKpiGrid extends StatelessWidget {
                 item.$1,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -7488,7 +7556,8 @@ class _ManagerOrdersKpiGrid extends StatelessWidget {
               SizedBox(height: 3),
               Text(
                 '${item.$2}',
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: item.$3,
                   fontSize: 21,
                   fontWeight: FontWeight.w700,
@@ -7499,7 +7568,8 @@ class _ManagerOrdersKpiGrid extends StatelessWidget {
                 '${percent.toStringAsFixed(total == 0 ? 0 : 1)}% du total',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
@@ -7534,14 +7604,16 @@ class _ManagerOrdersSearchAndFilter extends StatelessWidget {
             child: TextField(
               controller: controller,
               textInputAction: TextInputAction.search,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerText,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
               decoration: InputDecoration(
                 hintText: 'Rechercher une commande, client...',
-                hintStyle: GoogleFonts.poppins(
+                hintStyle: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -7594,7 +7666,8 @@ class _ManagerOrdersSearchAndFilter extends StatelessWidget {
                     'Filtres',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -7612,7 +7685,8 @@ class _ManagerOrdersSearchAndFilter extends StatelessWidget {
                     alignment: Alignment.center,
                     child: Text(
                       '$activeFiltersCount',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
                         color: Colors.white,
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
@@ -7676,7 +7750,8 @@ class _ManagerOrdersStatusChips extends StatelessWidget {
                   children: [
                     Text(
                       _apiStatusLabel(status),
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
                         color: selectedStatus == status
                             ? Colors.white
                             : _DashboardManagerState.managerText,
@@ -7697,7 +7772,8 @@ class _ManagerOrdersStatusChips extends StatelessWidget {
                       alignment: Alignment.center,
                       child: Text(
                         '${summary.countFor(status)}',
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: selectedStatus == status
                               ? _DashboardManagerState.managerBlue
                               : _apiStatusStyle(status).fg,
@@ -7783,7 +7859,8 @@ class _ManagerOrdersEmptyState extends StatelessWidget {
           Text(
             'Aucune commande',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -7795,7 +7872,8 @@ class _ManagerOrdersEmptyState extends StatelessWidget {
                 ? 'Aucune commande ne correspond aux filtres appliqués.'
                 : 'Aucune commande disponible pour cette période.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerMuted,
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -7861,7 +7939,8 @@ class _ManagerOrderModernCard extends StatelessWidget {
                           order.number,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.poppins(
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
                             color: _DashboardManagerState.managerText,
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -7876,7 +7955,8 @@ class _ManagerOrderModernCard extends StatelessWidget {
                     order.clientName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: _DashboardManagerState.managerText,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -7887,7 +7967,8 @@ class _ManagerOrderModernCard extends StatelessWidget {
                     order.commercialName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: _DashboardManagerState.managerMuted,
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
@@ -7896,7 +7977,8 @@ class _ManagerOrderModernCard extends StatelessWidget {
                   SizedBox(height: 4),
                   Text(
                     '${order.dateLabel} • ${order.timeLabel}',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: _DashboardManagerState.managerMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -7905,7 +7987,8 @@ class _ManagerOrderModernCard extends StatelessWidget {
                   SizedBox(height: 3),
                   Text(
                     '${order.productsCount} produits',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: _DashboardManagerState.managerMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -7920,7 +8003,8 @@ class _ManagerOrderModernCard extends StatelessWidget {
               children: [
                 Text(
                   'Montant',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerMuted,
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
@@ -7934,7 +8018,8 @@ class _ManagerOrderModernCard extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     child: Text(
                       '${_formatNumber(order.total.round())} DH',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
                         color: style.fg,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -8027,7 +8112,8 @@ class _ManagerSwipeBackground extends StatelessWidget {
   }
 
   TextStyle _swipeTextStyle(Color color) {
-    return GoogleFonts.poppins(
+    return TextStyle(
+      fontFamily: 'Roboto',
       color: color,
       fontSize: 13,
       fontWeight: FontWeight.w700,
@@ -8051,7 +8137,8 @@ class _ManagerApiStatusBadge extends StatelessWidget {
       ),
       child: Text(
         _apiStatusLabel(status),
-        style: GoogleFonts.poppins(
+        style: TextStyle(
+          fontFamily: 'Roboto',
           color: style.fg,
           fontSize: 10,
           fontWeight: FontWeight.w600,
@@ -8181,7 +8268,8 @@ class _SmallPill extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerBlue,
               fontSize: 10,
               fontWeight: FontWeight.w500,
@@ -8213,7 +8301,8 @@ class _MiniCommercialMetric extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerMuted,
             fontSize: 10,
             fontWeight: FontWeight.w500,
@@ -8224,7 +8313,8 @@ class _MiniCommercialMetric extends StatelessWidget {
           value,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: color ?? _DashboardManagerState.managerText,
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -8251,7 +8341,8 @@ class _CommercialStatusBadge extends StatelessWidget {
       ),
       child: Text(
         style.label,
-        style: GoogleFonts.poppins(
+        style: TextStyle(
+          fontFamily: 'Roboto',
           color: style.fg,
           fontSize: 9,
           fontWeight: FontWeight.w700,
@@ -8288,7 +8379,8 @@ class _ManagerCommercialEmptyState extends StatelessWidget {
           Text(
             'Aucun commercial disponible.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -8300,7 +8392,8 @@ class _ManagerCommercialEmptyState extends StatelessWidget {
                 ? 'Aucun commercial ne correspond aux filtres appliqués.'
                 : 'Les commerciaux apparaîtront ici dès qu’ils existent dans la base.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerMuted,
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -10841,7 +10934,8 @@ class _ManagerProfileContent extends StatelessWidget {
       children: [
         Text(
           'Profil',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerText,
             fontSize: 30,
             fontWeight: FontWeight.w700,
@@ -10850,7 +10944,8 @@ class _ManagerProfileContent extends StatelessWidget {
         SizedBox(height: 6),
         Text(
           'Gérez vos informations personnelles et les paramètres de votre compte.',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerMuted,
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -10861,7 +10956,8 @@ class _ManagerProfileContent extends StatelessWidget {
         SizedBox(height: 22),
         Text(
           'Paramètres du compte',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerText,
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -11006,7 +11102,8 @@ class _ManagerProfileCard extends StatelessWidget {
                         data.fullName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerText,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -11062,7 +11159,8 @@ class _ManagerProfileAvatar extends StatelessWidget {
           ? null
           : Text(
               data.initials,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerBlue,
                 fontSize: size * .28,
                 fontWeight: FontWeight.w700,
@@ -11085,7 +11183,8 @@ class _ManagerMiniBadge extends StatelessWidget {
     ),
     child: Text(
       label,
-      style: GoogleFonts.poppins(
+      style: TextStyle(
+        fontFamily: 'Roboto',
         color: _DashboardManagerState.managerBlue,
         fontSize: 10,
         fontWeight: FontWeight.w700,
@@ -11111,7 +11210,8 @@ class _ManagerProfileInfoLine extends StatelessWidget {
             text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerMuted,
               fontSize: 11.5,
               fontWeight: FontWeight.w500,
@@ -11166,7 +11266,8 @@ class _ManagerProfileSettingTile extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerText,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -11177,7 +11278,8 @@ class _ManagerProfileSettingTile extends StatelessWidget {
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerMuted,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -11196,7 +11298,8 @@ class _ManagerProfileSettingTile extends StatelessWidget {
                   trailingText!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -11256,7 +11359,8 @@ class _ManagerLogoutCard extends StatelessWidget {
               children: [
                 Text(
                   'Déconnexion',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerRed,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -11265,7 +11369,8 @@ class _ManagerLogoutCard extends StatelessWidget {
                 SizedBox(height: 3),
                 Text(
                   'Se déconnecter du compte.',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerMuted,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
@@ -11372,7 +11477,8 @@ class _ManagerEditProfilePageState extends State<_ManagerEditProfilePage> {
               ),
               child: Text(
                 _birthDate == null ? '-' : _dateLabel(_birthDate!),
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -11612,7 +11718,8 @@ class _ManagerSimplePageShell extends StatelessWidget {
             SizedBox(height: 8),
             Text(
               title,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerText,
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -11621,7 +11728,8 @@ class _ManagerSimplePageShell extends StatelessWidget {
             SizedBox(height: 6),
             Text(
               subtitle,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerMuted,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -11693,7 +11801,8 @@ class _ManagerInfoTile extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -11705,7 +11814,8 @@ class _ManagerInfoTile extends StatelessWidget {
           child: Text(
             value,
             textAlign: TextAlign.right,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerMuted,
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -11728,7 +11838,8 @@ class _ManagerSheetTitle extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Text(
         title,
-        style: GoogleFonts.poppins(
+        style: TextStyle(
+          fontFamily: 'Roboto',
           color: _DashboardManagerState.managerText,
           fontSize: 18,
           fontWeight: FontWeight.w700,
@@ -11967,7 +12078,8 @@ class _ManagerNavItem extends StatelessWidget {
                   child: Text(
                     label,
                     maxLines: 1,
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
                       color: color,
                       fontSize: 8.5,
                       fontWeight: FontWeight.w600,
@@ -12307,7 +12419,8 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
                     backgroundColor: _DashboardManagerState.iconBlueBg,
                     child: Text(
                       _initials(commercial.name),
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
                         color: _DashboardManagerState.managerBlue,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -12321,7 +12434,8 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
                       children: [
                         Text(
                           commercial.name,
-                          style: GoogleFonts.poppins(
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
                             color: _DashboardManagerState.managerText,
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -12329,7 +12443,8 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
                         ),
                         Text(
                           commercial.role,
-                          style: GoogleFonts.poppins(
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
                             color: _DashboardManagerState.managerBlue,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -12851,7 +12966,8 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
                     children: [
                       Text(
                         'Filtres objectifs',
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerText,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -12994,7 +13110,8 @@ class _DetailKpi extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -13004,7 +13121,8 @@ class _DetailKpi extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerMuted,
               fontSize: 10,
               fontWeight: FontWeight.w500,
@@ -13061,7 +13179,8 @@ class _ObjectiveDetailScreen extends StatelessWidget {
                       backgroundColor: _DashboardManagerState.iconBlueBg,
                       child: Text(
                         _initials(commercial.name),
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerBlue,
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -13075,7 +13194,8 @@ class _ObjectiveDetailScreen extends StatelessWidget {
                         children: [
                           Text(
                             commercial.name,
-                            style: GoogleFonts.poppins(
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
                               color: _DashboardManagerState.managerText,
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -13085,7 +13205,8 @@ class _ObjectiveDetailScreen extends StatelessWidget {
                             commercial.email.ifEmpty('-'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
                               color: _DashboardManagerState.managerMuted,
                               fontSize: 12,
                             ),
@@ -13163,7 +13284,8 @@ class _ObjectiveDetailScreen extends StatelessWidget {
               children: [
                 Text(
                   'Aucun commentaire manager enregistré.',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerMuted,
                     fontSize: 12,
                   ),
@@ -13234,7 +13356,8 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
             SizedBox(height: 12),
             Text(
               'Définir les objectifs',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerText,
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -13243,7 +13366,8 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
             SizedBox(height: 6),
             Text(
               'Créez ou modifiez les objectifs mensuels.',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerMuted,
                 fontSize: 12,
               ),
@@ -13413,7 +13537,8 @@ class _ManagerOrderDetailHeader extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -13423,7 +13548,8 @@ class _ManagerOrderDetailHeader extends StatelessWidget {
                 subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: Color(0xFFD8E2F3),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -13478,7 +13604,8 @@ class _ManagerOrderDetailHeader extends StatelessWidget {
           backgroundColor: _DashboardManagerState.iconBlueBg,
           child: Text(
             'MB',
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerBlue,
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -13524,7 +13651,8 @@ class _ManagerOrderDetailMessage extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerText,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -13607,7 +13735,8 @@ class _ManagerOrderMainCard extends StatelessWidget {
                 'Commande #${order.number}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -13619,7 +13748,8 @@ class _ManagerOrderMainCard extends StatelessWidget {
               children: [
                 Text(
                   'Montant total',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerMuted,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -13627,7 +13757,8 @@ class _ManagerOrderMainCard extends StatelessWidget {
                 ),
                 Text(
                   '${_formatMoney(order.total)} DH',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerBlue,
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -13648,7 +13779,8 @@ class _ManagerOrderMainCard extends StatelessWidget {
             SizedBox(width: 8),
             Text(
               '${order.dateLabel} à ${order.timeLabel}',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -13731,7 +13863,8 @@ class _ManagerOrderPersonCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -13750,7 +13883,8 @@ class _ManagerOrderPersonCard extends StatelessWidget {
             backgroundColor: color.withValues(alpha: .12),
             child: Text(
               _orderInitials(name),
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: color,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -13763,7 +13897,8 @@ class _ManagerOrderPersonCard extends StatelessWidget {
             maxLines: 2,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerText,
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -13774,7 +13909,8 @@ class _ManagerOrderPersonCard extends StatelessWidget {
             code,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerMuted,
               fontSize: 11,
             ),
@@ -13804,7 +13940,8 @@ class _MiniInfo extends StatelessWidget {
             text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: _DashboardManagerState.managerMuted,
               fontSize: 10.5,
             ),
@@ -13858,7 +13995,8 @@ class _ManagerOrderProductsCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Produits commandés',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerText,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -13867,7 +14005,8 @@ class _ManagerOrderProductsCard extends StatelessWidget {
               ),
               Text(
                 '${order.productsCount} produits',
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -13881,7 +14020,8 @@ class _ManagerOrderProductsCard extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Text(
               'Aucun produit disponible.',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerMuted,
                 fontSize: 12,
               ),
@@ -13940,7 +14080,8 @@ class _ManagerOrderProductLine extends StatelessWidget {
                 line.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -13950,14 +14091,16 @@ class _ManagerOrderProductLine extends StatelessWidget {
                 line.reference.ifEmpty('-'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 10.5,
                 ),
               ),
               Text(
                 '${_formatMoney(line.unitPrice)} DH x ${_compactQty(line.quantity)}',
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 10.5,
                 ),
@@ -13971,7 +14114,8 @@ class _ManagerOrderProductLine extends StatelessWidget {
           children: [
             Text(
               '${_formatMoney(line.total)} DH',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerText,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -13980,7 +14124,8 @@ class _ManagerOrderProductLine extends StatelessWidget {
             if (line.discount > 0)
               Text(
                 '-${_formatMoney(line.discount)} DH',
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerRed,
                   fontSize: 10,
                 ),
@@ -14005,7 +14150,8 @@ class _TotalLine extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Roboto',
               color: strong
                   ? _DashboardManagerState.managerBlue
                   : _DashboardManagerState.managerMuted,
@@ -14016,7 +14162,8 @@ class _TotalLine extends StatelessWidget {
         ),
         Text(
           '${_formatMoney(value)} DH',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: strong
                 ? _DashboardManagerState.managerBlue
                 : _DashboardManagerState.managerText,
@@ -14038,7 +14185,8 @@ class _ManagerOrderNotesCard extends StatelessWidget {
     children: [
       Text(
         order.notes.ifEmpty('Aucune note.'),
-        style: GoogleFonts.poppins(
+        style: TextStyle(
+          fontFamily: 'Roboto',
           color: _DashboardManagerState.managerMuted,
           fontSize: 12,
           fontWeight: FontWeight.w500,
@@ -14064,7 +14212,8 @@ class _ManagerOrderCommentsCard extends StatelessWidget {
       if (order.managerComments.isEmpty)
         Text(
           'Aucun commentaire.',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Roboto',
             color: _DashboardManagerState.managerMuted,
             fontSize: 12,
           ),
@@ -14160,7 +14309,8 @@ class _ManagerHistoryRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerText,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -14168,7 +14318,8 @@ class _ManagerHistoryRow extends StatelessWidget {
               ),
               Text(
                 subtitle,
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Roboto',
                   color: _DashboardManagerState.managerMuted,
                   fontSize: 11,
                 ),
@@ -14493,7 +14644,8 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
               children: [
                 Text(
                   'Motif du refus',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -14877,7 +15029,8 @@ class _ManagerApiOrderDetailState extends State<_ManagerApiOrderDetail> {
               Expanded(
                 child: Text(
                   order.number,
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
                     color: _DashboardManagerState.managerText,
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -14918,7 +15071,8 @@ class _ManagerApiOrderDetailState extends State<_ManagerApiOrderDetail> {
                 ? [
                     Text(
                       'Aucune ligne de produit disponible.',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
                         color: _DashboardManagerState.managerMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -14934,7 +15088,8 @@ class _ManagerApiOrderDetailState extends State<_ManagerApiOrderDetail> {
                             Expanded(
                               child: Text(
                                 line.name,
-                                style: GoogleFonts.poppins(
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
                                   color: _DashboardManagerState.managerText,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -14943,7 +15098,8 @@ class _ManagerApiOrderDetailState extends State<_ManagerApiOrderDetail> {
                             ),
                             Text(
                               '${line.quantity.toStringAsFixed(line.quantity.truncateToDouble() == line.quantity ? 0 : 1)} x ${_formatNumber(line.unitPrice.round())} DH',
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
                                 color: _DashboardManagerState.managerMuted,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
@@ -15113,7 +15269,8 @@ class _ManagerDetailCard extends StatelessWidget {
           if (title != null) ...[
             Text(
               title!,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerText,
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
@@ -15145,7 +15302,8 @@ class _ManagerDetailLine extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
@@ -15155,7 +15313,8 @@ class _ManagerDetailLine extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Roboto',
                 color: _DashboardManagerState.managerText,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
