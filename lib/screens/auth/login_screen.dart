@@ -37,10 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
   static const _primaryBlue = Color(0xFF2674F8);
   static const _deepBlue = Color(0xFF2F7D12);
   static const _violet = Color(0xFF8CCB2F);
-  static const _teaGreen = Color(0xFF8CCB2F);
-  static const _premiumText = Color(0xFFF8FAFF);
-  static const _premiumMuted = Color(0xFFC7CDC2);
-  static const _premiumBorder = Color(0xFF24451E);
+  static const _premiumText = Color(0xFF24301F);
+  static const _premiumMuted = Color(0xFF7D8677);
+  static const _premiumBorder = Color(0xFFE2E6DC);
   static const _textDark = Color(0xFF18213A);
   static const _textMuted = Color(0xFF69758C);
   static const _fieldBorder = Color(0xFFE4E9F3);
@@ -310,295 +309,192 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: LayoutBuilder(
-        builder: (context, viewportConstraints) {
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 390),
-              child: Container(
-                width: double.infinity,
-                height: viewportConstraints.maxHeight,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(40),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: .12),
-                      blurRadius: 40,
-                      spreadRadius: 4,
-                      offset: Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: DefaultTextStyle.merge(
-                  style: TextStyle(fontFamily: 'Poppins'),
-                  child: SafeArea(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isCompact = constraints.maxHeight < 820;
-                        final fieldGap = isCompact ? 14.0 : 18.0;
-                        final contentWidth = constraints.maxWidth - 30;
-                        final contentHeight = constraints.maxHeight - 46;
+      backgroundColor: Color(0xFFF7F7F4),
+      body: SafeArea(
+        child: DefaultTextStyle.merge(
+          style: TextStyle(fontFamily: 'Poppins'),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxHeight < 760;
+              final fieldGap = isCompact ? 13.0 : 16.0;
 
-                        return Stack(
-                          children: [
-                            Positioned.fill(child: _PremiumLoginBackground()),
-                            Align(
-                              alignment: Alignment.topCenter,
-                              child: Padding(
-                                padding: EdgeInsets.fromLTRB(15, 30, 15, 16),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  height: contentHeight,
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    alignment: Alignment.topCenter,
-                                    child: SizedBox(
-                                      width: contentWidth,
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          _TeaSudLogo(compact: isCompact),
-                                          SizedBox(height: 12),
-                                          ConstrainedBox(
-                                            constraints: BoxConstraints(
-                                              maxWidth: 336,
-                                            ),
-                                            child: Container(
-                                              width: double.infinity,
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 24,
-                                                vertical: 22,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: Color(
-                                                  0xFF0A0F0A,
-                                                ).withValues(alpha: .88),
-                                                borderRadius:
-                                                    BorderRadius.circular(32),
-                                                border: Border.all(
-                                                  color: Colors.white
-                                                      .withValues(alpha: .12),
-                                                ),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: _teaGreen.withValues(
-                                                      alpha: .12,
-                                                    ),
-                                                    blurRadius: 32,
-                                                    offset: Offset(0, 18),
-                                                  ),
-                                                  BoxShadow(
-                                                    color: Colors.black
-                                                        .withValues(alpha: .42),
-                                                    blurRadius: 44,
-                                                    offset: Offset(0, 24),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: Column(
-                                                children: [
-                                                  Container(
-                                                    width: 54,
-                                                    height: 54,
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      border: Border.all(
-                                                        color: _teaGreen,
-                                                      ),
-                                                      color: Colors.black
-                                                          .withValues(
-                                                            alpha: .22,
-                                                          ),
-                                                    ),
-                                                    child: Icon(
-                                                      Icons
-                                                          .person_outline_rounded,
-                                                      color: _teaGreen,
-                                                      size: 28,
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 8),
-                                                  Text(
-                                                    AppLocalizations.globalText(
-                                                      'Bienvenue !',
-                                                    ),
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 28,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      letterSpacing: 0,
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 8),
-                                                  Text(
-                                                    AppLocalizations.globalText(
-                                                      'Connectez-vous pour accéder à votre espace',
-                                                    ),
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: _premiumMuted,
-                                                      fontSize: 14,
-                                                      height: 1.3,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                  SizedBox(
-                                                    height: isCompact ? 22 : 24,
-                                                  ),
-                                                  Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                          horizontal: 0,
-                                                        ),
-                                                    child: _AuthField(
-                                                      controller:
-                                                          _emailController,
-                                                      label:
-                                                          AppLocalizations.globalText(
-                                                            'Email',
-                                                          ),
-                                                      hintText:
-                                                          AppLocalizations.globalText(
-                                                            'Entrez votre email',
-                                                          ),
-                                                      keyboardType:
-                                                          TextInputType
-                                                              .emailAddress,
-                                                      textInputAction:
-                                                          TextInputAction.next,
-                                                      errorText: _emailError,
-                                                      prefixIcon: Icons
-                                                          .mail_outline_rounded,
-                                                      darkMode: true,
-                                                      compact: isCompact,
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: fieldGap),
-                                                  Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                          horizontal: 0,
-                                                        ),
-                                                    child: _AuthField(
-                                                      controller:
-                                                          _passwordController,
-                                                      label:
-                                                          AppLocalizations.globalText(
-                                                            'Mot de passe',
-                                                          ),
-                                                      hintText:
-                                                          AppLocalizations.globalText(
-                                                            'Entrez votre mot de passe',
-                                                          ),
-                                                      obscureText:
-                                                          _obscurePassword,
-                                                      textInputAction:
-                                                          TextInputAction.done,
-                                                      errorText: _passwordError,
-                                                      onSubmitted: (_) =>
-                                                          _login(),
-                                                      prefixIcon: Icons
-                                                          .lock_outline_rounded,
-                                                      darkMode: true,
-                                                      compact: isCompact,
-                                                      suffixIcon: IconButton(
-                                                        onPressed: () {
-                                                          setState(() {
-                                                            _obscurePassword =
-                                                                !_obscurePassword;
-                                                          });
-                                                        },
-                                                        icon: Icon(
-                                                          _obscurePassword
-                                                              ? Icons
-                                                                    .visibility_off_outlined
-                                                              : Icons
-                                                                    .visibility_outlined,
-                                                          size: 22,
-                                                        ),
-                                                        color: _premiumMuted,
-                                                        splashRadius: 20,
-                                                        tooltip:
-                                                            _obscurePassword
-                                                            ? 'Afficher'
-                                                            : 'Masquer',
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  SizedBox(
-                                                    height: isCompact ? 14 : 16,
-                                                  ),
-                                                  _PremiumRememberForgotRow(
-                                                    rememberMe: _rememberMe,
-                                                    onRememberChanged:
-                                                        _onRememberChanged,
-                                                    onForgotPassword:
-                                                        _openForgotPassword,
-                                                    compact: isCompact,
-                                                  ),
-                                                  SizedBox(
-                                                    height: isCompact ? 18 : 22,
-                                                  ),
-                                                  _PremiumLoginButton(
-                                                    isLoading: _isLoading,
-                                                    onPressed: _isLoading
-                                                        ? null
-                                                        : _login,
-                                                    compact: isCompact,
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(height: 12),
-                                          Text(
-                                            AppLocalizations.globalText(
-                                              '© 2026 TeaSud. Tous droits réservés.',
-                                            ),
-                                            style: TextStyle(
-                                              color: _premiumMuted.withValues(
-                                                alpha: .78,
-                                              ),
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          SizedBox(height: 5),
-                                          Text(
-                                            AppLocalizations.globalText(
-                                              'Version 1.0.0',
-                                            ),
-                                            style: TextStyle(
-                                              color: _premiumMuted.withValues(
-                                                alpha: .70,
-                                              ),
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+              return Column(
+                children: [
+                  Expanded(
+                    flex: isCompact ? 2 : 3,
+                    child: Center(child: _TeaSudLogo(compact: isCompact)),
+                  ),
+                  Expanded(
+                    flex: isCompact ? 7 : 8,
+                    child: Center(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: 370),
+                          child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isCompact ? 22 : 28,
+                              vertical: isCompact ? 24 : 30,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(
+                                    0xFF28391E,
+                                  ).withValues(alpha: .10),
+                                  blurRadius: 34,
+                                  spreadRadius: 1,
+                                  offset: Offset(0, 18),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 54,
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFFEAF5E2),
+                                  ),
+                                  child: Icon(
+                                    Icons.person_outline_rounded,
+                                    color: _deepBlue,
+                                    size: 31,
                                   ),
                                 ),
-                              ),
+                                SizedBox(height: 8),
+                                Text(
+                                  AppLocalizations.globalText('Bienvenue !'),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: _textDark,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  AppLocalizations.globalText(
+                                    'Connectez-vous pour accéder à votre espace',
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: _textMuted,
+                                    fontSize: 14,
+                                    height: 1.3,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(height: isCompact ? 22 : 24),
+                                _AuthField(
+                                  controller: _emailController,
+                                  label: AppLocalizations.globalText('Email'),
+                                  hintText: AppLocalizations.globalText(
+                                    'Entrez votre email',
+                                  ),
+                                  keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                  errorText: _emailError,
+                                  prefixIcon: Icons.mail_outline_rounded,
+                                  darkMode: true,
+                                  compact: isCompact,
+                                ),
+                                SizedBox(height: fieldGap),
+                                _AuthField(
+                                  controller: _passwordController,
+                                  label: AppLocalizations.globalText(
+                                    'Mot de passe',
+                                  ),
+                                  hintText: AppLocalizations.globalText(
+                                    'Entrez votre mot de passe',
+                                  ),
+                                  obscureText: _obscurePassword,
+                                  textInputAction: TextInputAction.done,
+                                  errorText: _passwordError,
+                                  onSubmitted: (_) => _login(),
+                                  prefixIcon: Icons.lock_outline_rounded,
+                                  darkMode: true,
+                                  compact: isCompact,
+                                  suffixIcon: IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      size: 22,
+                                    ),
+                                    color: _premiumMuted,
+                                    splashRadius: 20,
+                                    tooltip: _obscurePassword
+                                        ? 'Afficher'
+                                        : 'Masquer',
+                                  ),
+                                ),
+                                SizedBox(height: isCompact ? 14 : 16),
+                                _PremiumRememberForgotRow(
+                                  rememberMe: _rememberMe,
+                                  onRememberChanged: _onRememberChanged,
+                                  onForgotPassword: _openForgotPassword,
+                                  compact: isCompact,
+                                ),
+                                SizedBox(height: isCompact ? 18 : 22),
+                                _PremiumLoginButton(
+                                  isLoading: _isLoading,
+                                  onPressed: _isLoading ? null : _login,
+                                  compact: isCompact,
+                                ),
+                                SizedBox(height: isCompact ? 20 : 24),
+                                _SecureLoginFooter(compact: isCompact),
+                              ],
                             ),
-                          ],
-                        );
-                      },
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ),
-          );
-        },
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(20, 14, 20, 18),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          AppLocalizations.globalText(
+                            '© 2026 TeaSud. Tous droits réservés.',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: _premiumMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          AppLocalizations.globalText('Version 1.0.0'),
+                          style: TextStyle(
+                            color: _premiumMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }
@@ -612,80 +508,20 @@ class _TeaSudLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 220,
+      width: 288,
       child: Column(
         children: [
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 220, maxHeight: 100),
+            constraints: BoxConstraints(maxWidth: 288, maxHeight: 118),
             child: Image.asset(
-              'assets/images/teasud_logo.png',
-              width: 220,
+              'assets/images/teasud_logo (2).png',
+              width: 288,
               fit: BoxFit.contain,
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _TeaSudLogoLine(width: 70, height: 1),
-              SizedBox(width: 10),
-              _TeaSudLogoLine(width: 34, height: 4),
-              SizedBox(width: 10),
-              _TeaSudLogoLine(width: 70, height: 1),
-            ],
-          ),
-          SizedBox(height: 8),
-          Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: 'Qualité',
-                  style: TextStyle(color: _LoginScreenState._teaGreen),
-                ),
-                TextSpan(text: ' • Confiance • '),
-                TextSpan(
-                  text: 'Performance',
-                  style: TextStyle(color: _LoginScreenState._teaGreen),
-                ),
-              ],
-            ),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-class _TeaSudLogoLine extends StatelessWidget {
-  _TeaSudLogoLine({required this.width, required this.height});
-
-  final double width;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: _LoginScreenState._teaGreen.withValues(alpha: .72),
-        borderRadius: BorderRadius.circular(999),
-      ),
-    );
-  }
-}
-
-class _PremiumLoginBackground extends StatelessWidget {
-  _PremiumLoginBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(color: Colors.black);
   }
 }
 
@@ -704,7 +540,7 @@ class _PremiumLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(999),
         gradient: LinearGradient(
           colors: onPressed == null
               ? [
@@ -716,8 +552,8 @@ class _PremiumLoginButton extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: _LoginScreenState._deepBlue.withValues(alpha: .30),
-            blurRadius: 22,
-            offset: Offset(0, 12),
+            blurRadius: 18,
+            offset: Offset(0, 10),
           ),
         ],
       ),
@@ -725,9 +561,9 @@ class _PremiumLoginButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(999),
           child: SizedBox(
-            height: 50,
+            height: compact ? 50 : 54,
             child: Center(
               child: isLoading
                   ? SizedBox(
@@ -746,7 +582,7 @@ class _PremiumLoginButton extends StatelessWidget {
                           AppLocalizations.globalText('Se connecter'),
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 18,
+                            fontSize: 17,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0,
                           ),
@@ -761,12 +597,11 @@ class _PremiumLoginButton extends StatelessWidget {
                                 height: 42,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.black.withValues(alpha: .58),
+                                  color: _LoginScreenState._deepBlue,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: .28,
-                                      ),
+                                      color: _LoginScreenState._deepBlue
+                                          .withValues(alpha: .28),
                                       blurRadius: 12,
                                       offset: Offset(0, 6),
                                     ),
@@ -816,7 +651,7 @@ class _PremiumRememberForgotRow extends StatelessWidget {
             onChanged: onRememberChanged,
             activeColor: _LoginScreenState._violet,
             checkColor: Colors.white,
-            side: BorderSide(color: Color(0xFF68728E), width: 2),
+            side: BorderSide(color: _LoginScreenState._premiumBorder, width: 2),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(5),
             ),
@@ -829,7 +664,7 @@ class _PremiumRememberForgotRow extends StatelessWidget {
             AppLocalizations.globalText('Se souvenir de moi'),
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Colors.white,
+              color: _LoginScreenState._textDark,
               fontSize: compact ? 13 : 15,
               fontWeight: FontWeight.w600,
             ),
@@ -850,6 +685,58 @@ class _PremiumRememberForgotRow extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SecureLoginFooter extends StatelessWidget {
+  _SecureLoginFooter({this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: Divider(color: Color(0xFFE5E9DF), thickness: 1)),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14),
+              child: Text(
+                AppLocalizations.globalText('OU'),
+                style: TextStyle(
+                  color: _LoginScreenState._premiumMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ),
+            Expanded(child: Divider(color: Color(0xFFE5E9DF), thickness: 1)),
+          ],
+        ),
+        SizedBox(height: compact ? 10 : 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.verified_user_outlined,
+              color: _LoginScreenState._deepBlue,
+              size: 18,
+            ),
+            SizedBox(width: 7),
+            Text(
+              AppLocalizations.globalText('Connexion sécurisée'),
+              style: TextStyle(
+                color: _LoginScreenState._premiumMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -1510,9 +1397,7 @@ class _AuthField extends StatelessWidget {
     final mutedColor = darkMode
         ? _LoginScreenState._premiumMuted
         : _LoginScreenState._textMuted;
-    final fillColor = darkMode
-        ? Colors.black.withValues(alpha: .28)
-        : Colors.white;
+    final fillColor = Colors.white;
     final borderColor = darkMode
         ? _LoginScreenState._premiumBorder
         : _LoginScreenState._fieldBorder;
@@ -1525,7 +1410,7 @@ class _AuthField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            height: 56,
+            height: compact ? 54 : 58,
             decoration: BoxDecoration(
               color: fillColor,
               borderRadius: BorderRadius.circular(18),
@@ -1534,6 +1419,13 @@ class _AuthField extends StatelessWidget {
                     ? borderColor
                     : _LoginScreenState._danger,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF314524).withValues(alpha: .04),
+                  blurRadius: 12,
+                  offset: Offset(0, 6),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -1541,7 +1433,7 @@ class _AuthField extends StatelessWidget {
                   width: 56,
                   child: Icon(
                     prefixIcon,
-                    color: _LoginScreenState._violet,
+                    color: _LoginScreenState._deepBlue,
                     size: 24,
                   ),
                 ),
@@ -1555,7 +1447,7 @@ class _AuthField extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: _LoginScreenState._teaGreen,
+                          color: _LoginScreenState._deepBlue,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1571,7 +1463,7 @@ class _AuthField extends StatelessWidget {
                           onSubmitted: onSubmitted,
                           maxLength: maxLength,
                           inputFormatters: inputFormatters,
-                          cursorColor: _LoginScreenState._teaGreen,
+                          cursorColor: _LoginScreenState._deepBlue,
                           style: TextStyle(
                             color: textColor,
                             fontSize: 14,

@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 
 import 'package:gestion_prevente/l10n/app_locale_controller.dart';
 import 'package:gestion_prevente/main.dart';
@@ -13,7 +13,7 @@ void main() {
       ),
     );
 
-    expect(find.text('PreSales'), findsOneWidget);
+    expect(find.text('Bienvenue !'), findsOneWidget);
     expect(find.text('Se connecter'), findsOneWidget);
     expect(find.text('Email'), findsOneWidget);
   });

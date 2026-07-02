@@ -76,6 +76,7 @@ flutter:
     - .env
     - assets/images/login-cart-3d.png
     - assets/images/teasud_logo.png
+    - assets/images/teasud_logo (2).png
     - assets/images/products/
 
   # To add assets to your application, add an assets section, like this:
