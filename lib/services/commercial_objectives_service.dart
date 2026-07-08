@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../database/database_helper.dart';
@@ -44,6 +45,23 @@ class CommercialObjectivesService {
 
   static final CommercialObjectivesService instance =
       CommercialObjectivesService._();
+  static final Map<int, CommercialObjective> _webObjectives = {
+    1: CommercialObjective(
+      commercialId: 1,
+      orderTarget: 14,
+      revenueTarget: 95000,
+    ),
+    3: CommercialObjective(
+      commercialId: 3,
+      orderTarget: 11,
+      revenueTarget: 82000,
+    ),
+    4: CommercialObjective(
+      commercialId: 4,
+      orderTarget: 9,
+      revenueTarget: 76000,
+    ),
+  };
 
   Future<void> _ensureTable() async {
     final db = await DatabaseHelper.instance.database;
@@ -58,6 +76,7 @@ class CommercialObjectivesService {
   }
 
   Future<CommercialObjective?> getObjective(int commercialId) async {
+    if (kIsWeb) return _webObjectives[commercialId];
     await _ensureTable();
     final db = await DatabaseHelper.instance.database;
     final rows = await db.query(
@@ -71,6 +90,10 @@ class CommercialObjectivesService {
   }
 
   Future<void> saveObjective(CommercialObjective objective) async {
+    if (kIsWeb) {
+      _webObjectives[objective.commercialId] = objective;
+      return;
+    }
     await _ensureTable();
     final db = await DatabaseHelper.instance.database;
     await db.insert(

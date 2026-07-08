@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 
+import '../../data/mock_presales_data.dart';
 import '../../database/database_helper.dart';
+import '../invoice/invoice_screen.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   OrderHistoryScreen({
@@ -27,13 +29,47 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _loadOrders() async {
-    if (widget.clientId <= 0) return [];
-    final db = await DatabaseHelper.instance.database;
-    return db.query(
-      'factures',
-      where: 'id_client = ?',
-      whereArgs: [widget.clientId],
-      orderBy: 'date DESC',
+    try {
+      if (widget.clientId <= 0) return _mockOrders();
+      final db = await DatabaseHelper.instance.database;
+      final rows = await db.query(
+        'factures',
+        where: 'id_client = ?',
+        whereArgs: [widget.clientId],
+        orderBy: 'date DESC',
+      );
+      return rows.isEmpty ? _mockOrders() : rows;
+    } catch (_) {
+      return _mockOrders();
+    }
+  }
+
+  List<Map<String, dynamic>> _mockOrders() {
+    return MockPreSalesData.commercialOrders.values
+        .expand((orders) => orders)
+        .take(4)
+        .map(
+          (order) => {
+            'id': order.id,
+            'id_client': widget.clientId,
+            'date': _dateToIso(order.date),
+            'total': order.total,
+          },
+        )
+        .toList();
+  }
+
+  String _dateToIso(String value) {
+    final parts = value.split('/');
+    if (parts.length != 3) return value;
+    return '${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}';
+  }
+
+  void _openInvoice(Map<String, dynamic> order) {
+    final id = order['id'] is int ? order['id'] as int : 0;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => InvoiceScreen(factureId: id)),
     );
   }
 
@@ -110,6 +146,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                               final total = ((order['total'] ?? 0) as num)
                                   .toDouble();
                               return ListTile(
+                                onTap: () => _openInvoice(order),
                                 leading: Icon(Icons.receipt_long),
                                 title: Text(
                                   'Commande #${order['id']}',
@@ -118,12 +155,19 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                 subtitle: Text(
                                   _formatDate((order['date'] ?? '').toString()),
                                 ),
-                                trailing: Text(
-                                  '${total.toStringAsFixed(2)} DH',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF111B3D),
-                                  ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${total.toStringAsFixed(2)} DH',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF111B3D),
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.chevron_right_rounded),
+                                  ],
                                 ),
                               );
                             },

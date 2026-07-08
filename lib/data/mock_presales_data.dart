@@ -96,7 +96,108 @@ class MockPreSalesData {
     ),
   };
 
-  static const Map<int, CommercialDashboardData> commercialDashboards = {};
+  static const Map<int, CommercialDashboardData> commercialDashboards = {
+    1: CommercialDashboardData(
+      summary: CommercialDashboardSummary(
+        monthlyTarget: 95000,
+        achievedAmount: 68450,
+        monthlyOrders: 12,
+        revenue: 68450,
+        dailyVisitsDone: 4,
+        dailyVisitsTotal: 6,
+        conversionRate: 38,
+        ordersEvolution: 18,
+        revenueEvolution: 24,
+        visitsEvolution: 12,
+        conversionEvolution: 7,
+      ),
+      activities: [
+        CommercialActivity(
+          commercialId: 1,
+          time: '09:00',
+          client: 'Carrefour Maarif',
+          city: 'Casablanca',
+          color: Color(0xFF2563EB),
+        ),
+        CommercialActivity(
+          commercialId: 1,
+          time: '11:30',
+          client: 'Marjane Californie',
+          city: 'Casablanca',
+          color: Color(0xFF22C55E),
+        ),
+        CommercialActivity(
+          commercialId: 1,
+          time: '15:00',
+          client: 'Atlas Distribution',
+          city: 'Casablanca',
+          color: Color(0xFFF59E0B),
+        ),
+      ],
+    ),
+    3: CommercialDashboardData(
+      summary: CommercialDashboardSummary(
+        monthlyTarget: 82000,
+        achievedAmount: 51200,
+        monthlyOrders: 9,
+        revenue: 51200,
+        dailyVisitsDone: 3,
+        dailyVisitsTotal: 5,
+        conversionRate: 32,
+        ordersEvolution: 11,
+        revenueEvolution: 17,
+        visitsEvolution: 9,
+        conversionEvolution: 4,
+      ),
+      activities: [
+        CommercialActivity(
+          commercialId: 3,
+          time: '10:00',
+          client: 'Aswak Assalam Ain Sebaa',
+          city: 'Casablanca',
+          color: Color(0xFF7C3AED),
+        ),
+        CommercialActivity(
+          commercialId: 3,
+          time: '14:30',
+          client: 'Grossiste Al Baraka',
+          city: 'Casablanca',
+          color: Color(0xFF14B8A6),
+        ),
+      ],
+    ),
+    4: CommercialDashboardData(
+      summary: CommercialDashboardSummary(
+        monthlyTarget: 76000,
+        achievedAmount: 43800,
+        monthlyOrders: 7,
+        revenue: 43800,
+        dailyVisitsDone: 2,
+        dailyVisitsTotal: 5,
+        conversionRate: 28,
+        ordersEvolution: 8,
+        revenueEvolution: 13,
+        visitsEvolution: 6,
+        conversionEvolution: 3,
+      ),
+      activities: [
+        CommercialActivity(
+          commercialId: 4,
+          time: '09:45',
+          client: 'Chaouia Distribution',
+          city: 'Casablanca',
+          color: Color(0xFFEF4444),
+        ),
+        CommercialActivity(
+          commercialId: 4,
+          time: '16:00',
+          client: 'Restaurant Saveurs du Maroc',
+          city: 'Casablanca',
+          color: Color(0xFF0EA5E9),
+        ),
+      ],
+    ),
+  };
 
   static const teaSudClients = [
     CommercialClient(
@@ -622,7 +723,7 @@ class MockPreSalesData {
 
   static CommercialDashboardData? dashboardForUser(MockUserProfile? user) {
     if (user == null || user.role != MockUserRole.commercial) return null;
-    return CommercialDashboardData.empty();
+    return commercialDashboards[user.id] ?? CommercialDashboardData.empty();
   }
 
   static List<CommercialClient> clientsForUser(MockUserProfile? user) {
@@ -632,17 +733,291 @@ class MockPreSalesData {
 
   static List<TourVisit> tourVisitsForUser(MockUserProfile? user) {
     if (user == null || user.role != MockUserRole.commercial) return const [];
-    return const [];
+    return commercialTourVisits[user.id] ?? const [];
   }
 
   static List<CommercialOrder> ordersForUser(MockUserProfile? user) {
     if (user == null || user.role != MockUserRole.commercial) return const [];
-    return const [];
+    return commercialOrders[user.id] ?? const [];
   }
 
-  static const Map<int, List<CommercialOrder>> commercialOrders = {};
+  static const Map<int, List<CommercialOrder>> commercialOrders = {
+    1: [
+      CommercialOrder(
+        commercialId: 1,
+        id: 1001,
+        orderNumber: 'CMD-2026-001',
+        clientName: 'Carrefour Maarif',
+        date: '08/07/2026',
+        productsCount: 3,
+        total: 14850,
+        status: OrderStatus.synced,
+        items: [
+          OrderLine(
+            productName: 'Assil Chaara Premium 250g',
+            quantity: 180,
+            total: 4860,
+          ),
+          OrderLine(
+            productName: 'Assil Al-Lamma Classique 500g',
+            quantity: 120,
+            total: 4800,
+          ),
+          OrderLine(
+            productName: 'Assil Chaara Premium 500g',
+            quantity: 90,
+            total: 5190,
+          ),
+        ],
+      ),
+      CommercialOrder(
+        commercialId: 1,
+        id: 1002,
+        orderNumber: 'CMD-2026-002',
+        clientName: 'Marjane Californie',
+        date: '08/07/2026',
+        productsCount: 2,
+        total: 9200,
+        status: OrderStatus.pending,
+        items: [
+          OrderLine(
+            productName: 'Assil Chaara Premium 1kg',
+            quantity: 80,
+            total: 6800,
+          ),
+          OrderLine(
+            productName: 'Assil Al-Lamma Classique 250g',
+            quantity: 120,
+            total: 2400,
+          ),
+        ],
+      ),
+      CommercialOrder(
+        commercialId: 1,
+        id: 1003,
+        orderNumber: 'CMD-2026-003',
+        clientName: 'Atlas Distribution',
+        date: '07/07/2026',
+        productsCount: 4,
+        total: 22400,
+        status: OrderStatus.delivered,
+        items: [
+          OrderLine(
+            productName: 'Assil Al-Lamma Classique 1kg',
+            quantity: 140,
+            total: 10920,
+          ),
+          OrderLine(
+            productName: 'Assil Chaara Premium 2kg',
+            quantity: 60,
+            total: 11480,
+          ),
+        ],
+      ),
+      CommercialOrder(
+        commercialId: 1,
+        id: 1004,
+        orderNumber: 'CMD-2026-004',
+        clientName: 'Grossiste El Fath',
+        date: '06/07/2026',
+        productsCount: 1,
+        total: 5600,
+        status: OrderStatus.cancelled,
+        items: [
+          OrderLine(
+            productName: 'Assil Chaara Premium 500g',
+            quantity: 100,
+            total: 5600,
+          ),
+        ],
+      ),
+    ],
+    3: [
+      CommercialOrder(
+        commercialId: 3,
+        id: 2001,
+        orderNumber: 'CMD-2026-005',
+        clientName: 'Aswak Assalam Ain Sebaa',
+        date: '08/07/2026',
+        productsCount: 3,
+        total: 12600,
+        status: OrderStatus.synced,
+        items: [
+          OrderLine(
+            productName: 'Assil Chaara Premium 250g',
+            quantity: 160,
+            total: 4320,
+          ),
+          OrderLine(
+            productName: 'Assil Al-Lamma Classique 500g',
+            quantity: 120,
+            total: 4800,
+          ),
+          OrderLine(
+            productName: 'Assil Chaara Premium 200g',
+            quantity: 150,
+            total: 3480,
+          ),
+        ],
+      ),
+      CommercialOrder(
+        commercialId: 3,
+        id: 2002,
+        orderNumber: 'CMD-2026-006',
+        clientName: 'Grossiste Al Baraka',
+        date: '07/07/2026',
+        productsCount: 2,
+        total: 8700,
+        status: OrderStatus.pending,
+        items: [
+          OrderLine(
+            productName: 'Assil Al-Lamma Classique 2kg',
+            quantity: 45,
+            total: 6750,
+          ),
+          OrderLine(
+            productName: 'Assil Chaara Premium 200g',
+            quantity: 90,
+            total: 1950,
+          ),
+        ],
+      ),
+    ],
+    4: [
+      CommercialOrder(
+        commercialId: 4,
+        id: 3001,
+        orderNumber: 'CMD-2026-007',
+        clientName: 'Chaouia Distribution',
+        date: '08/07/2026',
+        productsCount: 2,
+        total: 10350,
+        status: OrderStatus.delivered,
+        items: [
+          OrderLine(
+            productName: 'Assil Chaara Premium 1kg',
+            quantity: 75,
+            total: 6375,
+          ),
+          OrderLine(
+            productName: 'Assil Al-Lamma Classique 250g',
+            quantity: 200,
+            total: 3975,
+          ),
+        ],
+      ),
+      CommercialOrder(
+        commercialId: 4,
+        id: 3002,
+        orderNumber: 'CMD-2026-008',
+        clientName: 'Restaurant Saveurs du Maroc',
+        date: '06/07/2026',
+        productsCount: 1,
+        total: 4200,
+        status: OrderStatus.pending,
+        items: [
+          OrderLine(
+            productName: 'Assil Chaara Premium 250g',
+            quantity: 160,
+            total: 4200,
+          ),
+        ],
+      ),
+    ],
+  };
 
-  static const Map<int, List<TourVisit>> commercialTourVisits = {};
+  static const Map<int, List<TourVisit>> commercialTourVisits = {
+    1: [
+      TourVisit(
+        commercialId: 1,
+        id: 501,
+        clientId: 101,
+        clientName: 'Carrefour Maarif',
+        time: '09:00',
+        status: TourVisitStatus.visited,
+        latitude: 33.5852,
+        longitude: -7.6358,
+        mapX: .34,
+        mapY: .42,
+      ),
+      TourVisit(
+        commercialId: 1,
+        id: 502,
+        clientId: 102,
+        clientName: 'Marjane Californie',
+        time: '11:30',
+        status: TourVisitStatus.visited,
+        latitude: 33.5164,
+        longitude: -7.6389,
+        mapX: .46,
+        mapY: .64,
+      ),
+      TourVisit(
+        commercialId: 1,
+        id: 503,
+        clientId: 104,
+        clientName: 'Atlas Distribution',
+        time: '15:00',
+        status: TourVisitStatus.upcoming,
+        latitude: 33.5894,
+        longitude: -7.6039,
+        mapX: .58,
+        mapY: .35,
+      ),
+    ],
+    3: [
+      TourVisit(
+        commercialId: 3,
+        id: 601,
+        clientId: 103,
+        clientName: 'Aswak Assalam Ain Sebaa',
+        time: '10:00',
+        status: TourVisitStatus.visited,
+        latitude: 33.6068,
+        longitude: -7.5312,
+        mapX: .68,
+        mapY: .30,
+      ),
+      TourVisit(
+        commercialId: 3,
+        id: 602,
+        clientId: 105,
+        clientName: 'Grossiste Al Baraka',
+        time: '14:30',
+        status: TourVisitStatus.upcoming,
+        latitude: 33.5738,
+        longitude: -7.6057,
+        mapX: .41,
+        mapY: .55,
+      ),
+    ],
+    4: [
+      TourVisit(
+        commercialId: 4,
+        id: 701,
+        clientId: 107,
+        clientName: 'Chaouia Distribution',
+        time: '09:45',
+        status: TourVisitStatus.visited,
+        latitude: 33.5357,
+        longitude: -7.6381,
+        mapX: .37,
+        mapY: .66,
+      ),
+      TourVisit(
+        commercialId: 4,
+        id: 702,
+        clientId: 120,
+        clientName: 'Restaurant Saveurs du Maroc',
+        time: '16:00',
+        status: TourVisitStatus.upcoming,
+        latitude: 33.5946,
+        longitude: -7.6769,
+        mapX: .25,
+        mapY: .38,
+      ),
+    ],
+  };
 
   static const orderProducts = [
     OrderProduct(

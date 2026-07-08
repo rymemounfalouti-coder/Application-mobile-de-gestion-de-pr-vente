@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
+import '../../data/mock_presales_data.dart';
 import '../../database/database_helper.dart';
 import '../../services/pdf_services.dart';
 
@@ -22,24 +23,64 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
     loadInvoice();
   }
 
-  void loadInvoice() async {
-    final db = await DatabaseHelper.instance.database;
+  Future<void> loadInvoice() async {
+    try {
+      final db = await DatabaseHelper.instance.database;
 
-    List fact = await db.query(
-      'factures',
-      where: 'id = ?',
-      whereArgs: [widget.factureId],
+      final fact = await db.query(
+        'factures',
+        where: 'id = ?',
+        whereArgs: [widget.factureId],
+      );
+
+      final det = await db.query(
+        'details_facture',
+        where: 'id_fact = ?',
+        whereArgs: [widget.factureId],
+      );
+
+      if (fact.isEmpty) {
+        _loadMockInvoice();
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        facture = fact.first;
+        details = det;
+      });
+    } catch (_) {
+      _loadMockInvoice();
+    }
+  }
+
+  void _loadMockInvoice() {
+    final orders = MockPreSalesData.commercialOrders.values
+        .expand((rows) => rows)
+        .toList();
+    if (orders.isEmpty || !mounted) return;
+
+    final order = orders.firstWhere(
+      (item) => item.id == widget.factureId,
+      orElse: () => orders.first,
     );
-
-    List det = await db.query(
-      'details_facture',
-      where: 'id_fact = ?',
-      whereArgs: [widget.factureId],
-    );
-
     setState(() {
-      facture = fact.first;
-      details = det;
+      facture = {
+        'id': order.id,
+        'date': order.date,
+        'total': order.total,
+      };
+      details = [
+        for (final item in order.items)
+          {
+            'product_name': item.productName,
+            'id_prod': item.productName,
+            'qte': item.quantity,
+            'prix_vendu': item.quantity == 0
+                ? item.total
+                : item.total / item.quantity,
+          },
+      ];
     });
   }
 
@@ -140,7 +181,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                             child: Icon(Icons.shopping_bag),
                           ),
                           title: Text(
-                            "Produit ID: ${d['id_prod']}",
+                            "Produit: ${d['product_name'] ?? d['id_prod']}",
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(

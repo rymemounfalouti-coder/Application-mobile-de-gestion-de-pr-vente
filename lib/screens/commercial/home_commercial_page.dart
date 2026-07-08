@@ -310,6 +310,7 @@ class _HomeCommercialState extends State<HomeCommercial> {
     _loadRecentActivitiesIfNeeded(email, commercialId);
     final dashboard = MockPreSalesData.dashboardForUser(user);
     final clients = _mergeCommercialClients([
+      ...MockPreSalesData.clientsForUser(user),
       ..._persistedClients,
       ..._runtimeClientsForEmail(email),
       ..._addedClients,
