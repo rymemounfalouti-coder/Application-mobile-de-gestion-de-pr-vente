@@ -309,7 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     final safeHeight = media.size.height - media.padding.vertical;
-    final scale = (safeHeight / 1040).clamp(.5, 1.0).toDouble();
+    final scale = (safeHeight / 1120).clamp(.45, 1.0).toDouble();
     final fieldGap = 22.0 * scale;
 
     return Scaffold(
@@ -331,195 +331,202 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           Positioned.fill(child: CustomPaint(painter: _LoginLeavesPainter())),
           SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24 * scale),
-              child: DefaultTextStyle.merge(
-                style: TextStyle(fontFamily: 'Roboto'),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 430),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24 * scale),
+                  child: DefaultTextStyle.merge(
+                    style: TextStyle(fontFamily: 'Roboto'),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        SizedBox(height: 50 * scale),
-                        _TeaSudLogo(scale: scale),
-                        SizedBox(height: 16 * scale),
-                        Text(
-                          AppLocalizations.globalText(
-                            'QUALITÉ • CONFIANCE • PERFORMANCE',
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(height: 50 * scale),
+                            _TeaSudLogo(scale: scale),
+                            SizedBox(height: 4 * scale),
+                            Text(
+                              AppLocalizations.globalText(
+                                'QUALITÉ • CONFIANCE • PERFORMANCE',
+                              ),
+                              maxLines: 1,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
+                                color: Color(0xFF163B1B),
+                                fontSize: 16 * scale,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 2 * scale,
+                              ),
+                            ),
+                            SizedBox(height: 30 * scale),
+                          ],
+                        ),
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(30 * scale),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(35 * scale),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: .08),
+                                blurRadius: 30 * scale,
+                                offset: Offset(0, 10 * scale),
+                              ),
+                            ],
                           ),
-                          maxLines: 1,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            color: Color(0xFF163B1B),
-                            fontSize: 16 * scale,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 2 * scale,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 100 * scale,
+                                height: 100 * scale,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFF1F6E8),
+                                ),
+                                child: Icon(
+                                  Icons.person_outline,
+                                  color: Color(0xFF1E7D1A),
+                                  size: 45 * scale,
+                                ),
+                              ),
+                              SizedBox(height: 26 * scale),
+                              Text(
+                                AppLocalizations.globalText('Bienvenue !'),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  color: Color(0xFF0F1737),
+                                  fontSize: 34 * scale,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1,
+                                  letterSpacing: 0,
+                                ),
+                              ),
+                              SizedBox(height: 12 * scale),
+                              Text(
+                                AppLocalizations.globalText(
+                                  'Connectez-vous pour accéder à votre espace',
+                                ),
+                                maxLines: 1,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  color: Color(0xFF7B8398),
+                                  fontSize: 16 * scale,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.2,
+                                ),
+                              ),
+                              SizedBox(height: 30 * scale),
+                              _AuthField(
+                                controller: _emailController,
+                                label: AppLocalizations.globalText('Email'),
+                                hintText: AppLocalizations.globalText(
+                                  'Entrez votre email',
+                                ),
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                errorText: _emailError,
+                                prefixIcon: Icons.mail_outline,
+                                darkMode: true,
+                                scale: scale,
+                              ),
+                              SizedBox(height: fieldGap),
+                              _AuthField(
+                                controller: _passwordController,
+                                label: AppLocalizations.globalText(
+                                  'Mot de passe',
+                                ),
+                                hintText: AppLocalizations.globalText(
+                                  'Entrez votre mot de passe',
+                                ),
+                                obscureText: _obscurePassword,
+                                textInputAction: TextInputAction.done,
+                                errorText: _passwordError,
+                                onSubmitted: (_) => _login(),
+                                prefixIcon: Icons.lock_outline,
+                                darkMode: true,
+                                scale: scale,
+                                suffixIcon: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    size: 30 * scale,
+                                  ),
+                                  color: Color(0xFF8A8F84),
+                                  splashRadius: 20 * scale,
+                                  tooltip: _obscurePassword
+                                      ? 'Afficher'
+                                      : 'Masquer',
+                                ),
+                              ),
+                              SizedBox(height: 24 * scale),
+                              _PremiumRememberForgotRow(
+                                rememberMe: _rememberMe,
+                                onRememberChanged: _onRememberChanged,
+                                onForgotPassword: _openForgotPassword,
+                                scale: scale,
+                              ),
+                              SizedBox(height: 26 * scale),
+                              _PremiumLoginButton(
+                                isLoading: _isLoading,
+                                onPressed: _isLoading ? null : _login,
+                                scale: scale,
+                              ),
+                              SizedBox(height: 28 * scale),
+                              _SecureLoginFooter(scale: scale),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 30 * scale),
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: 24 * scale,
+                            bottom: 18 * scale,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                AppLocalizations.globalText(
+                                  '© 2026 TeaSud. Tous droits réservés.',
+                                ),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  color: Color(0xFF6E726B),
+                                  fontSize: 15 * scale,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.15,
+                                ),
+                              ),
+                              SizedBox(height: 8 * scale),
+                              Text(
+                                AppLocalizations.globalText('Version 1.0.0'),
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  color: Color(0xFF4A5A4A),
+                                  fontSize: 15 * scale,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.15,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(30 * scale),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(35 * scale),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: .08),
-                            blurRadius: 30 * scale,
-                            offset: Offset(0, 10 * scale),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 100 * scale,
-                            height: 100 * scale,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFFF1F6E8),
-                            ),
-                            child: Icon(
-                              Icons.person_outline,
-                              color: Color(0xFF1E7D1A),
-                              size: 45 * scale,
-                            ),
-                          ),
-                          SizedBox(height: 26 * scale),
-                          Text(
-                            AppLocalizations.globalText('Bienvenue !'),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              color: Color(0xFF0F1737),
-                              fontSize: 34 * scale,
-                              fontWeight: FontWeight.w800,
-                              height: 1,
-                              letterSpacing: 0,
-                            ),
-                          ),
-                          SizedBox(height: 12 * scale),
-                          Text(
-                            AppLocalizations.globalText(
-                              'Connectez-vous pour accéder à votre espace',
-                            ),
-                            maxLines: 1,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              color: Color(0xFF7B8398),
-                              fontSize: 16 * scale,
-                              fontWeight: FontWeight.w500,
-                              height: 1.2,
-                            ),
-                          ),
-                          SizedBox(height: 30 * scale),
-                          _AuthField(
-                            controller: _emailController,
-                            label: AppLocalizations.globalText('Email'),
-                            hintText: AppLocalizations.globalText(
-                              'Entrez votre email',
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            errorText: _emailError,
-                            prefixIcon: Icons.mail_outline,
-                            darkMode: true,
-                            scale: scale,
-                          ),
-                          SizedBox(height: fieldGap),
-                          _AuthField(
-                            controller: _passwordController,
-                            label: AppLocalizations.globalText('Mot de passe'),
-                            hintText: AppLocalizations.globalText(
-                              'Entrez votre mot de passe',
-                            ),
-                            obscureText: _obscurePassword,
-                            textInputAction: TextInputAction.done,
-                            errorText: _passwordError,
-                            onSubmitted: (_) => _login(),
-                            prefixIcon: Icons.lock_outline,
-                            darkMode: true,
-                            scale: scale,
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                size: 30 * scale,
-                              ),
-                              color: Color(0xFF8A8F84),
-                              splashRadius: 20 * scale,
-                              tooltip: _obscurePassword
-                                  ? 'Afficher'
-                                  : 'Masquer',
-                            ),
-                          ),
-                          SizedBox(height: 24 * scale),
-                          _PremiumRememberForgotRow(
-                            rememberMe: _rememberMe,
-                            onRememberChanged: _onRememberChanged,
-                            onForgotPassword: _openForgotPassword,
-                            scale: scale,
-                          ),
-                          SizedBox(height: 26 * scale),
-                          _PremiumLoginButton(
-                            isLoading: _isLoading,
-                            onPressed: _isLoading ? null : _login,
-                            scale: scale,
-                          ),
-                          SizedBox(height: 28 * scale),
-                          _SecureLoginFooter(scale: scale),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.only(
-                        top: 24 * scale,
-                        bottom: 18 * scale,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            AppLocalizations.globalText(
-                              '© 2026 TeaSud. Tous droits réservés.',
-                            ),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              color: Color(0xFF6E726B),
-                              fontSize: 15 * scale,
-                              fontWeight: FontWeight.w500,
-                              height: 1.15,
-                            ),
-                          ),
-                          SizedBox(height: 8 * scale),
-                          Text(
-                            AppLocalizations.globalText('Version 1.0.0'),
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              color: Color(0xFF4A5A4A),
-                              fontSize: 15 * scale,
-                              fontWeight: FontWeight.w500,
-                              height: 1.15,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -538,12 +545,12 @@ class _TeaSudLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 220 * scale,
-      height: 80 * scale,
+      width: 220,
+      height: 80,
       child: Image.asset(
         'assets/images/teasud_logo.png',
-        width: 220 * scale,
-        height: 80 * scale,
+        width: 220,
+        height: 80,
         fit: BoxFit.contain,
       ),
     );

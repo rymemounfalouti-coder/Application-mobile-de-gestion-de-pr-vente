@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/product_image_assets.dart';
 import '../../l10n/app_localizations.dart';
 import '../../database/database_helper.dart';
 
@@ -176,6 +177,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
           return Card(
             child: ListTile(
+              leading: _LegacyProductPhoto(product: p),
               title: Text(p['nom_produit']),
               subtitle: Text("${p['prix']} DH"),
 
@@ -196,6 +198,44 @@ class _ProductsScreenState extends State<ProductsScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _LegacyProductPhoto extends StatelessWidget {
+  const _LegacyProductPhoto({required this.product});
+
+  final Map<String, dynamic> product;
+
+  @override
+  Widget build(BuildContext context) {
+    final image = resolveProductImageAsset(
+      image: (product['image'] ?? product['photo'] ?? '').toString(),
+      name: (product['nom_produit'] ?? product['name'] ?? '').toString(),
+      reference: (product['reference'] ?? product['ref'] ?? '').toString(),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 48,
+        height: 48,
+        color: Color(0xFFEAF3FF),
+        child: image.isEmpty
+            ? Icon(Icons.inventory_2_outlined, color: Color(0xFF164260))
+            : image.startsWith('http')
+            ? Image.network(
+                image,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    Icon(Icons.inventory_2_outlined, color: Color(0xFF164260)),
+              )
+            : Image.asset(
+                image,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    Icon(Icons.inventory_2_outlined, color: Color(0xFF164260)),
+              ),
       ),
     );
   }

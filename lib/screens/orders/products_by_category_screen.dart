@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 
 import '../../api_service.dart';
+import '../../data/product_image_assets.dart';
 import '../../database/database_helper.dart';
 import 'order_cart.dart';
 
@@ -629,7 +630,7 @@ class _ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(child: Text(product.icon, style: TextStyle(fontSize: 58))),
+          Center(child: _ProductPhoto(product: product)),
           Spacer(),
           Text(
             product.name,
@@ -650,6 +651,42 @@ class _ProductCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProductPhoto extends StatelessWidget {
+  const _ProductPhoto({required this.product});
+
+  final _ProductItem product;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 88,
+      height: 98,
+      decoration: BoxDecoration(
+        color: Color(0xFFEAF3FF),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: product.image.isEmpty
+          ? Center(child: Text(product.icon, style: TextStyle(fontSize: 42)))
+          : product.image.startsWith('http')
+          ? Image.network(
+              product.image,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Center(
+                child: Text(product.icon, style: TextStyle(fontSize: 42)),
+              ),
+            )
+          : Image.asset(
+              product.image,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Center(
+                child: Text(product.icon, style: TextStyle(fontSize: 42)),
+              ),
+            ),
     );
   }
 }
@@ -959,6 +996,7 @@ class _ProductItem {
     required this.shortName,
     required this.price,
     required this.icon,
+    this.image = '',
     this.category = '',
   });
 
@@ -967,6 +1005,7 @@ class _ProductItem {
   final String shortName;
   final double price;
   final String icon;
+  final String image;
   final String category;
 
   factory _ProductItem.fromApi(Map<dynamic, dynamic> row) {
@@ -984,6 +1023,13 @@ class _ProductItem {
       shortName: _shortName(name),
       price: price,
       icon: _iconForName(name),
+      image: resolveProductImageAsset(
+        image: (row['image'] ?? row['photo'] ?? row['product_image'] ?? '')
+            .toString(),
+        name: name,
+        reference: (row['reference'] ?? row['ref'] ?? row['code'] ?? '')
+            .toString(),
+      ),
       category: (row['categorie'] ?? row['category'] ?? row['nom_cat'] ?? '')
           .toString(),
     );

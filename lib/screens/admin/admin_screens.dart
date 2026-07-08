@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../api_service.dart';
 import '../../data/mock_presales_data.dart';
+import '../../data/product_image_assets.dart';
 
 // Admin design kit — colors + shared widgets matching the reference mockup
 // (emerald green primary, dark navy rounded headers, white cards).
@@ -669,22 +670,34 @@ class ProductStore {
     'statut': 'actif',
   };
 
-  OrderProduct _fromRow(Map<dynamic, dynamic> r) => OrderProduct(
-    id: _jsonInt(r, ['id', 'produit_id']),
-    name: _jsonString(r, ['nom_produit', 'name', 'nom']).ifEmpty('Produit'),
-    reference: _jsonString(r, ['reference', 'ref']),
-    category: _jsonString(r, [
-      'categorie',
-      'category',
-      'nom_cat',
-    ]).ifEmpty('Divers'),
-    description: _jsonString(r, ['description']),
-    image: _jsonString(r, ['image', 'photo', 'product_image']),
-    unitPrice: _jsonDouble(r, ['prix', 'price', 'unit_price', 'prix_vente']),
-    stock: _jsonInt(r, ['stock', 'quantite_stock', 'quantity']),
-    icon: Icons.local_cafe_rounded,
-    imageColor: kGreen,
-  );
+  OrderProduct _fromRow(Map<dynamic, dynamic> r) {
+    final name = _jsonString(r, [
+      'nom_produit',
+      'name',
+      'nom',
+    ]).ifEmpty('Produit');
+    final reference = _jsonString(r, ['reference', 'ref']);
+    return OrderProduct(
+      id: _jsonInt(r, ['id', 'produit_id']),
+      name: name,
+      reference: reference,
+      category: _jsonString(r, [
+        'categorie',
+        'category',
+        'nom_cat',
+      ]).ifEmpty('Divers'),
+      description: _jsonString(r, ['description']),
+      image: resolveProductImageAsset(
+        image: _jsonString(r, ['image', 'photo', 'product_image']),
+        name: name,
+        reference: reference,
+      ),
+      unitPrice: _jsonDouble(r, ['prix', 'price', 'unit_price', 'prix_vente']),
+      stock: _jsonInt(r, ['stock', 'quantite_stock', 'quantity']),
+      icon: Icons.local_cafe_rounded,
+      imageColor: kGreen,
+    );
+  }
 
   OrderProduct build({
     int? id,
@@ -701,7 +714,11 @@ class ProductStore {
     reference: reference,
     category: category.isEmpty ? 'Divers' : category,
     description: description,
-    image: image,
+    image: resolveProductImageAsset(
+      image: image,
+      name: name,
+      reference: reference,
+    ),
     unitPrice: price,
     stock: stock,
     icon: Icons.local_cafe_rounded,

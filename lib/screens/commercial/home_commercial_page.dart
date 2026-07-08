@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../api_service.dart';
 import '../../auth/current_user_session.dart';
 import '../../data/mock_presales_data.dart';
+import '../../data/product_image_assets.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/commercial_objectives_service.dart';
 import '../../services/pricing_service.dart';
@@ -8825,6 +8826,14 @@ class _ProductImage extends StatelessWidget {
           ? Center(
               child: Icon(product.icon, color: product.imageColor, size: 30),
             )
+          : product.image.startsWith('http')
+          ? Image.network(
+              product.image,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Center(
+                child: Icon(product.icon, color: product.imageColor, size: 30),
+              ),
+            )
           : Image.asset(
               product.image,
               fit: BoxFit.cover,
@@ -9306,7 +9315,11 @@ OrderProduct _orderProductFromApi(Map<String, dynamic> json) {
     reference: _apiString(json, ['reference', 'ref', 'code']),
     category: category,
     description: _apiString(json, ['description']),
-    image: _apiString(json, ['image', 'photo']),
+    image: resolveProductImageAsset(
+      image: _apiString(json, ['image', 'photo']),
+      name: name,
+      reference: _apiString(json, ['reference', 'ref', 'code']),
+    ),
     unitPrice: price,
     stock: _apiInt(json, ['stock', 'quantite_stock', 'quantity']),
     icon: Icons.local_cafe_rounded,

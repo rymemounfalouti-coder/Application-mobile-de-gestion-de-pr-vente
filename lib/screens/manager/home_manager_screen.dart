@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 
 import '../../auth/current_user_session.dart';
 import '../../data/mock_presales_data.dart';
+import '../../data/product_image_assets.dart';
 import '../../l10n/app_locale_controller.dart';
 import '../../mockData/manager_dashboard.dart';
 import '../../mockData/manager_orders.dart';
@@ -939,20 +940,26 @@ class _ManagerOrderLineView {
       'prix_vendu',
       'price',
     ]);
+    final name = _readString(json, [
+      'product_name',
+      'produit',
+      'name',
+      'designation',
+    ]).ifEmpty('Produit');
+    final reference = _readString(json, [
+      'reference',
+      'product_reference',
+      'ref',
+      'code',
+    ]);
     return _ManagerOrderLineView(
-      name: _readString(json, [
-        'product_name',
-        'produit',
-        'name',
-        'designation',
-      ]).ifEmpty('Produit'),
-      reference: _readString(json, [
-        'reference',
-        'product_reference',
-        'ref',
-        'code',
-      ]),
-      image: _readString(json, ['image', 'product_image', 'photo']),
+      name: name,
+      reference: reference,
+      image: resolveProductImageAsset(
+        image: _readString(json, ['image', 'product_image', 'photo']),
+        name: name,
+        reference: reference,
+      ),
       quantity: quantity,
       unitPrice: unitPrice,
       discount: _readDouble(json, ['discount', 'remise']),
@@ -2777,6 +2784,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: 430),
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -2802,11 +2810,23 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
                         style: TextStyle(
                           fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerText,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                      SizedBox(height: 14),
+                      SizedBox(height: 8),
+                      Text(
+                        AppLocalizations.globalText(
+                          'Affichez uniquement les commerciaux correspondant au filtre sélectionné.',
+                        ),
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 13,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 16),
                       _ManagerCommercialStatusPicker(
                         selected: _selectedStatus,
                         onChanged: (status) {
@@ -3622,6 +3642,7 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: 430),
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -3643,15 +3664,27 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Filtres avancés',
+                        AppLocalizations.globalText('Filtres commandes'),
                         style: TextStyle(
                           fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerText,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                      SizedBox(height: 14),
+                      SizedBox(height: 8),
+                      Text(
+                        AppLocalizations.globalText(
+                          'Affichez uniquement les commandes correspondant au filtre sélectionné.',
+                        ),
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 13,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 16),
                       _ManagerOrdersBottomStatus(
                         selected: draftStatus,
                         onChanged: (status) {
@@ -4461,6 +4494,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: 430),
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -4485,41 +4519,47 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
                       style: TextStyle(
                         fontFamily: 'Roboto',
                         color: _DashboardManagerState.managerText,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                    SizedBox(height: 12),
+                    SizedBox(height: 8),
+                    Text(
+                      AppLocalizations.globalText(
+                        'Affichez uniquement les rapports correspondant au filtre sélectionné.',
+                      ),
+                      style: TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 13,
+                        height: 1.4,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 16),
                     _ManagerFilterField(
                       controller: commercial,
                       label: 'Commercial',
                     ),
                     _ManagerFilterField(controller: city, label: 'Ville'),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: Text('Rapport lu'),
-                          selected: read == true,
-                          onSelected: (_) => setSheetState(() => read = true),
-                        ),
-                        ChoiceChip(
-                          label: Text('Rapport non lu'),
-                          selected: read == false,
-                          onSelected: (_) => setSheetState(() => read = false),
-                        ),
-                        ChoiceChip(
-                          label: Text('Envoyé'),
-                          selected: sent == true,
-                          onSelected: (_) => setSheetState(() => sent = true),
-                        ),
-                        ChoiceChip(
-                          label: Text('Non envoyé'),
-                          selected: sent == false,
-                          onSelected: (_) => setSheetState(() => sent = false),
-                        ),
-                      ],
+                    _ManagerFilterRadioOption(
+                      label: 'Rapport lu',
+                      selected: read == true,
+                      onTap: () => setSheetState(() => read = true),
+                    ),
+                    _ManagerFilterRadioOption(
+                      label: 'Rapport non lu',
+                      selected: read == false,
+                      onTap: () => setSheetState(() => read = false),
+                    ),
+                    _ManagerFilterRadioOption(
+                      label: 'Envoyé',
+                      selected: sent == true,
+                      onTap: () => setSheetState(() => sent = true),
+                    ),
+                    _ManagerFilterRadioOption(
+                      label: 'Non envoyé',
+                      selected: sent == false,
+                      onTap: () => setSheetState(() => sent = false),
                     ),
                     SizedBox(height: 14),
                     Row(
@@ -6308,14 +6348,8 @@ class _ReportDetailScreen extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _DetailActionChip(
-                    'Marquer comme lu',
-                    Icons.check_circle,
-                  ),
-                  _DetailActionChip(
-                    'Ajouter commentaire',
-                    Icons.message,
-                  ),
+                  _DetailActionChip('Marquer comme lu', Icons.check_circle),
+                  _DetailActionChip('Ajouter commentaire', Icons.message),
                   _DetailActionChip('Télécharger PDF', Icons.download),
                   _DetailActionChip('Partager', Icons.share),
                 ],
@@ -6912,10 +6946,7 @@ class _ManagerObjectiveEmptyState extends StatelessWidget {
           SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: hasFilters ? onReset : onDefine,
-            icon: Icon(
-              hasFilters ? Icons.refresh : Icons.add,
-              size: 17,
-            ),
+            icon: Icon(hasFilters ? Icons.refresh : Icons.add, size: 17),
             label: Text(
               hasFilters ? 'Réinitialiser les filtres' : 'Définir un objectif',
             ),
@@ -8158,20 +8189,64 @@ class _ManagerOrdersBottomStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    final statuses = [
+      _ManagerOrderApiStatus.all,
+      _ManagerOrderApiStatus.pending,
+      _ManagerOrderApiStatus.validated,
+      _ManagerOrderApiStatus.refused,
+    ];
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        for (final status in [
-          _ManagerOrderApiStatus.all,
-          _ManagerOrderApiStatus.pending,
-          _ManagerOrderApiStatus.validated,
-          _ManagerOrderApiStatus.refused,
-        ])
-          ChoiceChip(
-            selected: selected == status,
-            label: Text(_apiStatusLabel(status)),
-            onSelected: (_) => onChanged(status),
+        for (final status in statuses)
+          InkWell(
+            onTap: () => onChanged(status),
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected == status
+                            ? _DashboardManagerState.managerBlue
+                            : Color(0xFFE2E8F0),
+                        width: 2,
+                      ),
+                    ),
+                    child: selected == status
+                        ? Center(
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _DashboardManagerState.managerBlue,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _apiStatusLabel(status),
+                      softWrap: true,
+                      style: TextStyle(
+                        color: _DashboardManagerState.managerText,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
       ],
     );
@@ -8203,6 +8278,70 @@ class _ManagerFilterField extends StatelessWidget {
           focusedBorder: _managerInputBorder(
             color: _DashboardManagerState.managerBlue,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ManagerFilterRadioOption extends StatelessWidget {
+  const _ManagerFilterRadioOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected
+                      ? _DashboardManagerState.managerBlue
+                      : Color(0xFFE2E8F0),
+                  width: 2,
+                ),
+              ),
+              child: selected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _DashboardManagerState.managerBlue,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                softWrap: true,
+                style: TextStyle(
+                  color: _DashboardManagerState.managerText,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -8440,15 +8579,57 @@ class _ManagerCommercialStatusPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         for (final status in _ManagerCommercialStatus.values)
-          ChoiceChip(
-            selected: selected == status,
-            label: Text(_commercialStatusStyle(status).label),
-            onSelected: (_) => onChanged(status),
+          InkWell(
+            onTap: () => onChanged(status),
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected == status
+                            ? _DashboardManagerState.managerBlue
+                            : Color(0xFFE2E8F0),
+                        width: 2,
+                      ),
+                    ),
+                    child: selected == status
+                        ? Center(
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _DashboardManagerState.managerBlue,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _commercialStatusStyle(status).label,
+                      softWrap: true,
+                      style: TextStyle(
+                        color: _DashboardManagerState.managerText,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
       ],
     );
@@ -11080,11 +11261,7 @@ class _ManagerProfileCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 3),
                   ),
-                  child: Icon(
-                    Icons.camera_alt,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+                  child: Icon(Icons.camera_alt, color: Colors.white, size: 16),
                 ),
               ),
             ],
@@ -11115,10 +11292,7 @@ class _ManagerProfileCard extends StatelessWidget {
                 ),
                 SizedBox(height: 10),
                 _ManagerProfileInfoLine(Icons.email, data.email),
-                _ManagerProfileInfoLine(
-                  Icons.phone,
-                  data.phone.ifEmpty('-'),
-                ),
+                _ManagerProfileInfoLine(Icons.phone, data.phone.ifEmpty('-')),
                 _ManagerProfileInfoLine(Icons.location_on, data.city),
                 _ManagerProfileInfoLine(
                   Icons.calendar_today,
@@ -11865,10 +12039,7 @@ class _ManagerChoiceTile extends StatelessWidget {
     onTap: onTap,
     title: Text(label),
     trailing: selected
-        ? Icon(
-            Icons.check_circle,
-            color: _DashboardManagerState.managerBlue,
-          )
+        ? Icon(Icons.check_circle, color: _DashboardManagerState.managerBlue)
         : null,
   );
 }
@@ -11992,12 +12163,7 @@ class _ManagerBottomNavigation extends StatelessWidget {
         _ManagerTab.objectifs,
         '/manager-objectifs',
       ),
-      (
-        Icons.bar_chart,
-        'Rapports',
-        _ManagerTab.rapports,
-        '/manager-rapports',
-      ),
+      (Icons.bar_chart, 'Rapports', _ManagerTab.rapports, '/manager-rapports'),
       (Icons.person, 'Profil', _ManagerTab.profil, '/manager-profil'),
     ];
 
@@ -12496,11 +12662,7 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
                 '${commercial.ordersCount}',
                 Icons.receipt_long,
               ),
-              _DetailKpi(
-                'Clients',
-                '${commercial.clientsCount}',
-                Icons.people,
-              ),
+              _DetailKpi('Clients', '${commercial.clientsCount}', Icons.people),
               _DetailKpi(
                 'Activités',
                 '${commercial.activitiesCount}',
@@ -12943,6 +13105,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: 430),
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -12968,45 +13131,49 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
                         style: TextStyle(
                           fontFamily: 'Roboto',
                           color: _DashboardManagerState.managerText,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                      SizedBox(height: 12),
+                      SizedBox(height: 8),
+                      Text(
+                        AppLocalizations.globalText(
+                          'Affichez uniquement les objectifs correspondant au filtre sélectionné.',
+                        ),
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 13,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 16),
                       _ManagerFilterField(controller: city, label: 'Ville'),
                       _ManagerFilterField(
                         controller: commercial,
                         label: 'Commercial',
                       ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: Text('Avec objectif'),
-                            selected: withObjective == true,
-                            onSelected: (_) =>
-                                setSheetState(() => withObjective = true),
-                          ),
-                          ChoiceChip(
-                            label: Text('Sans objectif'),
-                            selected: withObjective == false,
-                            onSelected: (_) =>
-                                setSheetState(() => withObjective = false),
-                          ),
-                          ChoiceChip(
-                            label: Text('Objectif atteint'),
-                            selected: objectiveReached == true,
-                            onSelected: (_) =>
-                                setSheetState(() => objectiveReached = true),
-                          ),
-                          ChoiceChip(
-                            label: Text('Non atteint'),
-                            selected: objectiveReached == false,
-                            onSelected: (_) =>
-                                setSheetState(() => objectiveReached = false),
-                          ),
-                        ],
+                      _ManagerFilterRadioOption(
+                        label: 'Avec objectif',
+                        selected: withObjective == true,
+                        onTap: () => setSheetState(() => withObjective = true),
+                      ),
+                      _ManagerFilterRadioOption(
+                        label: 'Sans objectif',
+                        selected: withObjective == false,
+                        onTap: () => setSheetState(() => withObjective = false),
+                      ),
+                      _ManagerFilterRadioOption(
+                        label: 'Objectif atteint',
+                        selected: objectiveReached == true,
+                        onTap: () =>
+                            setSheetState(() => objectiveReached = true),
+                      ),
+                      _ManagerFilterRadioOption(
+                        label: 'Non atteint',
+                        selected: objectiveReached == false,
+                        onTap: () =>
+                            setSheetState(() => objectiveReached = false),
                       ),
                       SizedBox(height: 12),
                       Row(
@@ -14060,14 +14227,30 @@ class _ManagerOrderProductLine extends StatelessWidget {
             color: _DashboardManagerState.iconBlueBg,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: line.image.startsWith('http')
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(line.image, fit: BoxFit.cover),
-                )
-              : Icon(
+          child: line.image.isEmpty
+              ? Icon(
                   Icons.inventory_2,
                   color: _DashboardManagerState.managerBlue,
+                )
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: line.image.startsWith('http')
+                      ? Image.network(
+                          line.image,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.inventory_2,
+                            color: _DashboardManagerState.managerBlue,
+                          ),
+                        )
+                      : Image.asset(
+                          line.image,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.inventory_2,
+                            color: _DashboardManagerState.managerBlue,
+                          ),
+                        ),
                 ),
         ),
         SizedBox(width: 10),

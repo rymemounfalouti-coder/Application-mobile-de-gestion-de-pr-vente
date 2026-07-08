@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../auth/current_user_session.dart';
 import '../../api_service.dart';
 import '../../data/mock_presales_data.dart';
+import '../../data/product_image_assets.dart';
 
 class HomeCommercial extends StatefulWidget {
   HomeCommercial({super.key});
@@ -3627,7 +3628,11 @@ OrderProduct _commercialOrderProductFromApi(Map<dynamic, dynamic> json) {
       'nom_cat',
     ], 'Thé Vert Classique'),
     description: _commercialApiString(json, ['description'], ''),
-    image: _commercialApiString(json, ['image', 'photo'], ''),
+    image: resolveProductImageAsset(
+      image: _commercialApiString(json, ['image', 'photo'], ''),
+      name: name,
+      reference: _commercialApiString(json, ['reference', 'ref', 'code'], ''),
+    ),
     unitPrice: price,
     stock: _commercialApiInt(json, ['stock', 'quantite_stock', 'quantity']),
     icon: Icons.local_cafe_rounded,
@@ -4072,6 +4077,14 @@ class _ProductImage extends StatelessWidget {
       child: product.image.isEmpty
           ? Center(
               child: Icon(product.icon, color: product.imageColor, size: 30),
+            )
+          : product.image.startsWith('http')
+          ? Image.network(
+              product.image,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Center(
+                child: Icon(product.icon, color: product.imageColor, size: 30),
+              ),
             )
           : Image.asset(
               product.image,
