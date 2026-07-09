@@ -14016,7 +14016,8 @@ class _ReportInfoCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 10),
-          Column(
+          Flexible(
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
@@ -14038,16 +14039,18 @@ class _ReportInfoCard extends StatelessWidget {
                       size: 18,
                     ),
                     SizedBox(width: 6),
-                    Text(
-                      hasReportData
-                          ? "Journée terminée"
-                          : "Aucune activité aujourd'hui",
-                      style: TextStyle(
-                        color: hasReportData
-                            ? Color(0xFF16A34A)
-                            : Color(0xFFD97706),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
+                    Flexible(
+                      child: Text(
+                        hasReportData
+                            ? "Journée terminée"
+                            : "Aucune activité aujourd'hui",
+                        style: TextStyle(
+                          color: hasReportData
+                              ? Color(0xFF16A34A)
+                              : Color(0xFFD97706),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ],
@@ -14066,6 +14069,7 @@ class _ReportInfoCard extends StatelessWidget {
                 ),
               ],
             ],
+            ),
           ),
         ],
       ),

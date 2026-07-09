@@ -15599,8 +15599,108 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
   }
 
   void _openClient(_ManagerOrderView order) {
-    _showManagerSnack(context, 'Fiche client non configurée dans les routes.');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _ManagerClientDetailScreen(order: order),
+      ),
+    );
   }
+}
+
+// ponytail: reuses the client fields already on the order (no getClient(id) API
+// exists — only getClients() list). Upgrade to a fetch-by-id + orders history if
+// the manager needs live client data.
+class _ManagerClientDetailScreen extends StatelessWidget {
+  const _ManagerClientDetailScreen({required this.order});
+
+  final _ManagerOrderView order;
+
+  @override
+  Widget build(BuildContext context) => _DetailOrderShell(
+    fillHeight: true,
+    child: Column(
+      children: [
+        _ManagerOrderDetailHeader(
+          title: 'Fiche client',
+          subtitle: order.clientName.ifEmpty('Client'),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(16, 18, 16, 24),
+            child: Column(
+              children: [
+                _ManagerDetailCard(
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: _DashboardManagerState.iconGreenBg,
+                          child: Text(
+                            _orderInitials(order.clientName),
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              color: _DashboardManagerState.managerGreen,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                order.clientName.ifEmpty('-'),
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  color: _DashboardManagerState.managerText,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 3),
+                              Text(
+                                order.clientCode.ifEmpty('-'),
+                                style: TextStyle(
+                                  fontFamily: 'Roboto',
+                                  color: _DashboardManagerState.managerMuted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 14),
+                _ManagerDetailCard(
+                  title: 'Informations client',
+                  children: [
+                    _ManagerDetailLine('Code', order.clientCode.ifEmpty('-')),
+                    _ManagerDetailLine(
+                      'Téléphone',
+                      order.clientPhone.ifEmpty('-'),
+                    ),
+                    _ManagerDetailLine('Ville', order.clientCity.ifEmpty('-')),
+                    _ManagerDetailLine(
+                      'Adresse',
+                      order.clientAddress.ifEmpty('-'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class DetailCommandeScreen extends StatefulWidget {
