@@ -313,30 +313,48 @@ class _LoginScreenState extends State<LoginScreen> {
     final media = MediaQuery.of(context);
     final safeHeight = media.size.height - media.padding.vertical;
     final scale = (safeHeight / 1120).clamp(.45, 1.0).toDouble();
-    final fieldGap = 22.0 * scale;
+    final fieldGap = 29.0 * scale;
 
     return Scaffold(
       backgroundColor: Color(0xFFF5F5F2),
       body: Stack(
         children: [
           Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Color(0xFFF5F5F2),
-                gradient: RadialGradient(
-                  center: Alignment.center,
-                  radius: .86,
-                  colors: [Colors.white, Color(0xFFF5F5F2)],
-                  stops: [.0, 1],
-                ),
+            child: ColorFiltered(
+              colorFilter: const ColorFilter.matrix([
+                1,
+                0,
+                0,
+                0,
+                4,
+                0,
+                1,
+                0,
+                0,
+                4,
+                0,
+                0,
+                1,
+                0,
+                5,
+                0,
+                0,
+                0,
+                1,
+                0,
+              ]),
+              child: Image.asset(
+                'assets/images/login_botanical_background.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.topRight,
+                filterQuality: FilterQuality.high,
               ),
             ),
           ),
-          Positioned.fill(child: CustomPaint(painter: _LoginLeavesPainter())),
           SafeArea(
             child: Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 430),
+                constraints: BoxConstraints(maxWidth: 416),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24 * scale),
                   child: DefaultTextStyle.merge(
@@ -348,7 +366,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             SizedBox(height: 50 * scale),
-                            _TeaSudLogo(scale: scale),
+                            const _TeaSudLogo(),
                             SizedBox(height: 4 * scale),
                             Text(
                               AppLocalizations.globalText(
@@ -369,15 +387,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         Container(
                           width: double.infinity,
-                          padding: EdgeInsets.all(30 * scale),
+                          padding: EdgeInsets.fromLTRB(
+                            32,
+                            24 * scale,
+                            32,
+                            24 * scale,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(35 * scale),
+                            borderRadius: BorderRadius.circular(28 * scale),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: .08),
-                                blurRadius: 30 * scale,
-                                offset: Offset(0, 10 * scale),
+                                blurRadius: 24 * scale,
+                                offset: Offset(0, 8 * scale),
                               ),
                             ],
                           ),
@@ -385,8 +408,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                width: 100 * scale,
-                                height: 100 * scale,
+                                width: 90 * scale,
+                                height: 90 * scale,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Color(0xFFF1F6E8),
@@ -397,20 +420,20 @@ class _LoginScreenState extends State<LoginScreen> {
                                   size: 45 * scale,
                                 ),
                               ),
-                              SizedBox(height: 26 * scale),
+                              SizedBox(height: 21 * scale),
                               Text(
                                 AppLocalizations.globalText('Bienvenue !'),
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: 'Roboto',
                                   color: Color(0xFF0F1737),
-                                  fontSize: 34 * scale,
+                                  fontSize: 38 * scale,
                                   fontWeight: FontWeight.w800,
                                   height: 1,
                                   letterSpacing: 0,
                                 ),
                               ),
-                              SizedBox(height: 12 * scale),
+                              SizedBox(height: 16 * scale),
                               Text(
                                 AppLocalizations.globalText(
                                   'Connectez-vous pour accéder à votre espace',
@@ -420,12 +443,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: TextStyle(
                                   fontFamily: 'Roboto',
                                   color: Color(0xFF7B8398),
-                                  fontSize: 16 * scale,
+                                  fontSize: 17.5 * scale,
                                   fontWeight: FontWeight.w500,
                                   height: 1.2,
                                 ),
                               ),
-                              SizedBox(height: 30 * scale),
+                              SizedBox(height: 28 * scale),
                               _AuthField(
                                 controller: _emailController,
                                 label: AppLocalizations.globalText('Email'),
@@ -494,12 +517,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         Padding(
                           padding: EdgeInsets.only(
-                            top: 24 * scale,
-                            bottom: 18 * scale,
+                            top: 8 * scale,
+                            bottom: 12 * scale,
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              Icon(
+                                Icons.spa_rounded,
+                                color: Color(0xFF63B51B),
+                                size: 20 * scale,
+                              ),
+                              SizedBox(height: 4 * scale),
                               Text(
                                 AppLocalizations.globalText(
                                   '© 2026 TeaSud. Tous droits réservés.',
@@ -513,7 +542,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   height: 1.15,
                                 ),
                               ),
-                              SizedBox(height: 8 * scale),
+                              SizedBox(height: 6 * scale),
                               Text(
                                 AppLocalizations.globalText('Version 1.0.0'),
                                 style: TextStyle(
@@ -541,59 +570,42 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _TeaSudLogo extends StatelessWidget {
-  _TeaSudLogo({required this.scale});
-
-  final double scale;
+  const _TeaSudLogo();
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: 220,
       height: 80,
-      child: Image.asset(
-        'assets/images/teasud_logo.png',
-        width: 220,
-        height: 80,
-        fit: BoxFit.contain,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          Positioned(
+            top: 21,
+            child: Image.asset(
+              'assets/images/teasud_wordmark_cropped.png',
+              width: 155,
+              height: 35.3,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+            ),
+          ),
+          Positioned(
+            top: 61,
+            child: Container(
+              width: 64,
+              height: 2,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF8BC01A), Color(0xFF2E8E20)],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
-
-class _LoginLeavesPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Color(0xFFDCE6D3).withValues(alpha: .25)
-      ..style = PaintingStyle.fill;
-
-    void leaf(Offset center, double width, double height, double angle) {
-      canvas.save();
-      canvas.translate(center.dx, center.dy);
-      canvas.rotate(angle);
-      final path = Path()
-        ..moveTo(0, -height / 2)
-        ..cubicTo(width / 2, -height / 5, width / 2, height / 4, 0, height / 2)
-        ..cubicTo(
-          -width / 2,
-          height / 4,
-          -width / 2,
-          -height / 5,
-          0,
-          -height / 2,
-        );
-      canvas.drawPath(path, paint);
-      canvas.restore();
-    }
-
-    leaf(Offset(size.width - 42, 35), 44, 116, -.18);
-    leaf(Offset(size.width - 82, 86), 35, 88, -1.05);
-    leaf(Offset(size.width - 27, 151), 39, 108, .62);
-    leaf(Offset(size.width - 71, 190), 32, 92, 1.1);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _PremiumLoginButton extends StatelessWidget {
@@ -611,7 +623,7 @@ class _PremiumLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(38 * scale),
+        borderRadius: BorderRadius.circular(34 * scale),
         gradient: LinearGradient(
           colors: onPressed == null
               ? [
@@ -623,8 +635,8 @@ class _PremiumLoginButton extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Color(0x400F8D14),
-            blurRadius: 30 * scale,
-            offset: Offset(0, 15 * scale),
+            blurRadius: 24 * scale,
+            offset: Offset(0, 10 * scale),
           ),
         ],
       ),
@@ -632,9 +644,9 @@ class _PremiumLoginButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(38 * scale),
+          borderRadius: BorderRadius.circular(34 * scale),
           child: SizedBox(
-            height: 74 * scale,
+            height: 68 * scale,
             child: Center(
               child: isLoading
                   ? SizedBox(
@@ -645,39 +657,39 @@ class _PremiumLoginButton extends StatelessWidget {
                         color: Colors.white,
                       ),
                     )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  : Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Spacer(),
-                        Text(
-                          AppLocalizations.globalText('Se connecter'),
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            color: Colors.white,
-                            fontSize: 20 * scale,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0,
+                        Transform.translate(
+                          offset: Offset(-5 * scale, 0),
+                          child: Text(
+                            AppLocalizations.globalText('Se connecter'),
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              color: Colors.white,
+                              fontSize: 22 * scale,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0,
+                            ),
                           ),
                         ),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: EdgeInsets.only(right: 12),
-                              child: Container(
-                                width: 58 * scale,
-                                height: 58 * scale,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(
-                                    0xFF0B7A12,
-                                  ).withValues(alpha: .4),
-                                ),
-                                child: Icon(
-                                  Icons.arrow_forward_rounded,
-                                  color: Colors.white,
-                                  size: 34 * scale,
-                                ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                            padding: EdgeInsets.only(right: 6 * scale),
+                            child: Container(
+                              width: 58 * scale,
+                              height: 58 * scale,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(
+                                  0xFF0B7A12,
+                                ).withValues(alpha: .4),
+                              ),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                color: Colors.white,
+                                size: 34 * scale,
                               ),
                             ),
                           ),
@@ -717,9 +729,9 @@ class _PremiumRememberForgotRow extends StatelessWidget {
             onChanged: onRememberChanged,
             activeColor: Color(0xFF1E7D1A),
             checkColor: Colors.white,
-            side: BorderSide(color: Color(0xFFD8D8D8), width: 1.6 * scale),
+            side: BorderSide(color: Color(0xFFD8D8D8), width: 1.4 * scale),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5 * scale),
+              borderRadius: BorderRadius.circular(4 * scale),
             ),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
@@ -743,7 +755,7 @@ class _PremiumRememberForgotRow extends StatelessWidget {
             padding: EdgeInsets.zero,
             minimumSize: Size(0, 28 * scale),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            foregroundColor: Color(0xFF7AC91F),
+            foregroundColor: Color(0xFF18731F),
           ),
           child: Text(
             AppLocalizations.globalText('Mot de passe oubli\u00E9 ?'),
@@ -791,7 +803,7 @@ class _SecureLoginFooter extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.shield_outlined,
+              Icons.verified_user_outlined,
               color: Color(0xFF1E7D1A),
               size: 26 * scale,
             ),
@@ -800,7 +812,7 @@ class _SecureLoginFooter extends StatelessWidget {
               AppLocalizations.globalText('Connexion sécurisée'),
               style: TextStyle(
                 fontFamily: 'Roboto',
-                color: Color(0xFF4B664B),
+                color: Color(0xFF17611D),
                 fontSize: 16 * scale,
                 fontWeight: FontWeight.w500,
               ),
@@ -1484,20 +1496,20 @@ class _AuthField extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: 'Roboto',
-              color: Color(0xFF1E7D1A),
-              fontSize: 15 * scale,
+              color: Colors.black,
+              fontSize: 17.5 * scale,
               fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(height: 12 * scale),
+          SizedBox(height: 14 * scale),
           Container(
-            height: 72 * scale,
+            height: 69 * scale,
             decoration: BoxDecoration(
               color: Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(22 * scale),
+              borderRadius: BorderRadius.circular(15 * scale),
               border: Border.all(
                 color: errorText == null
-                    ? Color(0xFFE5E7E1)
+                    ? Color(0xFFE9E9E9)
                     : _LoginScreenState._danger,
               ),
               boxShadow: [
@@ -1513,11 +1525,14 @@ class _AuthField extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.only(left: 0),
                   child: Container(
-                    width: 56 * scale,
+                    width: 64 * scale,
                     height: double.infinity,
                     decoration: BoxDecoration(
                       color: Color(0xFFF3F6EA),
-                      borderRadius: BorderRadius.circular(18 * scale),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(15 * scale),
+                        bottomLeft: Radius.circular(15 * scale),
+                      ),
                     ),
                     child: Icon(
                       prefixIcon,
@@ -1526,7 +1541,7 @@ class _AuthField extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(width: 22 * scale),
+                SizedBox(width: 16 * scale),
                 Expanded(
                   child: TextField(
                     controller: controller,
@@ -1539,7 +1554,7 @@ class _AuthField extends StatelessWidget {
                     cursorColor: Color(0xFF1E7D1A),
                     style: TextStyle(
                       fontFamily: 'Roboto',
-                      color: Color(0xFF0F1737),
+                      color: Colors.black,
                       fontSize: 17 * scale,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1547,7 +1562,7 @@ class _AuthField extends StatelessWidget {
                       hintText: hintText,
                       hintStyle: TextStyle(
                         fontFamily: 'Roboto',
-                        color: Color(0xFF8A8F84),
+                        color: Color(0xFF6C727B),
                         fontSize: 17 * scale,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1556,7 +1571,7 @@ class _AuthField extends StatelessWidget {
                 ),
                 if (suffixIcon != null)
                   SizedBox(
-                    width: 56 * scale,
+                    width: 68 * scale,
                     child: Center(child: suffixIcon),
                   ),
               ],

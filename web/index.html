@@ -31,6 +31,20 @@
 
   <title>gestion_prevente</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Stop click-drag from selecting the whole canvas (blue highlight). */
+    body {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Flutter's text fields live in hidden DOM inputs — keep those selectable. */
+    input, textarea, [contenteditable] {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+  </style>
 </head>
 <body>
   <!--
