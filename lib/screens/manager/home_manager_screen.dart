@@ -3350,7 +3350,6 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
   DateTimeRange? _customRange;
   _ManagerOrderApiStatus _selectedStatus = _ManagerOrderApiStatus.all;
   Future<List<_ManagerOrderView>>? _ordersFuture;
-  Timer? _refreshTimer;
   bool _appliedRouteArgs = false;
   String _commercialFilter = '';
   String _clientFilter = '';
@@ -3364,14 +3363,10 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
     super.initState();
     _searchController.addListener(() => setState(() {}));
     _ordersFuture = _loadOrders();
-    _refreshTimer = Timer.periodic(Duration(seconds: 5), (_) {
-      if (mounted) _refreshOrders();
-    });
   }
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -4955,7 +4950,6 @@ class _DashboardManagerState extends State<DashboardManager> {
   _ManagerDashboardPeriod _selectedPeriod = _ManagerDashboardPeriod.month;
   DateTimeRange? _customRange;
   Future<_ManagerHomeData>? _dashboardFuture;
-  Timer? _refreshTimer;
 
   static const _primaryBlue = Color(0xFF2674F8);
   static const _deepBlue = Color(0xFF155EE8);
@@ -4990,22 +4984,11 @@ class _DashboardManagerState extends State<DashboardManager> {
   void initState() {
     super.initState();
     _dashboardFuture = _loadDashboard();
-    _refreshTimer = Timer.periodic(Duration(seconds: 5), (_) {
-      if (mounted) _refreshDashboard(silent: true);
-    });
   }
 
-  @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
-  }
-
-  void _refreshDashboard({bool silent = false}) {
-    final future = _loadDashboard();
-    if (!mounted) return;
+  void _refreshDashboard() {
     setState(() {
-      _dashboardFuture = future;
+      _dashboardFuture = _loadDashboard();
     });
   }
 
