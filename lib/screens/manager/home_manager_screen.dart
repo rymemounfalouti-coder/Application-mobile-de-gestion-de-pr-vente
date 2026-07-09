@@ -997,7 +997,10 @@ class _ManagerHomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = managerName
+    final displayName = managerName.trim().isEmpty
+        ? 'Manager'
+        : managerName.trim();
+    final initials = displayName
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)
         .take(2)
@@ -1011,21 +1014,13 @@ class _ManagerHomeHeader extends StatelessWidget {
       decoration: BoxDecoration(color: _DashboardManagerState.managerHeader),
       child: Row(
         children: [
-          IconButton(
-            onPressed: onMenuPressed,
-            icon: Icon(Icons.menu, size: 32),
-            color: Colors.white,
-            padding: EdgeInsets.zero,
-            constraints: BoxConstraints.tightFor(width: 42, height: 42),
-          ),
-          SizedBox(width: 10),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bonjour, Manager',
+                  'Bonjour, $displayName',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1037,7 +1032,7 @@ class _ManagerHomeHeader extends StatelessWidget {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Manager',
+                  'Espace manager',
                   style: TextStyle(
                     fontFamily: 'Roboto',
                     color: Color(0xFFD8E2F3),
@@ -1137,8 +1132,11 @@ class _ManagerHomePeriodSelector extends StatelessWidget {
           child: DropdownButton<_ManagerDashboardPeriod>(
             value: selectedPeriod,
             isExpanded: true,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
+            dropdownColor: Colors.white,
+            elevation: 3,
             icon: Icon(Icons.keyboard_arrow_down, size: 16),
+            iconEnabledColor: _DashboardManagerState.managerMuted,
             padding: EdgeInsets.symmetric(horizontal: 8),
             style: TextStyle(
               fontFamily: 'Roboto',
@@ -1153,7 +1151,11 @@ class _ManagerHomePeriodSelector extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.calendar_today, size: 16),
+                        Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: _DashboardManagerState.managerMuted,
+                        ),
                         SizedBox(width: 5),
                         Flexible(
                           child: Text(
@@ -1457,6 +1459,11 @@ class _RevenueEvolutionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rangeLabel = points.isEmpty
+        ? ''
+        : points.length == 1
+        ? points.first.label
+        : '${points.first.label} – ${points.last.label}';
     return Container(
       height: 245,
       padding: EdgeInsets.all(16),
@@ -1477,24 +1484,25 @@ class _RevenueEvolutionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: _DashboardManagerState.managerBorder,
+              if (rangeLabel.isNotEmpty)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _DashboardManagerState.managerBorder,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '6 mois',
-                  style: TextStyle(
-                    fontFamily: 'Roboto',
-                    color: _DashboardManagerState.managerMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                  child: Text(
+                    rangeLabel,
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      color: _DashboardManagerState.managerMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           SizedBox(height: 12),
@@ -2202,6 +2210,37 @@ String _formatShortDateTime(DateTime date) {
   return '${date.day}/${date.month} $hh:$mm';
 }
 
+/// Rounds up to a clean axis ceiling (1/2/5 × 10ⁿ), e.g. 87 900 -> 100000.
+double _niceCeilManager(double v) {
+  if (v <= 0) return 1;
+  var mag = 1.0;
+  while (mag * 10 <= v) {
+    mag *= 10;
+  }
+  final n = v / mag;
+  final step = n <= 1
+      ? 1.0
+      : n <= 2
+      ? 2.0
+      : n <= 5
+      ? 5.0
+      : 10.0;
+  return step * mag;
+}
+
+/// Short axis labels: 100000 -> "100k", 1500000 -> "1.5M".
+String _compactManager(double v) {
+  if (v >= 1000000) {
+    final m = v / 1000000;
+    return '${m == m.roundToDouble() ? m.toStringAsFixed(0) : m.toStringAsFixed(1)}M';
+  }
+  if (v >= 1000) {
+    final k = v / 1000;
+    return '${k == k.roundToDouble() ? k.toStringAsFixed(0) : k.toStringAsFixed(1)}k';
+  }
+  return v.toStringAsFixed(0);
+}
+
 class _ManagerRevenueLinePainter extends CustomPainter {
   _ManagerRevenueLinePainter(this.points);
 
@@ -2209,18 +2248,37 @@ class _ManagerRevenueLinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final chart = Rect.fromLTWH(30, 10, size.width - 38, size.height - 42);
+    if (points.isEmpty) return;
+    final chart = Rect.fromLTWH(34, 12, size.width - 42, size.height - 44);
+
+    final rawMax = points.fold<double>(
+      0,
+      (max, point) => point.amount > max ? point.amount : max,
+    );
+    final maxValue = _niceCeilManager(rawMax);
+
+    // Horizontal gridlines + Y-axis value labels give the chart a real scale.
     final gridPaint = Paint()
       ..color = _DashboardManagerState._border
       ..strokeWidth = 1;
     for (var i = 0; i <= 3; i++) {
-      final y = chart.bottom - chart.height * i / 3;
+      final f = i / 3;
+      final y = chart.bottom - chart.height * f;
       canvas.drawLine(Offset(chart.left, y), Offset(chart.right, y), gridPaint);
+      final tp = TextPainter(
+        text: TextSpan(
+          text: _compactManager(maxValue * f),
+          style: TextStyle(
+            color: _DashboardManagerState._textMuted,
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(chart.left - 6 - tp.width, y - tp.height / 2));
     }
-    final maxValue = points.fold<double>(
-      1,
-      (max, point) => point.amount > max ? point.amount : max,
-    );
+
     final offsets = <Offset>[];
     for (var i = 0; i < points.length; i++) {
       final x = points.length == 1
@@ -2229,23 +2287,102 @@ class _ManagerRevenueLinePainter extends CustomPainter {
       final y = chart.bottom - chart.height * (points[i].amount / maxValue);
       offsets.add(Offset(x, y));
     }
-    final linePaint = Paint()
-      ..color = _DashboardManagerState._primaryBlue
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-    final path = Path();
-    for (var i = 0; i < offsets.length; i++) {
-      if (i == 0) {
-        path.moveTo(offsets[i].dx, offsets[i].dy);
-      } else {
-        path.lineTo(offsets[i].dx, offsets[i].dy);
-      }
+
+    // Smooth line through the points (quadratic between midpoints).
+    final linePath = Path()..moveTo(offsets.first.dx, offsets.first.dy);
+    for (var i = 0; i < offsets.length - 1; i++) {
+      final mid = Offset(
+        (offsets[i].dx + offsets[i + 1].dx) / 2,
+        (offsets[i].dy + offsets[i + 1].dy) / 2,
+      );
+      linePath.quadraticBezierTo(offsets[i].dx, offsets[i].dy, mid.dx, mid.dy);
     }
-    canvas.drawPath(path, linePaint);
-    final dotPaint = Paint()..color = _DashboardManagerState._primaryBlue;
-    for (final offset in offsets) {
-      canvas.drawCircle(offset, 4, dotPaint);
+    linePath.lineTo(offsets.last.dx, offsets.last.dy);
+
+    // Gradient area under the line for depth.
+    final areaPath = Path.from(linePath)
+      ..lineTo(offsets.last.dx, chart.bottom)
+      ..lineTo(offsets.first.dx, chart.bottom)
+      ..close();
+    canvas.drawPath(
+      areaPath,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            _DashboardManagerState._primaryBlue.withValues(alpha: .26),
+            _DashboardManagerState._primaryBlue.withValues(alpha: .02),
+          ],
+        ).createShader(chart),
+    );
+
+    canvas.drawPath(
+      linePath,
+      Paint()
+        ..color = _DashboardManagerState._primaryBlue
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+
+    // Highlight the peak day only (a dot per day was just clutter) + value bubble.
+    var peak = 0;
+    for (var i = 1; i < points.length; i++) {
+      if (points[i].amount > points[peak].amount) peak = i;
     }
+    final peakPoint = offsets[peak];
+    canvas.drawCircle(
+      peakPoint,
+      6,
+      Paint()
+        ..color = _DashboardManagerState._primaryBlue.withValues(alpha: .16),
+    );
+    canvas.drawCircle(
+      peakPoint,
+      4.5,
+      Paint()..color = _DashboardManagerState._primaryBlue,
+    );
+    canvas.drawCircle(peakPoint, 2, Paint()..color = Colors.white);
+
+    final bubble = TextPainter(
+      text: TextSpan(
+        text: '${_compactManager(points[peak].amount)} MAD',
+        style: TextStyle(
+          color: _DashboardManagerState._primaryBlue,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final lo = chart.left + bubble.width / 2 + 6;
+    final hi = chart.right - bubble.width / 2 - 6;
+    final cx =
+        (hi <= lo ? (chart.left + chart.right) / 2 : peakPoint.dx.clamp(lo, hi))
+            .toDouble();
+    var cy = peakPoint.dy - 16;
+    if (cy - bubble.height / 2 < chart.top) cy = peakPoint.dy + 16;
+    final bubbleRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(cx, cy),
+        width: bubble.width + 12,
+        height: bubble.height + 7,
+      ),
+      Radius.circular(7),
+    );
+    canvas.drawRRect(bubbleRect, Paint()..color = Colors.white);
+    canvas.drawRRect(
+      bubbleRect,
+      Paint()
+        ..color = _DashboardManagerState._primaryBlue.withValues(alpha: .22)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+    bubble.paint(canvas, Offset(cx - bubble.width / 2, cy - bubble.height / 2));
+
+    // Sparse x-axis labels.
     final step = points.length <= 7 ? 1 : (points.length / 6).ceil();
     final textStyle = TextStyle(
       color: _DashboardManagerState._textMuted,
@@ -2330,6 +2467,10 @@ class _ManagerCommercialsCache {
       ..addEntries(items.map((item) => MapEntry(item.id, item)));
   }
 
+  static void put(_ManagerCommercialView item) {
+    _items[item.id] = item;
+  }
+
   static _ManagerCommercialView? byId(int id) => _items[id];
 }
 
@@ -2371,6 +2512,27 @@ class _ManagerCommercialView {
   final int activitiesCount;
   final int reportsCount;
   final DateTime? hiredAt;
+
+  _ManagerCommercialView copyWith({double? objective, int? reportsCount}) {
+    return _ManagerCommercialView(
+      id: id,
+      name: name,
+      email: email,
+      phone: phone,
+      city: city,
+      address: address,
+      matricule: matricule,
+      role: role,
+      status: status,
+      revenue: revenue,
+      objective: objective ?? this.objective,
+      ordersCount: ordersCount,
+      clientsCount: clientsCount,
+      activitiesCount: activitiesCount,
+      reportsCount: reportsCount ?? this.reportsCount,
+      hiredAt: hiredAt,
+    );
+  }
 
   int get objectiveRate =>
       objective <= 0 ? 0 : ((revenue / objective) * 100).round();
@@ -2462,7 +2624,6 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _DashboardManagerState.managerSurface,
-      drawer: _ManagerDrawer(),
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commerciaux,
         child: RefreshIndicator(
@@ -2757,7 +2918,9 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
   }
 
   void _refresh() {
-    setState(() => _future = _loadData());
+    setState(() {
+      _future = _loadData();
+    });
   }
 
   void _openCommercialDetail(_ManagerCommercialView commercial) {
@@ -3002,7 +3165,6 @@ class _CommerciauxManagerState extends State<CommerciauxManager> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _DashboardManagerState._surface,
-      drawer: _ManagerDrawer(),
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commerciaux,
         child: SingleChildScrollView(
@@ -3269,7 +3431,6 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _DashboardManagerState.managerSurface,
-      drawer: _ManagerDrawer(),
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commandes,
         child: RefreshIndicator(
@@ -3380,12 +3541,6 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openFilterSheet,
-        backgroundColor: _DashboardManagerState.managerBlue,
-        foregroundColor: Colors.white,
-        child: Icon(Icons.tune, size: 24),
-      ),
     );
   }
 
@@ -3410,10 +3565,6 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
                   b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
               return right.compareTo(left);
             });
-      debugPrint(
-        '[MANAGER][COMMANDES] api=${raw.length} visible=${orders.length} '
-        'period=${_selectedPeriod.name} manager_id=${CurrentUserSession.currentUser?.id}',
-      );
       _ManagerOrdersCache.replaceAll(orders);
       return orders;
     } catch (error) {
@@ -3501,7 +3652,9 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
   }
 
   void _refreshOrders() {
-    setState(() => _ordersFuture = _loadOrders());
+    setState(() {
+      _ordersFuture = _loadOrders();
+    });
   }
 
   void _openOrderDetail(_ManagerOrderView order) {
@@ -3869,7 +4022,6 @@ class _OrdersManagerScreenState extends State<OrdersManagerScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _DashboardManagerState._surface,
-      drawer: _ManagerDrawer(),
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commandes,
         child: SingleChildScrollView(
@@ -4165,7 +4317,6 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _DashboardManagerState.managerSurface,
-      drawer: _ManagerDrawer(),
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.rapports,
         child: RefreshIndicator(
@@ -4481,7 +4632,11 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
     });
   }
 
-  void _refresh() => setState(() => _future = _loadData());
+  void _refresh() {
+    setState(() {
+      _future = _loadData();
+    });
+  }
 
   Future<List<dynamic>> _safeApiList(Future<List<dynamic>> Function() loader) =>
       loader().catchError((_) => <dynamic>[]);
@@ -4718,7 +4873,6 @@ class _ReportsManagerScreenState extends State<ReportsManagerScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _DashboardManagerState._surface,
-      drawer: _ManagerDrawer(),
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.rapports,
         child: SingleChildScrollView(
@@ -4850,7 +5004,9 @@ class _DashboardManagerState extends State<DashboardManager> {
   void _refreshDashboard({bool silent = false}) {
     final future = _loadDashboard();
     if (!mounted) return;
-    setState(() => _dashboardFuture = future);
+    setState(() {
+      _dashboardFuture = future;
+    });
   }
 
   @override
@@ -4879,7 +5035,6 @@ class _DashboardManagerState extends State<DashboardManager> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: managerSurface,
-      drawer: _ManagerDrawer(),
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.dashboard,
         child: RefreshIndicator(
@@ -5545,31 +5700,106 @@ class _ReportPeriodSelector extends StatelessWidget {
   final ValueChanged<_ReportPeriod> onChanged;
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: _managerCardDecoration(13),
-      child: SizedBox(
-        height: 48,
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<_ReportPeriod>(
-            value: period,
-            isExpanded: true,
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            icon: Icon(Icons.keyboard_arrow_down, size: 16),
-            items: _ReportPeriod.values
-                .map(
-                  (p) => DropdownMenuItem(
-                    value: p,
+    return PopupMenuButton<_ReportPeriod>(
+      initialValue: period,
+      tooltip: 'Choisir la période',
+      color: Colors.white,
+      elevation: 10,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      onSelected: onChanged,
+      itemBuilder: (context) => _ReportPeriod.values
+          .map(
+            (p) => PopupMenuItem<_ReportPeriod>(
+              value: p,
+              height: 44,
+              child: Row(
+                children: [
+                  Icon(
+                    p == period
+                        ? Icons.check_circle_rounded
+                        : Icons.calendar_today_outlined,
+                    size: 18,
+                    color: p == period
+                        ? _DashboardManagerState.managerBlue
+                        : _DashboardManagerState.managerMuted,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
                     child: Text(
                       _reportPeriodLabel(p),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
+                        color: _DashboardManagerState.managerText,
+                        fontSize: 13,
+                        fontWeight: p == period
+                            ? FontWeight.w900
+                            : FontWeight.w700,
+                      ),
                     ),
                   ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value != null) onChanged(value);
-            },
+                ],
+              ),
+            ),
+          )
+          .toList(),
+      child: Container(
+        height: 48,
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: _DashboardManagerState.managerBlue.withValues(alpha: .08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: _DashboardManagerState.managerBlue.withValues(alpha: .24),
           ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 18,
+              color: _DashboardManagerState.managerBlue,
+            ),
+            SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Période',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      color: _DashboardManagerState.managerBlue,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    _reportPeriodLabel(period),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      color: _DashboardManagerState.managerText,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 6),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: _DashboardManagerState.managerBlue,
+              size: 19,
+            ),
+          ],
         ),
       ),
     );
@@ -6726,16 +6956,10 @@ class _ManagerObjectiveCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border(
-            left: BorderSide(color: color, width: 4),
-            top: BorderSide(color: _DashboardManagerState.managerBorder),
-            right: BorderSide(color: _DashboardManagerState.managerBorder),
-            bottom: BorderSide(color: _DashboardManagerState.managerBorder),
-          ),
+          border: Border.all(color: _DashboardManagerState.managerBorder),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: .04),
@@ -6744,99 +6968,116 @@ class _ManagerObjectiveCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: _DashboardManagerState.iconBlueBg,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    _initials(commercial.name).ifEmpty('C'),
-                    style: TextStyle(
-                      color: _DashboardManagerState.managerBlue,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        commercial.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: _DashboardManagerState.managerText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        commercial.email.ifEmpty(commercial.role),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: _DashboardManagerState.managerMuted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  color: _DashboardManagerState.managerMuted,
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _ObjectiveInfoPill(
-                  label: 'Objectif CA',
-                  value: '${_formatNumber(commercial.objective.round())} DH',
-                ),
-                _ObjectiveInfoPill(
-                  label: 'Objectif cmd',
-                  value: '${commercial.reportsCount}',
-                ),
-                _ObjectiveInfoPill(
-                  label: 'CA atteint',
-                  value: '$rate%',
-                  valueColor: color,
-                ),
-                _ObjectiveInfoPill(
-                  label: 'Cmd atteint',
-                  value: '$orderRate%',
-                  valueColor: _objectiveRateColor(orderRate),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
-                value: (rate / 100).clamp(0, 1),
-                minHeight: 6,
-                color: color,
-                backgroundColor: _DashboardManagerState.managerBorder,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(width: 4, color: color),
               ),
-            ),
-          ],
+              Padding(
+                padding: EdgeInsets.fromLTRB(18, 16, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _DashboardManagerState.iconBlueBg,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            _initials(commercial.name).ifEmpty('C'),
+                            style: TextStyle(
+                              color: _DashboardManagerState.managerBlue,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                commercial.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: _DashboardManagerState.managerText,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              Text(
+                                commercial.email.ifEmpty(commercial.role),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: _DashboardManagerState.managerMuted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          color: _DashboardManagerState.managerMuted,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        _ObjectiveInfoPill(
+                          label: 'Objectif CA',
+                          value:
+                              '${_formatNumber(commercial.objective.round())} DH',
+                        ),
+                        _ObjectiveInfoPill(
+                          label: 'Objectif cmd',
+                          value: '${commercial.reportsCount}',
+                        ),
+                        _ObjectiveInfoPill(
+                          label: 'CA atteint',
+                          value: '$rate%',
+                          valueColor: color,
+                        ),
+                        _ObjectiveInfoPill(
+                          label: 'Cmd atteint',
+                          value: '$orderRate%',
+                          valueColor: _objectiveRateColor(orderRate),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
+                        value: (rate / 100).clamp(0, 1),
+                        minHeight: 6,
+                        color: color,
+                        backgroundColor: _DashboardManagerState.managerBorder,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -10849,7 +11090,9 @@ class _ProfileManagerScreenState extends State<ProfileManagerScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _loadProfile());
+    setState(() {
+      _future = _loadProfile();
+    });
     await _future;
   }
 
@@ -10858,7 +11101,6 @@ class _ProfileManagerScreenState extends State<ProfileManagerScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _DashboardManagerState.managerSurface,
-      drawer: _ManagerDrawer(),
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.profil,
         child: RefreshIndicator(
@@ -12260,102 +12502,6 @@ class _ManagerNavItem extends StatelessWidget {
   }
 }
 
-class _ManagerDrawer extends StatelessWidget {
-  _ManagerDrawer();
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
-              child: Text(
-                AppLocalizations.globalText('Manager'),
-                style: TextStyle(
-                  color: _DashboardManagerState._textDark,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            _DrawerTile(
-              icon: Icons.dashboard_rounded,
-              label: AppLocalizations.globalText('Dashboard'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/home-manager');
-              },
-            ),
-            _DrawerTile(
-              icon: Icons.groups_rounded,
-              label: AppLocalizations.globalText('Commerciaux'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/manager-commerciaux');
-              },
-            ),
-            _DrawerTile(
-              icon: Icons.receipt_long_rounded,
-              label: AppLocalizations.globalText('Commandes'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/manager-commandes');
-              },
-            ),
-            _DrawerTile(
-              icon: Icons.bar_chart_rounded,
-              label: AppLocalizations.globalText('Rapports'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/manager-rapports');
-              },
-            ),
-            Spacer(),
-            _DrawerTile(
-              icon: Icons.logout_rounded,
-              label: AppLocalizations.globalText('Deconnexion'),
-              onTap: () {
-                CurrentUserSession.signOut();
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                  (route) => false,
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerTile extends StatelessWidget {
-  _DrawerTile({required this.icon, required this.label, required this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: _DashboardManagerState._primaryBlue),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: _DashboardManagerState._textDark,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-      onTap: onTap,
-    );
-  }
-}
-
 class DetailCommercialScreen extends StatefulWidget {
   DetailCommercialScreen({
     super.key,
@@ -12431,6 +12577,23 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
       );
   }
 
+  Future<void> _openDefineObjective(_ManagerCommercialView commercial) async {
+    final saved = await Navigator.push<CommercialObjective>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _DefineObjectiveScreen(commercials: [commercial]),
+      ),
+    );
+    if (!mounted || saved == null) return;
+    _ManagerCommercialsCache.put(
+      commercial.copyWith(
+        objective: saved.revenueTarget ?? 0,
+        reportsCount: saved.orderTarget ?? 0,
+      ),
+    );
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final apiCommercial = _ManagerCommercialsCache.byId(widget.commercialId);
@@ -12438,7 +12601,7 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
       return _DetailOrderShell(
         child: _ManagerCommercialApiDetail(
           commercial: apiCommercial,
-          onSetObjectives: () {},
+          onSetObjectives: () => _openDefineObjective(apiCommercial),
         ),
       );
     }
@@ -12677,17 +12840,6 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
           ),
           SizedBox(height: 14),
           _ManagerDetailCard(
-            title: 'Graphiques',
-            children: [
-              _ManagerEmptyInline(
-                icon: Icons.show_chart,
-                text:
-                    'Évolution disponible dès que les données historiques existent.',
-              ),
-            ],
-          ),
-          SizedBox(height: 14),
-          _ManagerDetailCard(
             title: 'Sections',
             children: [
               Wrap(
@@ -12779,7 +12931,6 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _DashboardManagerState.managerSurface,
-      drawer: _ManagerDrawer(),
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.objectifs,
         child: RefreshIndicator(
@@ -13068,20 +13219,41 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
   }
 
   void _refresh() {
-    setState(() => _future = _loadData());
+    setState(() {
+      _future = _loadData();
+    });
   }
 
   Future<List<dynamic>> _safeApiList(Future<List<dynamic>> Function() loader) {
     return loader().catchError((_) => <dynamic>[]);
   }
 
-  void _openDefineObjective() {
+  Future<void> _openDefineObjective() async {
+    var commercials = _ManagerCommercialsCache._items.values.toList();
+    if (commercials.isEmpty) {
+      try {
+        final data = await (_future ?? _loadData());
+        commercials = data.items;
+      } catch (_) {
+        commercials = const [];
+      }
+    }
+    if (!mounted) return;
+    if (commercials.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Aucun commercial disponible pour cet objectif.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => _DefineObjectiveScreen(
-          commercials: _ManagerCommercialsCache._items.values.toList(),
-        ),
+        builder: (_) => _DefineObjectiveScreen(commercials: commercials),
       ),
     ).then((_) => _refresh());
   }
@@ -13307,10 +13479,31 @@ class _DetailActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      avatar: Icon(icon, size: 16, color: _DashboardManagerState.managerBlue),
-      label: Text(label),
-      backgroundColor: _DashboardManagerState.iconBlueBg,
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: _DashboardManagerState.managerBlue.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(
+          color: _DashboardManagerState.managerBlue.withValues(alpha: .18),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: _DashboardManagerState.managerBlue),
+          SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Roboto',
+              color: _DashboardManagerState.managerText,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -13435,17 +13628,6 @@ class _ObjectiveDetailScreen extends StatelessWidget {
             ),
             SizedBox(height: 14),
             _ManagerDetailCard(
-              title: 'Graphiques',
-              children: [
-                _ManagerEmptyInline(
-                  icon: Icons.show_chart,
-                  text:
-                      'Évolution du CA et des commandes disponible avec l’historique.',
-                ),
-              ],
-            ),
-            SizedBox(height: 14),
-            _ManagerDetailCard(
               title: 'Historique et commentaires',
               children: [
                 Text(
@@ -13509,17 +13691,19 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
   @override
   Widget build(BuildContext context) {
     return _DetailOrderShell(
+      fillHeight: true,
       child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(18, 14, 18, 24),
+        padding: EdgeInsets.fromLTRB(20, 18, 20, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.arrow_back),
+              icon: Icon(Icons.arrow_back_rounded),
               color: _DashboardManagerState.managerText,
+              tooltip: 'Retour',
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 10),
             Text(
               'Définir les objectifs',
               style: TextStyle(
@@ -13540,87 +13724,172 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
             ),
             SizedBox(height: 18),
             _ManagerDetailCard(
+              title: 'Objectifs mensuels',
               children: [
-                DropdownButtonFormField<_ManagerCommercialView>(
-                  initialValue: _selected,
-                  items: widget.commercials
-                      .map(
-                        (commercial) => DropdownMenuItem(
-                          value: commercial,
-                          child: Text(commercial.name),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (commercial) {
-                    if (commercial == null) return;
-                    setState(() {
-                      _selected = commercial;
-                      _fill(commercial);
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: 'Commercial',
-                    border: _managerInputBorder(),
-                    enabledBorder: _managerInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 14),
-                TextField(
-                  controller: _revenueController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Objectif CA',
-                    suffixText: 'DH',
-                    border: _managerInputBorder(),
-                    enabledBorder: _managerInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 14),
-                TextField(
-                  controller: _ordersController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Objectif nombre de commandes',
-                    border: _managerInputBorder(),
-                    enabledBorder: _managerInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 14),
-                TextField(
-                  controller: _commentController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'Commentaire',
-                    border: _managerInputBorder(),
-                    enabledBorder: _managerInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _saving
-                            ? null
-                            : () => Navigator.pop(context),
-                        child: Text('Annuler'),
-                      ),
+                if (widget.commercials.isEmpty)
+                  _ManagerEmptyInline(
+                    icon: Icons.people_outline,
+                    text: 'Aucun commercial disponible.',
+                  )
+                else ...[
+                  PopupMenuButton<_ManagerCommercialView>(
+                    tooltip: 'Choisir un commercial',
+                    color: Colors.white,
+                    elevation: 10,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _saving ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _DashboardManagerState.managerBlue,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text(
-                          _saving ? 'Enregistrement...' : 'Enregistrer',
-                        ),
-                      ),
-                    ),
+                    onSelected: (commercial) {
+                      setState(() {
+                        _selected = commercial;
+                        _fill(commercial);
+                      });
+                    },
+                    itemBuilder: (context) => widget.commercials
+                        .map(
+                          (commercial) => PopupMenuItem<_ManagerCommercialView>(
+                            value: commercial,
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor:
+                                      _DashboardManagerState.iconBlueBg,
+                                  child: Text(
+                                    _initials(commercial.name).ifEmpty('C'),
+                                    style: TextStyle(
+                                      color: _DashboardManagerState.managerBlue,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        commercial.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: _objectiveInputTextStyle(),
+                                      ),
+                                      Text(
+                                        commercial.email.ifEmpty(
+                                          commercial.role,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontFamily: 'Roboto',
+                                          color: _DashboardManagerState
+                                              .managerMuted,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    child: _ObjectiveCommercialPicker(commercial: _selected),
+                  ),
+                  if (_selected != null) ...[
+                    SizedBox(height: 12),
+                    _ObjectiveCommercialSummary(commercial: _selected!),
                   ],
-                ),
+                  SizedBox(height: 16),
+                  _ObjectiveLabeledField(
+                    controller: _revenueController,
+                    label: "Objectif chiffre d'affaires",
+                    hintText: 'Ex. 95000',
+                    suffixText: 'DH',
+                    icon: Icons.trending_up_rounded,
+                    keyboardType: TextInputType.number,
+                  ),
+                  SizedBox(height: 14),
+                  _ObjectiveLabeledField(
+                    controller: _ordersController,
+                    label: 'Objectif commandes',
+                    hintText: 'Ex. 14',
+                    icon: Icons.shopping_bag_outlined,
+                    keyboardType: TextInputType.number,
+                  ),
+                  SizedBox(height: 14),
+                  _ObjectiveLabeledField(
+                    controller: _commentController,
+                    label: 'Commentaire',
+                    hintText: 'Ajouter une note pour le suivi',
+                    icon: Icons.sticky_note_2_outlined,
+                    maxLines: 3,
+                  ),
+                  SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: OutlinedButton(
+                            onPressed: _saving
+                                ? null
+                                : () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor:
+                                  _DashboardManagerState.managerText,
+                              side: BorderSide(
+                                color: _DashboardManagerState.managerBorder,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: Text('Annuler'),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: _saving ? null : _save,
+                            icon: _saving
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Icon(Icons.save_outlined, size: 18),
+                            label: FittedBox(
+                              child: Text(
+                                _saving ? 'Sauvegarde...' : 'Enregistrer',
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  _DashboardManagerState.managerBlue,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ],
@@ -13650,15 +13919,375 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
       return;
     }
     setState(() => _saving = true);
-    await CommercialObjectivesService.instance.saveObjective(
-      CommercialObjective(
-        commercialId: selected.id,
-        revenueTarget: revenue,
-        orderTarget: orders,
+    final objective = CommercialObjective(
+      commercialId: selected.id,
+      revenueTarget: revenue,
+      orderTarget: orders,
+    );
+    await CommercialObjectivesService.instance.saveObjective(objective);
+    if (!mounted) return;
+    Navigator.pop(context, objective);
+  }
+}
+
+TextStyle _objectiveInputTextStyle() {
+  return TextStyle(
+    fontFamily: 'Roboto',
+    color: _DashboardManagerState.managerText,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+  );
+}
+
+class _ObjectiveCommercialPicker extends StatelessWidget {
+  const _ObjectiveCommercialPicker({required this.commercial});
+
+  final _ManagerCommercialView? commercial;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = commercial?.name ?? 'Choisir un commercial';
+    final meta = commercial == null
+        ? 'Sélectionnez la personne à suivre'
+        : commercial!.email.ifEmpty(commercial!.role);
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: _DashboardManagerState.managerBlue.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _DashboardManagerState.managerBlue.withValues(alpha: .28),
+        ),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.person_search_rounded,
+              color: _DashboardManagerState.managerBlue,
+              size: 21,
+            ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Commercial',
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
+                    color: _DashboardManagerState.managerBlue,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
+                    color: _DashboardManagerState.managerText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  meta,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
+                    color: _DashboardManagerState.managerMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8),
+          Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: _DashboardManagerState.managerBlue,
+            size: 22,
+          ),
+        ],
       ),
     );
-    if (!mounted) return;
-    Navigator.pop(context);
+  }
+}
+
+class _ObjectiveLabeledField extends StatelessWidget {
+  const _ObjectiveLabeledField({
+    required this.controller,
+    required this.label,
+    required this.hintText,
+    required this.icon,
+    this.suffixText,
+    this.keyboardType,
+    this.maxLines = 1,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String hintText;
+  final IconData icon;
+  final String? suffixText;
+  final TextInputType? keyboardType;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(14, 12, 14, 10),
+      decoration: BoxDecoration(
+        color: Color(0xFFF8FBFF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _DashboardManagerState.managerBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: _DashboardManagerState.iconBlueBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  color: _DashboardManagerState.managerBlue,
+                  size: 18,
+                ),
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
+                    color: _DashboardManagerState.managerText,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (suffixText != null) ...[
+                SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: _DashboardManagerState.managerBorder,
+                    ),
+                  ),
+                  child: Text(
+                    suffixText!,
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      color: _DashboardManagerState.managerMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: 9),
+          TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            maxLines: maxLines,
+            style: _objectiveInputTextStyle().copyWith(fontSize: 15),
+            cursorColor: _DashboardManagerState.managerBlue,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: hintText,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              hintStyle: TextStyle(
+                fontFamily: 'Roboto',
+                color: _DashboardManagerState.managerMuted.withValues(
+                  alpha: .72,
+                ),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ObjectiveCommercialSummary extends StatelessWidget {
+  const _ObjectiveCommercialSummary({required this.commercial});
+
+  final _ManagerCommercialView commercial;
+
+  @override
+  Widget build(BuildContext context) {
+    final revenueTarget = commercial.objective > 0
+        ? '${_formatNumber(commercial.objective.round())} DH'
+        : 'Non defini';
+    final orderTarget = commercial.reportsCount > 0
+        ? '${commercial.reportsCount}'
+        : 'Non defini';
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _DashboardManagerState.iconBlueBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _DashboardManagerState.managerBlue.withValues(alpha: .22),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: Colors.white,
+                child: Text(
+                  _initials(commercial.name).ifEmpty('C'),
+                  style: TextStyle(
+                    color: _DashboardManagerState.managerBlue,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      commercial.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
+                        color: _DashboardManagerState.managerText,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      commercial.email.ifEmpty(commercial.role),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
+                        color: _DashboardManagerState.managerMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ObjectiveSummaryPill(
+                label: 'CA actuel',
+                value: revenueTarget,
+                icon: Icons.trending_up_rounded,
+              ),
+              _ObjectiveSummaryPill(
+                label: 'Cmd actuel',
+                value: orderTarget,
+                icon: Icons.shopping_bag_outlined,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ObjectiveSummaryPill extends StatelessWidget {
+  const _ObjectiveSummaryPill({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(minWidth: 120),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _DashboardManagerState.managerBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: _DashboardManagerState.managerBlue),
+          SizedBox(width: 7),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Roboto',
+                  color: _DashboardManagerState.managerMuted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontFamily: 'Roboto',
+                  color: _DashboardManagerState.managerText,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -14658,7 +15287,9 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _load());
+    setState(() {
+      _future = _load();
+    });
     await _future;
   }
 
@@ -15510,36 +16141,43 @@ class _ManagerDetailLine extends StatelessWidget {
 }
 
 class _DetailOrderShell extends StatelessWidget {
-  _DetailOrderShell({required this.child});
+  _DetailOrderShell({required this.child, this.fillHeight = false});
 
   final Widget child;
+  final bool fillHeight;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _DashboardManagerState._surface,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 430),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0xFF1C4B92).withValues(alpha: .08),
-                    blurRadius: 28,
-                    offset: Offset(0, 14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 430),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFF1C4B92).withValues(alpha: .08),
+                        blurRadius: 28,
+                        offset: Offset(0, 14),
+                      ),
+                    ],
                   ),
-                ],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: fillHeight
+                        ? SizedBox(height: constraints.maxHeight, child: child)
+                        : child,
+                  ),
+                ),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(28),
-                child: child,
-              ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

@@ -6,8 +6,11 @@ import 'data/mock_presales_data.dart';
 
 class ApiService {
   static const String baseUrl = 'http://127.0.0.1:5000';
+  // Web preview has no Flask/PostgreSQL backend, so hitting 127.0.0.1:5000 just
+  // spams ERR_CONNECTION_REFUSED and stalls every load. Serve demo data directly
+  // on web; append ?live=1 to force the real backend when it's actually running.
   static bool get _useMockData =>
-      kIsWeb && Uri.base.queryParameters['mock'] == '1';
+      kIsWeb && Uri.base.queryParameters['live'] != '1';
 
   static Future<Map<String, dynamic>> getCompanyInfo() async {
     if (_useMockData) return _mockCompanyInfo();

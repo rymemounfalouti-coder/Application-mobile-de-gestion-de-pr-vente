@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
@@ -234,6 +235,8 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
 
+    // sqflite has no web support; on web, auth relies on the API + mock accounts.
+    if (kIsWeb) return null;
     final db = await DatabaseHelper.instance.database;
     final users = await db.query(
       'users',

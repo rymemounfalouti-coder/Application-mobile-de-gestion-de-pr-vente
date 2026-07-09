@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../api_service.dart';
@@ -16,6 +18,35 @@ String _money(num v) {
     if (fromEnd > 1 && fromEnd % 3 == 1) b.write(' ');
   }
   return b.toString();
+}
+
+/// Rounds up to a "nice" axis ceiling (1/2/5 × 10ⁿ) so the Y scale reads
+/// cleanly, e.g. 87 900 -> 100000.
+double _niceCeil(double v) {
+  if (v <= 0) return 1;
+  final mag = math.pow(10, (math.log(v) / math.ln10).floor()).toDouble();
+  final n = v / mag;
+  final step = n <= 1
+      ? 1.0
+      : n <= 2
+      ? 2.0
+      : n <= 5
+      ? 5.0
+      : 10.0;
+  return step * mag;
+}
+
+/// Short axis labels: 100000 -> "100k", 1500000 -> "1.5M".
+String _compactAmount(double v) {
+  if (v >= 1000000) {
+    final m = v / 1000000;
+    return '${m == m.roundToDouble() ? m.toStringAsFixed(0) : m.toStringAsFixed(1)}M';
+  }
+  if (v >= 1000) {
+    final k = v / 1000;
+    return '${k == k.roundToDouble() ? k.toStringAsFixed(0) : k.toStringAsFixed(1)}k';
+  }
+  return v.toStringAsFixed(0);
 }
 
 const List<String> _teaProductCategories = [
@@ -652,14 +683,17 @@ class _AccueilPageState extends State<AccueilPage> {
 
   @override
   Widget build(BuildContext context) {
+    final displayName = widget.name.trim().isEmpty
+        ? 'Admin'
+        : widget.name.trim();
     return Column(
       children: [
         AdminHeader(
           title: '',
           onMenu: widget.onMenu,
           onBell: widget.onBell,
-          greeting: 'Bonjour, Administrateur',
-          subtitle: 'Donnees PostgreSQL',
+          greeting: 'Bonjour, $displayName',
+          subtitle: 'Tableau de bord',
         ),
         Expanded(
           child: FutureBuilder<_AdminDashboardData>(
@@ -671,7 +705,13 @@ class _AccueilPageState extends State<AccueilPage> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                   children: [
-                    const _SectionTitle('Apercu global'),
+                    _AdminHeroCard(
+                      ca: data.ca,
+                      orders: data.orders.length,
+                      validated: data.validated,
+                    ),
+                    const SizedBox(height: 18),
+                    const _SectionTitle('Aperçu global'),
                     const SizedBox(height: 12),
                     _kpiRow([
                       _Kpi(
@@ -726,81 +766,60 @@ class _AccueilPageState extends State<AccueilPage> {
                         kRed,
                       ),
                     ]),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
+                    const _SectionTitle('Évolution du chiffre d\'affaires'),
+                    const SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                       decoration: cardBox(),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Chiffre d\'affaires global',
-                            style: TextStyle(
-                              color: kInk,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text(
-                                '${_money(data.ca)} ',
-                                style: const TextStyle(
-                                  color: kInk,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
+                              const Expanded(
+                                child: Text(
+                                  'Chiffre d\'affaires mensuel',
+                                  style: TextStyle(
+                                    color: kInk,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 4),
-                                child: Text(
-                                  'MAD',
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: kBg,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: kBorder),
+                                ),
+                                child: const Text(
+                                  '6 mois',
                                   style: TextStyle(
                                     color: kMuted,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 18),
                           SizedBox(
-                            height: 70,
+                            height: 150,
                             child: data.orders.isEmpty
                                 ? const _EmptyChart()
                                 : _LineChart(
-                                    data.revenueSeries,
-                                    labels: const [],
-                                  ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: cardBox(),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Evolution des ventes',
-                            style: TextStyle(
-                              color: kInk,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            height: 130,
-                            child: data.orders.isEmpty
-                                ? const _EmptyChart()
-                                : _LineChart(
-                                    data.revenueSeries,
-                                    labels: const [],
+                                    data.revenueByMonth
+                                        .map((p) => p.amount)
+                                        .toList(),
+                                    labels: data.revenueByMonth
+                                        .map((p) => p.label)
+                                        .toList(),
                                   ),
                           ),
                         ],
@@ -824,6 +843,66 @@ class _AccueilPageState extends State<AccueilPage> {
       ],
     ],
   );
+}
+
+const List<String> _frMonthsShort = [
+  'Jan',
+  'Fév',
+  'Mar',
+  'Avr',
+  'Mai',
+  'Juin',
+  'Juil',
+  'Août',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Déc',
+];
+
+DateTime? _parseAdminDate(String raw) {
+  final s = raw.trim();
+  if (s.isEmpty || s == '-') return null;
+  final m = RegExp(r'^(\d{1,2})/(\d{1,2})/(\d{4})$').firstMatch(s);
+  if (m != null) {
+    return DateTime(
+      int.parse(m.group(3)!),
+      int.parse(m.group(2)!),
+      int.parse(m.group(1)!),
+    );
+  }
+  return DateTime.tryParse(s);
+}
+
+/// Buckets order revenue into the last 6 calendar months (oldest -> newest),
+/// labelled by short French month name. Undated / out-of-window orders drop
+/// off the chart; they still count toward the CA total shown in the hero.
+List<({String label, double amount})> adminRevenueByMonth(
+  List<AdminOrder> orders, {
+  DateTime? now,
+}) {
+  final ref = now ?? DateTime.now();
+  final keys = <String>[];
+  final totals = <String, double>{};
+  for (var i = 5; i >= 0; i--) {
+    final m = DateTime(ref.year, ref.month - i, 1);
+    final key = '${m.year}-${m.month}';
+    keys.add(key);
+    totals[key] = 0;
+  }
+  for (final order in orders) {
+    final d = _parseAdminDate(order.date);
+    if (d == null) continue;
+    final key = '${d.year}-${d.month}';
+    if (totals.containsKey(key)) totals[key] = totals[key]! + order.total;
+  }
+  return [
+    for (final key in keys)
+      (
+        label: _frMonthsShort[int.parse(key.split('-')[1]) - 1],
+        amount: totals[key]!,
+      ),
+  ];
 }
 
 class _AdminDashboardData {
@@ -853,7 +932,8 @@ class _AdminDashboardData {
   int get validated => orders.where((o) => o.status == 'validated').length;
   int get refused => orders.where((o) => o.status == 'refused').length;
   double get ca => orders.fold<double>(0, (sum, order) => sum + order.total);
-  List<num> get revenueSeries => orders.map((order) => order.total).toList();
+  List<({String label, double amount})> get revenueByMonth =>
+      adminRevenueByMonth(orders);
 }
 
 class _EmptyChart extends StatelessWidget {
@@ -943,6 +1023,160 @@ class _KpiCard extends StatelessWidget {
   }
 }
 
+class _AdminHeroCard extends StatelessWidget {
+  const _AdminHeroCard({
+    required this.ca,
+    required this.orders,
+    required this.validated,
+  });
+  final double ca;
+  final int orders;
+  final int validated;
+
+  @override
+  Widget build(BuildContext context) {
+    final rate = orders == 0 ? 0 : (validated / orders * 100).round();
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [kHeader, Color(0xFF14532D)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: kGreen.withValues(alpha: .28),
+            blurRadius: 20,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .14),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(
+                  Icons.trending_up_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Chiffre d\'affaires global',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .85),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .14),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Global',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _money(ca),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 6, bottom: 5),
+                child: Text(
+                  'MAD',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .7),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              _heroStat('Commandes', '$orders'),
+              _heroDivider(),
+              _heroStat('Validées', '$validated'),
+              _heroDivider(),
+              _heroStat('Taux validation', '$rate%'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroStat(String label, String value) => Expanded(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .7),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _heroDivider() => Container(
+    width: 1,
+    height: 30,
+    margin: const EdgeInsets.symmetric(horizontal: 12),
+    color: Colors.white.withValues(alpha: .18),
+  );
+}
+
 class _LineChart extends StatelessWidget {
   const _LineChart(this.values, {required this.labels});
   final List<num> values;
@@ -962,10 +1196,40 @@ class _LinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
-    final maxV = values.reduce((a, b) => a > b ? a : b) * 1.15;
+    final rawMax = values.reduce((a, b) => a > b ? a : b);
+    final maxV = rawMax <= 0 ? 1.0 : _niceCeil(rawMax);
+    const leftPad = 36.0;
+    final chartW = size.width - leftPad;
     final chartH = labels.isEmpty ? size.height : size.height - 18;
-    final dx = size.width / (values.length - 1);
-    Offset pt(int i) => Offset(i * dx, chartH - (values[i] / maxV) * chartH);
+    final dx = values.length > 1 ? chartW / (values.length - 1) : 0.0;
+    Offset pt(int i) =>
+        Offset(leftPad + i * dx, chartH - (values[i] / maxV) * chartH);
+
+    // Horizontal gridlines + Y-axis value labels give the line a real scale.
+    void axisLabel(String text, double y) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: const TextStyle(
+            color: kMuted,
+            fontSize: 9.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final ly = y.clamp(tp.height / 2, chartH) - tp.height / 2;
+      tp.paint(canvas, Offset(leftPad - 6 - tp.width, ly));
+    }
+
+    final grid = Paint()
+      ..color = kMuted.withValues(alpha: .16)
+      ..strokeWidth = 1;
+    for (final f in const [0.0, 0.5, 1.0]) {
+      final y = chartH - f * chartH;
+      canvas.drawLine(Offset(leftPad, y), Offset(size.width, y), grid);
+      axisLabel(_compactAmount(maxV * f), y);
+    }
 
     final line = Paint()
       ..color = kGreen
@@ -979,7 +1243,7 @@ class _LinePainter extends CustomPainter {
     }
     final area = Path.from(path)
       ..lineTo(size.width, chartH)
-      ..lineTo(0, chartH)
+      ..lineTo(leftPad, chartH)
       ..close();
     canvas.drawPath(area, fill);
     canvas.drawPath(path, line);
@@ -1002,7 +1266,7 @@ class _LinePainter extends CustomPainter {
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(canvas, Offset(i * dx - tp.width / 2, size.height - 14));
+      tp.paint(canvas, Offset(pt(i).dx - tp.width / 2, size.height - 14));
     }
   }
 
@@ -1660,12 +1924,15 @@ class _UserFormScreenState extends State<UserFormScreen> {
                       ],
                       onChanged: (r) => setState(() => _role = r ?? _role),
                     ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Compte actif'),
-                      value: _active,
-                      activeThumbColor: kGreen,
-                      onChanged: (v) => setState(() => _active = v),
+                    Material(
+                      type: MaterialType.transparency,
+                      child: SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Compte actif'),
+                        value: _active,
+                        activeThumbColor: kGreen,
+                        onChanged: (v) => setState(() => _active = v),
+                      ),
                     ),
                     _input(
                       _password,
@@ -4793,17 +5060,20 @@ class _NotificationsSettingsScreenState
                   child: Column(
                     children: [
                       for (final k in _values.keys)
-                        SwitchListTile(
-                          title: Text(
-                            k,
-                            style: const TextStyle(
-                              color: kInk,
-                              fontWeight: FontWeight.w700,
+                        Material(
+                          type: MaterialType.transparency,
+                          child: SwitchListTile(
+                            title: Text(
+                              k,
+                              style: const TextStyle(
+                                color: kInk,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
+                            value: _values[k]!,
+                            activeThumbColor: kGreen,
+                            onChanged: (v) => setState(() => _values[k] = v),
                           ),
-                          value: _values[k]!,
-                          activeThumbColor: kGreen,
-                          onChanged: (v) => setState(() => _values[k] = v),
                         ),
                     ],
                   ),
@@ -4884,17 +5154,20 @@ class _SecurityScreenState extends State<SecurityScreen> {
                           ),
                         ),
                       ),
-                      SwitchListTile(
-                        title: const Text(
-                          'Authentification biométrique',
-                          style: TextStyle(
-                            color: kInk,
-                            fontWeight: FontWeight.w700,
+                      Material(
+                        type: MaterialType.transparency,
+                        child: SwitchListTile(
+                          title: const Text(
+                            'Authentification biométrique',
+                            style: TextStyle(
+                              color: kInk,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
+                          value: _biometric,
+                          activeThumbColor: kGreen,
+                          onChanged: (v) => setState(() => _biometric = v),
                         ),
-                        value: _biometric,
-                        activeThumbColor: kGreen,
-                        onChanged: (v) => setState(() => _biometric = v),
                       ),
                     ],
                   ),
