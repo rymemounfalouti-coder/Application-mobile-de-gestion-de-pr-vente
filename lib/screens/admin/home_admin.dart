@@ -419,7 +419,7 @@ class AdminDrawer extends StatelessWidget {
             const _DrawerLabel('MENU PRINCIPAL'),
             _DrawerItem(
               Icons.dashboard_rounded,
-              'Dashboard',
+              'Tableau de bord',
               selectedIndex == 0,
               () => onSelect(0),
             ),
@@ -3926,7 +3926,6 @@ class ProfilPage extends StatelessWidget {
 
   String _langName() => switch (AppLocaleController.instance.languageCode) {
     'ar' => 'العربية',
-    'en' => 'English',
     _ => 'Français',
   };
 
@@ -4256,7 +4255,7 @@ class LanguageScreen extends StatelessWidget {
   const LanguageScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    final options = [('Français', 'fr'), ('العربية', 'ar'), ('English', 'en')];
+    final options = [('Français', 'fr'), ('العربية', 'ar')];
     return AnimatedBuilder(
       animation: AppLocaleController.instance,
       builder: (context, _) {

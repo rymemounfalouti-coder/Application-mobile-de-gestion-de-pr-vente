@@ -11189,11 +11189,7 @@ class _ProfileManagerScreenState extends State<ProfileManagerScreen> {
   }
 
   void _openLanguageSheet(_ManagerProfileData data) {
-    final options = [
-      ('Français', Locale('fr')),
-      ('العربية', Locale('ar')),
-      ('English', Locale('en')),
-    ];
+    final options = [('Français', Locale('fr')), ('العربية', Locale('ar'))];
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -12294,7 +12290,6 @@ String? _passwordValidator(String? value) {
 
 String _languageLabel(String code) => switch (code) {
   'ar' => 'العربية',
-  'en' => 'English',
   _ => 'Français',
 };
 
@@ -12509,7 +12504,7 @@ class _ManagerDrawer extends StatelessWidget {
             ),
             _DrawerTile(
               icon: Icons.dashboard_rounded,
-              label: AppLocalizations.globalText('Dashboard'),
+              label: AppLocalizations.globalText('Tableau de bord'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushReplacementNamed(context, '/home-manager');
@@ -12542,7 +12537,7 @@ class _ManagerDrawer extends StatelessWidget {
             Spacer(),
             _DrawerTile(
               icon: Icons.logout_rounded,
-              label: AppLocalizations.globalText('Deconnexion'),
+              label: AppLocalizations.globalText('Déconnexion'),
               onTap: () {
                 CurrentUserSession.signOut();
                 Navigator.pushNamedAndRemoveUntil(
@@ -17375,7 +17370,7 @@ class DashboardAdmin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _TemporaryManagerPage(
-      title: AppLocalizations.globalText('Dashboard Admin'),
+      title: AppLocalizations.globalText('Tableau de bord admin'),
       subtitle: AppLocalizations.globalText('Espace administrateur temporaire'),
       icon: Icons.admin_panel_settings_rounded,
     );

@@ -27,7 +27,8 @@ class AppPalette {
   /// Faintest brand wash, used for whole-page backgrounds.
   static const brandSofter = Color(0xFFF1F8F4);
 
-  /// Lime accent carried over from the login screen.
+  /// Lime accent carried over from the login screen. Only 1.96:1 against white
+  /// — never put white text on it. Pair with [ink] (9.1:1).
   static const accent = Color(0xFF8CCB2F);
 
   /// Hero-card gradient, as seen on the admin dashboard.
@@ -51,6 +52,8 @@ class AppPalette {
 
   // --- Semantic -----------------------------------------------------------
   /// Brighter than [brand] so "success" stays legible next to a green button.
+  /// Only 2.3:1 against white — use as a dot, border or text tint, not as a
+  /// fill behind white text. For a filled success button use [brand].
   static const success = Color(0xFF22C55E);
   static const warning = Color(0xFFF59E0B);
   static const danger = Color(0xFFEF4444);

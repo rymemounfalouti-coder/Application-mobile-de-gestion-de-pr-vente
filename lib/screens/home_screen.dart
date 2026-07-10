@@ -611,7 +611,7 @@ class _DashboardContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.globalText('Home'),
+            AppLocalizations.globalText('Accueil'),
             style: TextStyle(
               color: _HomeScreenState._textDark,
               fontSize: 30,

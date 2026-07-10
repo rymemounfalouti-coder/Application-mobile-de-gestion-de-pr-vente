@@ -10,7 +10,8 @@ class AppLocalizations {
 
   final Locale locale;
 
-  static const supportedLocales = [Locale('fr'), Locale('en'), Locale('ar')];
+  // French and Arabic only — English is not a supported UI language.
+  static const supportedLocales = [Locale('fr'), Locale('ar')];
 
   static const LocalizationsDelegate<AppLocalizations> delegate =
       _AppLocalizationsDelegate();
@@ -826,6 +827,8 @@ final Map<String, Map<String, String>> _literalTranslations = {
     'Commercial': 'مندوب مبيعات',
     'Commercial Senior': 'مندوب مبيعات أول',
     'Commerciaux': 'المندوبون',
+    'Rapports': 'التقارير',
+    'Tableau de bord admin': 'لوحة تحكم المشرف',
     'Commerciaux actifs': 'المندوبون النشطون',
     'Aucun commercial': 'لا يوجد مندوبون',
     'Manager': 'المدير',

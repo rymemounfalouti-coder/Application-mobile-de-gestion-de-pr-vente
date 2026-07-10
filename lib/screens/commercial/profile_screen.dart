@@ -97,7 +97,6 @@ class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
 
   String _languageName(AppLocalizations l10n) {
     return switch (AppLocaleController.instance.languageCode) {
-      'en' => l10n.englishNative,
       'ar' => l10n.arabicNative,
       _ => l10n.frenchNative,
     };
@@ -996,7 +995,6 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
                                         values: [
                                           'Fran\u00E7ais',
                                           '\u0627\u0644\u0639\u0631\u0628\u064A\u0629',
-                                          'English',
                                         ],
                                         currentValue: _language,
                                         onSelected: (value) =>
@@ -3784,8 +3782,6 @@ class _LanguageScreenState extends State<LanguageScreen> {
           _buildLanguageOption('Français', 'French', 'FR'),
           SizedBox(height: 12),
           _buildLanguageOption('العربية', 'Arabic', 'AR'),
-          SizedBox(height: 12),
-          _buildLanguageOption('English', 'English', 'EN'),
         ],
       ),
     );

@@ -295,12 +295,6 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
         nativeName: l10n.arabicNative,
         displayName: l10n.arabic,
       ),
-      _LanguageOption(
-        locale: Locale('en'),
-        flag: '🇺🇸',
-        nativeName: l10n.englishNative,
-        displayName: l10n.english,
-      ),
     ];
 
     return Container(
@@ -516,7 +510,6 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
 
   String _languageName(AppLocalizations l10n, Locale locale) {
     return switch (locale.languageCode) {
-      'en' => l10n.englishNative,
       'ar' => l10n.arabicNative,
       _ => l10n.frenchNative,
     };
@@ -524,7 +517,6 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
 
   List<String> _previewLabels(Locale locale) {
     return switch (locale.languageCode) {
-      'en' => ['Home', 'Clients', 'Orders', 'Activities', 'Profile'],
       'ar' => ['الرئيسية', 'العملاء', 'الطلبات', 'الأنشطة', 'الملف الشخصي'],
       _ => ['Accueil', 'Clients', 'Commandes', 'Activités', 'Profil'],
     };

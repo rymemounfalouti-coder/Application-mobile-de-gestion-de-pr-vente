@@ -53,4 +53,5 @@ class AppLocaleController extends ChangeNotifier {
   }
 }
 
-const Set<String> _supportedLanguageCodes = {'fr', 'en', 'ar'};
+// A previously saved 'en' preference now fails this check and falls back to 'fr'.
+const Set<String> _supportedLanguageCodes = {'fr', 'ar'};
