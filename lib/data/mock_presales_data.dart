@@ -73,7 +73,7 @@ class MockPreSalesData {
     'admin@presales.ma': MockUserProfile(
       id: 5,
       email: 'admin@presales.ma',
-      name: 'Admin PreSales',
+      name: 'Ryme MOUNFALOUTI',
       phone: '0522 00 00 00',
       password: '123456',
       role: MockUserRole.admin,
@@ -117,7 +117,7 @@ class MockPreSalesData {
           time: '09:00',
           client: 'Carrefour Maarif',
           city: 'Casablanca',
-          color: Color(0xFF2563EB),
+          color: Color(0xFF1B7F4B),
         ),
         CommercialActivity(
           commercialId: 1,
@@ -193,7 +193,7 @@ class MockPreSalesData {
           time: '16:00',
           client: 'Restaurant Saveurs du Maroc',
           city: 'Casablanca',
-          color: Color(0xFF0EA5E9),
+          color: Color(0xFF10A79B),
         ),
       ],
     ),

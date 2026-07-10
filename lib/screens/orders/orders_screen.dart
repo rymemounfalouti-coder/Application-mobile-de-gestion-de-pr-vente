@@ -15,7 +15,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   OrderStatus? _selectedStatus;
   String _query = '';
 
-  static const primaryBlue = Color(0xFF2563EB);
+  static const brandPrimary = Color(0xFF1B7F4B);
   static const textDark = Color(0xFF0F172A);
   static const textMuted = Color(0xFF64748B);
   static const surface = Color(0xFFF8FAFC);
@@ -219,7 +219,7 @@ class _OrdersContentState extends State<_OrdersContent> {
                       icon: Icons.receipt_long_rounded,
                       label: AppLocalizations.globalText('Total commandes'),
                       value: '${widget.orders.length}',
-                      iconColor: _OrdersScreenState.primaryBlue,
+                      iconColor: _OrdersScreenState.brandPrimary,
                     ),
                   ),
                   SizedBox(width: 10),
@@ -274,7 +274,7 @@ class _OrdersContentState extends State<_OrdersContent> {
                         contentPadding: EdgeInsets.symmetric(vertical: 16),
                         enabledBorder: _searchBorder(),
                         focusedBorder: _searchBorder(
-                          color: _OrdersScreenState.primaryBlue,
+                          color: _OrdersScreenState.brandPrimary,
                         ),
                       ),
                     ),
@@ -472,7 +472,7 @@ class _OrderStatusFilterSheet extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: selectedStatus == status
-                                  ? _OrdersScreenState.primaryBlue
+                                  ? _OrdersScreenState.brandPrimary
                                   : Color(0xFFCBD5E1),
                               width: 2,
                             ),
@@ -484,7 +484,7 @@ class _OrderStatusFilterSheet extends StatelessWidget {
                                     height: 10,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: _OrdersScreenState.primaryBlue,
+                                      color: _OrdersScreenState.brandPrimary,
                                     ),
                                   ),
                                 )
@@ -602,11 +602,11 @@ class _FilterChip extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: selected ? _OrdersScreenState.primaryBlue : Colors.white,
+            color: selected ? _OrdersScreenState.brandPrimary : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected
-                  ? _OrdersScreenState.primaryBlue
+                  ? _OrdersScreenState.brandPrimary
                   : Color(0xFFE2E8F0),
             ),
           ),

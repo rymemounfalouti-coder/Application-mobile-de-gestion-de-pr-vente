@@ -25,9 +25,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   final Map<int, OrderCartItem> _cart = {};
   int? _hoveredCategoryId;
 
-  static const _darkBlue = Color(0xFF041B45);
-  static const _deepBlue = Color(0xFF06265B);
-  static const _textDark = Color(0xFF111B3D);
+  static const _brandDark = Color(0xFF06261A);
+  static const _brandDeep = Color(0xFF08301F);
+  static const _textDark = Color(0xFF0F172A);
 
   @override
   void initState() {
@@ -72,7 +72,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3F7FF),
+      backgroundColor: Color(0xFFF1F8F4),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, viewport) {
@@ -92,7 +92,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Color(0xFF193A70).withValues(alpha: .13),
+                            color: Color(0xFF0E4531).withValues(alpha: .13),
                             blurRadius: 30,
                             offset: Offset(0, 18),
                           ),
@@ -200,8 +200,8 @@ class _OrderSidebar extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            _NewOrderScreenState._deepBlue,
-            _NewOrderScreenState._darkBlue,
+            _NewOrderScreenState._brandDeep,
+            _NewOrderScreenState._brandDark,
           ],
         ),
       ),
@@ -362,7 +362,7 @@ class _OrderContent extends StatelessWidget {
                   AppLocalizations.globalText('Retour à la liste des clients'),
                 ),
                 style: TextButton.styleFrom(
-                  backgroundColor: Color(0xFFE8EDF5),
+                  backgroundColor: Color(0xFFE4EBE6),
                   foregroundColor: _NewOrderScreenState._textDark,
                   padding: EdgeInsets.symmetric(horizontal: 18, vertical: 13),
                   shape: RoundedRectangleBorder(
@@ -412,7 +412,7 @@ class _OrderContent extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.shopping_cart_outlined,
-                        color: Color(0xFF2684B8),
+                        color: Color(0xFF1E7F6B),
                         size: 34,
                       ),
                       Positioned(
@@ -514,7 +514,7 @@ class _CategoryCard extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: Color(
-                0xFF193A70,
+                0xFF0E4531,
               ).withValues(alpha: showButton ? .12 : .08),
               blurRadius: showButton ? 18 : 12,
               offset: Offset(0, 8),
@@ -561,7 +561,7 @@ class _CategoryCard extends StatelessWidget {
                     elevation: 0,
                     backgroundColor: Color(0xFFE8F5FF),
                     disabledBackgroundColor: Colors.transparent,
-                    foregroundColor: Color(0xFF164260),
+                    foregroundColor: Color(0xFF14603A),
                     disabledForegroundColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -599,7 +599,7 @@ class ProductsByCategoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3F7FF),
+      backgroundColor: Color(0xFFF1F8F4),
       appBar: AppBar(
         title: Text(categoryName),
         backgroundColor: Colors.white,
@@ -645,7 +645,7 @@ class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFB7C7DE).withValues(alpha: .35)
+      ..color = const Color(0xFFB9CFC1).withValues(alpha: .35)
       ..isAntiAlias = true;
 
     for (var row = 0; row < 8; row++) {
@@ -675,7 +675,7 @@ class _MiniCartPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    paint.color = const Color(0xFF0D3A84).withValues(alpha: .72);
+    paint.color = const Color(0xFF0E4531).withValues(alpha: .72);
     canvas.drawCircle(Offset(w * .50, h * .50), w * .28, paint);
     canvas.drawCircle(Offset(w * .68, h * .58), w * .16, paint);
 
@@ -709,7 +709,7 @@ class _MiniCartPainter extends CustomPainter {
       ..strokeWidth = 5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..color = const Color(0xFF8ED5FF);
+      ..color = const Color(0xFFA5E3D2);
     final basket = Path()
       ..moveTo(w * .24, h * .48)
       ..lineTo(w * .75, h * .48)
@@ -721,7 +721,7 @@ class _MiniCartPainter extends CustomPainter {
 
     paint
       ..style = PaintingStyle.fill
-      ..color = const Color(0xFFD6F1FF);
+      ..color = const Color(0xFFDFF3EC);
     canvas.drawCircle(Offset(w * .35, h * .85), 5, paint);
     canvas.drawCircle(Offset(w * .64, h * .85), 5, paint);
 

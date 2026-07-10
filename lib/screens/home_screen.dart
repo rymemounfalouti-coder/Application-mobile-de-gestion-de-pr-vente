@@ -18,10 +18,10 @@ class _HomeScreenState extends State<HomeScreen> {
   List<_ClientRow> _clients = [];
   bool _isLoading = true;
 
-  static const _darkBlue = Color(0xFF041B45);
-  static const _deepBlue = Color(0xFF06265B);
-  static const _primaryBlue = Color(0xFF1B73F8);
-  static const _textDark = Color(0xFF111B3D);
+  static const _brandDark = Color(0xFF06261A);
+  static const _brandDeep = Color(0xFF08301F);
+  static const _brandPrimary = Color(0xFF1B7F4B);
+  static const _textDark = Color(0xFF0F172A);
   static const _textMuted = Color(0xFF74809A);
 
   @override
@@ -306,7 +306,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3F7FF),
+      backgroundColor: Color(0xFFF1F8F4),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, viewport) {
@@ -320,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0xFF193A70).withValues(alpha: .13),
+                      color: Color(0xFF0E4531).withValues(alpha: .13),
                       blurRadius: 30,
                       offset: Offset(0, 18),
                     ),
@@ -432,7 +432,7 @@ class _Sidebar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_HomeScreenState._deepBlue, _HomeScreenState._darkBlue],
+          colors: [_HomeScreenState._brandDeep, _HomeScreenState._brandDark],
         ),
       ),
       child: compact
@@ -682,7 +682,7 @@ class _ClientsPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF193A70).withValues(alpha: .08),
+            color: Color(0xFF0E4531).withValues(alpha: .08),
             blurRadius: 18,
             offset: Offset(0, 10),
           ),
@@ -727,11 +727,11 @@ class _ClientsPanel extends StatelessWidget {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(7),
-                        borderSide: BorderSide(color: Color(0xFFD8DEE9)),
+                        borderSide: BorderSide(color: Color(0xFFD7E2DA)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(7),
-                        borderSide: BorderSide(color: Color(0xFFD8DEE9)),
+                        borderSide: BorderSide(color: Color(0xFFD7E2DA)),
                       ),
                     ),
                   ),
@@ -1042,8 +1042,8 @@ class _ClientActionButtons extends StatelessWidget {
           label: AppLocalizations.globalText('Nouvelle Commande'),
           icon: Icons.add_shopping_cart,
           color: Color(0xFFEBF7FF),
-          borderColor: Color(0xFF94C7EA),
-          textColor: Color(0xFF164260),
+          borderColor: Color(0xFFA5D8C2),
+          textColor: Color(0xFF14603A),
           onPressed: onNewOrder,
         ),
         SizedBox(height: 5),
@@ -1118,7 +1118,7 @@ class _QuickActionsPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF193A70).withValues(alpha: .08),
+            color: Color(0xFF0E4531).withValues(alpha: .08),
             blurRadius: 18,
             offset: Offset(0, 10),
           ),
@@ -1148,14 +1148,14 @@ class _QuickActionsPanel extends StatelessWidget {
           _QuickButton(
             icon: Icons.person_add_alt_1,
             label: AppLocalizations.globalText('Ajouter un\nNouveau Client'),
-            color: _HomeScreenState._primaryBlue,
+            color: _HomeScreenState._brandPrimary,
             onPressed: onAddClient,
           ),
           SizedBox(height: 10),
           _QuickButton(
             icon: Icons.edit_outlined,
             label: AppLocalizations.globalText('Modifier un\nClient Existant'),
-            color: Color(0xFF1E8CEB),
+            color: Color(0xFF25A263),
             onPressed: onEditClient,
           ),
           SizedBox(height: 10),
@@ -1225,7 +1225,7 @@ class _MiniCartPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    paint.color = const Color(0xFF0D3A84).withValues(alpha: .72);
+    paint.color = const Color(0xFF0E4531).withValues(alpha: .72);
     canvas.drawCircle(Offset(w * .50, h * .50), w * .28, paint);
     canvas.drawCircle(Offset(w * .68, h * .58), w * .16, paint);
 
@@ -1259,7 +1259,7 @@ class _MiniCartPainter extends CustomPainter {
       ..strokeWidth = 5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..color = const Color(0xFF8ED5FF);
+      ..color = const Color(0xFFA5E3D2);
     final basket = Path()
       ..moveTo(w * .24, h * .48)
       ..lineTo(w * .75, h * .48)
@@ -1271,7 +1271,7 @@ class _MiniCartPainter extends CustomPainter {
 
     paint
       ..style = PaintingStyle.fill
-      ..color = const Color(0xFFD6F1FF);
+      ..color = const Color(0xFFDFF3EC);
     canvas.drawCircle(Offset(w * .35, h * .85), 5, paint);
     canvas.drawCircle(Offset(w * .64, h * .85), 5, paint);
 
@@ -1370,7 +1370,7 @@ class _ClientRow {
     Color(0xFF9B6B4F),
     Color(0xFF2B8C88),
     Color(0xFFB35C7C),
-    Color(0xFF526CC9),
+    Color(0xFF3E8C63),
     Color(0xFFB98A2E),
   ];
 
@@ -1405,7 +1405,7 @@ class _ClientRow {
       lastName: 'Bronard',
       company: 'Entreprise',
       lastOrder: '31/01/2024',
-      avatarColor: Color(0xFF526CC9),
+      avatarColor: Color(0xFF3E8C63),
     ),
     _ClientRow(
       id: 5,
@@ -1445,7 +1445,7 @@ class _ClientRow {
       lastName: 'Alexandez',
       company: 'Ressfian\nCetreprise',
       lastOrder: '27/01/2024',
-      avatarColor: Color(0xFF526CC9),
+      avatarColor: Color(0xFF3E8C63),
     ),
     _ClientRow(
       id: 10,

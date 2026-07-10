@@ -3,19 +3,20 @@ import 'package:flutter/material.dart';
 import '../../api_service.dart';
 import '../../data/mock_presales_data.dart';
 import '../../data/product_image_assets.dart';
+import '../../theme/app_palette.dart';
 
 // Admin design kit — colors + shared widgets matching the reference mockup
-// (emerald green primary, dark navy rounded headers, white cards).
+// (emerald green primary, deep-green rounded headers, white cards).
 
-const kGreen = Color(0xFF1B7F4B);
-const kHeader = Color(0xFF0E1B2A);
+const kGreen = AppPalette.brand;
+const kHeader = AppPalette.brandDeep;
 const kBg = Color(0xFFF4F6F9);
-const kInk = Color(0xFF0F172A);
+const kInk = AppPalette.ink;
 const kMuted = Color(0xFF7A8699);
 const kBorder = Color(0xFFE9EEF4);
-const kOrange = Color(0xFFF59E0B);
-const kRed = Color(0xFFEF4444);
-const kBlue = Color(0xFF2563EB);
+const kOrange = AppPalette.warning;
+const kRed = AppPalette.danger;
+const kAccent = AppPalette.brand;
 
 // App is light-only; force light theme on inputs so dark-mode OS doesn't hide text.
 final ThemeData adminInputTheme = ThemeData(
@@ -125,7 +126,7 @@ extension _AdminStringFallback on String {
 // Shared widgets
 // ---------------------------------------------------------------------------
 
-/// Dark navy header with rounded bottom corners (hamburger · title · bell).
+/// Dark navy header with rounded bottom corners (title · bell).
 class AdminHeader extends StatelessWidget {
   const AdminHeader({
     super.key,

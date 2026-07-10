@@ -9,7 +9,7 @@ import 'language_preferences_screen.dart';
 import 'notification_preferences_screen.dart';
 import 'appearance_screen.dart';
 
-Color primaryBlue = Color(0xFF2563EB);
+Color brandPrimary = Color(0xFF1B7F4B);
 Color textDark = Color(0xFF0F172A);
 Color textMuted = Color(0xFF64748B);
 Color surfaceBg = Color(0xFFF8FAFC);
@@ -30,7 +30,7 @@ bool _isProfileDarkMode() => cardBg != Colors.white;
 Color _profileBorderColor() {
   return _isProfileDarkMode()
       ? const Color(0xFF334155)
-      : const Color(0xFFE8EEF7);
+      : const Color(0xFFE4EDE7);
 }
 
 Color _profileShadowColor([double lightAlpha = .055]) {
@@ -456,11 +456,11 @@ class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [primaryBlue, primaryBlue.withValues(alpha: 0.7)],
+                    colors: [brandPrimary, brandPrimary.withValues(alpha: 0.7)],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryBlue.withValues(alpha: 0.3),
+                      color: brandPrimary.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: Offset(0, 2),
                     ),
@@ -493,11 +493,11 @@ class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: primaryBlue,
+                      color: brandPrimary,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: primaryBlue.withValues(alpha: 0.3),
+                          color: brandPrimary.withValues(alpha: 0.3),
                           blurRadius: 4,
                           offset: Offset(0, 2),
                         ),
@@ -531,7 +531,7 @@ class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
                 Text(
                   AppLocalizations.globalText('Commercial'),
                   style: TextStyle(
-                    color: primaryBlue,
+                    color: brandPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -605,7 +605,7 @@ class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(item.icon, color: primaryBlue, size: 24),
+            Icon(item.icon, color: brandPrimary, size: 24),
             SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -1117,7 +1117,7 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
                       Navigator.pop(context, controller.text.trim());
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryBlue,
+                      backgroundColor: brandPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -1193,7 +1193,7 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
                       ),
                     ),
                     trailing: item == currentValue
-                        ? Icon(Icons.check_rounded, color: primaryBlue)
+                        ? Icon(Icons.check_rounded, color: brandPrimary)
                         : null,
                     onTap: () => Navigator.pop(context, item),
                   ),
@@ -1321,7 +1321,7 @@ class _PremiumInfoHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded, size: 30),
-          color: primaryBlue,
+          color: brandPrimary,
           padding: EdgeInsets.zero,
           constraints: BoxConstraints.tightFor(width: 42, height: 42),
         ),
@@ -1394,7 +1394,7 @@ class _PremiumInfoUserCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: [primaryBlue, Color(0xFF1D4ED8)],
+                    colors: [brandPrimary, Color(0xFF12543A)],
                   ),
                 ),
                 child: Center(
@@ -1418,7 +1418,7 @@ class _PremiumInfoUserCard extends StatelessWidget {
                   child: IconButton(
                     onPressed: onCameraTap,
                     icon: Icon(Icons.photo_camera_rounded, size: 18),
-                    color: primaryBlue,
+                    color: brandPrimary,
                     constraints: BoxConstraints.tightFor(width: 40, height: 40),
                   ),
                 ),
@@ -1444,7 +1444,7 @@ class _PremiumInfoUserCard extends StatelessWidget {
                 Text(
                   role,
                   style: TextStyle(
-                    color: primaryBlue,
+                    color: brandPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1549,10 +1549,10 @@ class _PremiumInfoRow extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: primaryBlue.withValues(alpha: .08),
+                color: brandPrimary.withValues(alpha: .08),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(data.icon, color: primaryBlue, size: 23),
+              child: Icon(data.icon, color: brandPrimary, size: 23),
             ),
             SizedBox(width: 16),
             Expanded(
@@ -1582,7 +1582,7 @@ class _PremiumInfoRow extends StatelessWidget {
               ),
             ),
             SizedBox(width: 12),
-            Icon(data.trailingIcon, color: primaryBlue, size: 22),
+            Icon(data.trailingIcon, color: brandPrimary, size: 22),
           ],
         ),
       ),
@@ -1612,9 +1612,9 @@ class _PremiumInfoSaveButton extends StatelessWidget {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryBlue,
+          backgroundColor: brandPrimary,
           elevation: 10,
-          shadowColor: primaryBlue.withValues(alpha: .24),
+          shadowColor: brandPrimary.withValues(alpha: .24),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -1666,7 +1666,7 @@ class _PremiumProfileBottomNav extends StatelessWidget {
                       children: [
                         Icon(
                           _items[i].$1,
-                          color: i == 4 ? primaryBlue : textMuted,
+                          color: i == 4 ? brandPrimary : textMuted,
                           size: 27,
                         ),
                         SizedBox(height: 4),
@@ -1675,7 +1675,7 @@ class _PremiumProfileBottomNav extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: i == 4 ? primaryBlue : textMuted,
+                            color: i == 4 ? brandPrimary : textMuted,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1706,7 +1706,7 @@ InputDecoration _premiumInfoInputDecoration(String hint, IconData icon) {
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: primaryBlue, width: 1.6),
+      borderSide: BorderSide(color: brandPrimary, width: 1.6),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
@@ -1858,7 +1858,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: primaryBlue, width: 2),
+              borderSide: BorderSide(color: brandPrimary, width: 2),
             ),
             filled: true,
             fillColor: enabled ? cardBg : Colors.grey.withValues(alpha: 0.05),
@@ -1875,7 +1875,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       height: 50,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryBlue,
+          backgroundColor: brandPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadiusLarge),
           ),
@@ -2280,7 +2280,7 @@ class _PremiumSecurityHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded, size: 30),
-          color: primaryBlue,
+          color: brandPrimary,
           padding: EdgeInsets.zero,
           constraints: BoxConstraints.tightFor(width: 42, height: 42),
         ),
@@ -2474,9 +2474,9 @@ class _PremiumPasswordCard extends StatelessWidget {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryBlue,
+                backgroundColor: brandPrimary,
                 elevation: 8,
-                shadowColor: primaryBlue.withValues(alpha: .20),
+                shadowColor: brandPrimary.withValues(alpha: .20),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -2535,7 +2535,7 @@ class _PremiumPasswordField extends StatelessWidget {
             ),
             prefixIcon: Icon(
               Icons.lock_outline_rounded,
-              color: primaryBlue,
+              color: brandPrimary,
               size: 21,
             ),
             suffixIcon: IconButton(
@@ -2557,7 +2557,7 @@ class _PremiumPasswordField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: primaryBlue, width: 1.5),
+              borderSide: BorderSide(color: brandPrimary, width: 1.5),
             ),
           ),
         ),
@@ -2657,7 +2657,7 @@ class _PremiumSecurityMenuData {
     required this.onTap,
     this.status,
     this.statusColor,
-    this.iconColor = const Color(0xFF2563EB),
+    this.iconColor = const Color(0xFF1B7F4B),
     this.iconBackground,
   });
 
@@ -2738,7 +2738,7 @@ class _PremiumSecurityMenuRow extends StatelessWidget {
 class _PremiumSecurityIcon extends StatelessWidget {
   _PremiumSecurityIcon({
     required this.icon,
-    this.color = const Color(0xFF2563EB),
+    this.color = const Color(0xFF1B7F4B),
     this.background,
     this.size = 44,
   });
@@ -2877,7 +2877,7 @@ class _PremiumTwoFactorScreenState extends State<_PremiumTwoFactorScreen> {
             ],
             trailing: Switch(
               value: _enabled,
-              activeThumbColor: primaryBlue,
+              activeThumbColor: brandPrimary,
               onChanged: _toggle,
             ),
           ),
@@ -3024,7 +3024,7 @@ class _PremiumSecurityDetailCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.lines,
-    this.iconColor = const Color(0xFF2563EB),
+    this.iconColor = const Color(0xFF1B7F4B),
     this.trailing,
   });
 
@@ -3102,7 +3102,7 @@ class _PremiumSecurityChoice extends StatelessWidget {
               selected
                   ? Icons.radio_button_checked_rounded
                   : Icons.radio_button_off_rounded,
-              color: selected ? primaryBlue : textMuted,
+              color: selected ? brandPrimary : textMuted,
             ),
             SizedBox(width: 12),
             Text(
@@ -3209,7 +3209,7 @@ class _PremiumPasswordStrength {
     if (hasUpper && hasLower && hasNumber) {
       return _PremiumPasswordStrength(
         label: AppLocalizations.globalText('Fort'),
-        color: primaryBlue,
+        color: brandPrimary,
         level: 3,
       );
     }
@@ -3353,10 +3353,10 @@ class SecurityScreen extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: primaryBlue.withValues(alpha: 0.1),
+                color: brandPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: primaryBlue),
+              child: Icon(icon, color: brandPrimary),
             ),
             SizedBox(width: 16),
             Expanded(
@@ -3524,12 +3524,12 @@ class LoginHistoryScreen extends StatelessWidget {
                   width: 45,
                   height: 45,
                   decoration: BoxDecoration(
-                    color: primaryBlue.withValues(alpha: 0.1),
+                    color: brandPrimary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     Icons.devices_rounded,
-                    color: primaryBlue,
+                    color: brandPrimary,
                     size: 20,
                   ),
                 ),
@@ -3726,7 +3726,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: primaryBlue,
+            activeThumbColor: brandPrimary,
           ),
         ],
       ),
@@ -3803,10 +3803,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? primaryBlue.withValues(alpha: 0.1) : cardBg,
+          color: isSelected ? brandPrimary.withValues(alpha: 0.1) : cardBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? primaryBlue : Colors.transparent,
+            color: isSelected ? brandPrimary : Colors.transparent,
             width: 2,
           ),
           boxShadow: [
@@ -3840,7 +3840,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
               ],
             ),
             if (isSelected)
-              Icon(Icons.check_circle_rounded, color: primaryBlue, size: 24),
+              Icon(Icons.check_circle_rounded, color: brandPrimary, size: 24),
           ],
         ),
       ),
@@ -3880,10 +3880,10 @@ class AboutAppScreen extends StatelessWidget {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: primaryBlue.withValues(alpha: 0.1),
+                color: brandPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(Icons.apps_rounded, color: primaryBlue, size: 50),
+              child: Icon(Icons.apps_rounded, color: brandPrimary, size: 50),
             ),
             SizedBox(height: 24),
             Text(
@@ -4087,7 +4087,7 @@ class ProfessionalAboutAppScreen extends StatelessWidget {
                       fillColor: surfaceBg,
                       border: _aboutInputBorder(),
                       enabledBorder: _aboutInputBorder(),
-                      focusedBorder: _aboutInputBorder(primaryBlue, 1.6),
+                      focusedBorder: _aboutInputBorder(brandPrimary, 1.6),
                     ),
                   ),
                 ],
@@ -4102,7 +4102,7 @@ class ProfessionalAboutAppScreen extends StatelessWidget {
                       ? null
                       : () => Navigator.pop(dialogContext, true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBlue,
+                    backgroundColor: brandPrimary,
                     foregroundColor: Colors.white,
                   ),
                   child: Text('Envoyer'),
@@ -4168,7 +4168,7 @@ class _AboutHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded, size: 30),
-          color: primaryBlue,
+          color: brandPrimary,
           padding: EdgeInsets.zero,
           constraints: BoxConstraints.tightFor(width: 42, height: 42),
         ),
@@ -4218,14 +4218,14 @@ class _AboutHeroCard extends StatelessWidget {
             height: 96,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [primaryBlue, Color(0xFF0EA5E9)],
+                colors: [brandPrimary, Color(0xFF10A79B)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(26),
               boxShadow: [
                 BoxShadow(
-                  color: primaryBlue.withValues(alpha: .25),
+                  color: brandPrimary.withValues(alpha: .25),
                   blurRadius: 24,
                   offset: Offset(0, 12),
                 ),
@@ -4260,13 +4260,13 @@ class _AboutHeroCard extends StatelessWidget {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 18, vertical: 9),
             decoration: BoxDecoration(
-              color: primaryBlue.withValues(alpha: .09),
+              color: brandPrimary.withValues(alpha: .09),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               'Version ${info.version}',
               style: TextStyle(
-                color: primaryBlue,
+                color: brandPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
               ),
@@ -4376,10 +4376,10 @@ class _AboutSupportCard extends StatelessWidget {
     final mailer = ProfessionalAboutAppScreen();
     return _AboutActionCard(
       icon: Icons.mail_outline_rounded,
-      iconColor: primaryBlue,
+      iconColor: brandPrimary,
       title: 'Support',
       subtitle: info.supportEmail,
-      subtitleColor: primaryBlue,
+      subtitleColor: brandPrimary,
       onTap: () => mailer.openMail(context, info.supportEmail),
     );
   }
@@ -4500,7 +4500,7 @@ class _AboutInfoRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: isLink ? primaryBlue : textMuted,
+                  color: isLink ? brandPrimary : textMuted,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                 ),
@@ -4568,8 +4568,8 @@ class _AboutIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: 24,
-      backgroundColor: background ?? primaryBlue.withValues(alpha: .09),
-      child: Icon(icon, color: color ?? primaryBlue, size: 25),
+      backgroundColor: background ?? brandPrimary.withValues(alpha: .09),
+      child: Icon(icon, color: color ?? brandPrimary, size: 25),
     );
   }
 }
@@ -4609,7 +4609,7 @@ OutlineInputBorder _aboutInputBorder([Color? color, double width = 1]) {
 Color _aboutBorderColor() {
   return ThemeData.estimateBrightnessForColor(cardBg) == Brightness.dark
       ? const Color(0xFF334155)
-      : const Color(0xFFE8EDF5);
+      : const Color(0xFFE4EBE6);
 }
 
 class ProfessionalPrivacyScreen extends StatelessWidget {
@@ -4795,7 +4795,7 @@ class _PrivacyHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded, size: 30),
-          color: primaryBlue,
+          color: brandPrimary,
           padding: EdgeInsets.zero,
           constraints: BoxConstraints.tightFor(width: 42, height: 42),
         ),
@@ -4844,20 +4844,20 @@ class _PrivacyHeroCard extends StatelessWidget {
             width: 128,
             height: 118,
             decoration: BoxDecoration(
-              color: primaryBlue.withValues(alpha: .08),
+              color: brandPrimary.withValues(alpha: .08),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(Icons.shield_rounded, color: primaryBlue, size: 82),
+                Icon(Icons.shield_rounded, color: brandPrimary, size: 82),
                 Icon(Icons.lock_rounded, color: Colors.white, size: 34),
                 Positioned(
                   right: 18,
                   bottom: 20,
                   child: CircleAvatar(
                     radius: 20,
-                    backgroundColor: Color(0xFF60A5FA),
+                    backgroundColor: Color(0xFF58B98A),
                     child: Icon(Icons.check_rounded, color: Colors.white),
                   ),
                 ),
@@ -5207,8 +5207,8 @@ class _PrivacyIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: radius,
-      backgroundColor: background ?? primaryBlue.withValues(alpha: .09),
-      child: Icon(icon, color: color ?? primaryBlue, size: radius),
+      backgroundColor: background ?? brandPrimary.withValues(alpha: .09),
+      child: Icon(icon, color: color ?? brandPrimary, size: radius),
     );
   }
 }
@@ -5264,7 +5264,7 @@ void _showPrivacyDetails(BuildContext context, String title, String details) {
 Color _privacyBorderColor() {
   return ThemeData.estimateBrightnessForColor(cardBg) == Brightness.dark
       ? const Color(0xFF334155)
-      : const Color(0xFFE8EDF5);
+      : const Color(0xFFE4EBE6);
 }
 
 class PrivacyScreen extends StatelessWidget {
@@ -5536,7 +5536,7 @@ class _TermsHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded, size: 30),
-          color: primaryBlue,
+          color: brandPrimary,
           padding: EdgeInsets.zero,
           constraints: BoxConstraints.tightFor(width: 42, height: 42),
         ),
@@ -5585,19 +5585,19 @@ class _TermsHeroCard extends StatelessWidget {
             width: 128,
             height: 118,
             decoration: BoxDecoration(
-              color: primaryBlue.withValues(alpha: .08),
+              color: brandPrimary.withValues(alpha: .08),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(Icons.assignment_rounded, color: primaryBlue, size: 82),
+                Icon(Icons.assignment_rounded, color: brandPrimary, size: 82),
                 Positioned(
                   right: 22,
                   bottom: 24,
                   child: Icon(
                     Icons.verified_rounded,
-                    color: primaryBlue,
+                    color: brandPrimary,
                     size: 48,
                   ),
                 ),
@@ -5752,7 +5752,7 @@ class _TermsContactCard extends StatelessWidget {
                 Text(
                   content.legalEmail,
                   style: TextStyle(
-                    color: primaryBlue,
+                    color: brandPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
@@ -5816,8 +5816,8 @@ class _TermsIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: 24,
-      backgroundColor: primaryBlue.withValues(alpha: .09),
-      child: Icon(icon, color: primaryBlue, size: 24),
+      backgroundColor: brandPrimary.withValues(alpha: .09),
+      child: Icon(icon, color: brandPrimary, size: 24),
     );
   }
 }

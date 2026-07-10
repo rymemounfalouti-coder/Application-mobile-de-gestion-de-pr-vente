@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_locale_controller.dart';
 import '../../l10n/app_localizations.dart';
 
-Color _primaryBlue = Color(0xFF2563EB);
+Color _brandPrimary = Color(0xFF1B7F4B);
 Color _textDark = Color(0xFF0F172A);
 Color _textMuted = Color(0xFF64748B);
 Color _surfaceBg = Color(0xFFF8FAFC);
@@ -128,7 +128,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
         IconButton(
           onPressed: () => Navigator.pop(context),
           icon: Icon(Icons.arrow_back_rounded),
-          color: _primaryBlue,
+          color: _brandPrimary,
           style: IconButton.styleFrom(backgroundColor: _cardBg),
         ),
         SizedBox(width: 14),
@@ -186,13 +186,13 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _primaryBlue.withValues(alpha: 0.12),
+                    color: _brandPrimary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     _languageName(l10n, AppLocaleController.instance.locale),
                     style: TextStyle(
-                      color: _primaryBlue,
+                      color: _brandPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
                     ),
@@ -253,15 +253,15 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: _primaryBlue.withValues(alpha: 0.1),
+        color: _brandPrimary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _primaryBlue.withValues(alpha: 0.18)),
+        border: Border.all(color: _brandPrimary.withValues(alpha: 0.18)),
       ),
       child: Center(
         child: Text(
           label,
           style: TextStyle(
-            color: _primaryBlue.withValues(alpha: 0.65),
+            color: _brandPrimary.withValues(alpha: 0.65),
             fontSize: 24,
             fontWeight: FontWeight.w900,
           ),
@@ -326,7 +326,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                         selected
                             ? Icons.radio_button_checked_rounded
                             : Icons.radio_button_off_rounded,
-                        color: selected ? _primaryBlue : _textMuted,
+                        color: selected ? _brandPrimary : _textMuted,
                         size: 30,
                       ),
                       SizedBox(width: 16),
@@ -405,13 +405,13 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
     return Container(
       padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: _primaryBlue.withValues(alpha: 0.08),
+        color: _brandPrimary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _primaryBlue.withValues(alpha: 0.16)),
+        border: Border.all(color: _brandPrimary.withValues(alpha: 0.16)),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline_rounded, color: _primaryBlue, size: 28),
+          Icon(Icons.info_outline_rounded, color: _brandPrimary, size: 28),
           SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -439,7 +439,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                 Text(
                   preview.join(' · '),
                   style: TextStyle(
-                    color: _primaryBlue,
+                    color: _brandPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -463,11 +463,11 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
         icon: Icon(Icons.language_rounded),
         label: Text(l10n.applyLanguage),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _primaryBlue,
-          disabledBackgroundColor: _primaryBlue.withValues(alpha: 0.35),
+          backgroundColor: _brandPrimary,
+          disabledBackgroundColor: _brandPrimary.withValues(alpha: 0.35),
           foregroundColor: Colors.white,
           elevation: 10,
-          shadowColor: _primaryBlue.withValues(alpha: 0.25),
+          shadowColor: _brandPrimary.withValues(alpha: 0.25),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -612,7 +612,7 @@ class _LanguageBottomNav extends StatelessWidget {
                         children: [
                           Icon(
                             _icons[i],
-                            color: i == 4 ? _primaryBlue : _textMuted,
+                            color: i == 4 ? _brandPrimary : _textMuted,
                             size: 24,
                           ),
                           SizedBox(height: 4),
@@ -621,7 +621,7 @@ class _LanguageBottomNav extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: i == 4 ? _primaryBlue : _textMuted,
+                              color: i == 4 ? _brandPrimary : _textMuted,
                               fontSize: 10,
                               fontWeight: i == 4
                                   ? FontWeight.w900
@@ -661,9 +661,9 @@ Widget _circleIcon(IconData icon, {double size = 62, double iconSize = 30}) {
     width: size,
     height: size,
     decoration: BoxDecoration(
-      color: _primaryBlue.withValues(alpha: 0.09),
+      color: _brandPrimary.withValues(alpha: 0.09),
       shape: BoxShape.circle,
     ),
-    child: Icon(icon, color: _primaryBlue, size: iconSize),
+    child: Icon(icon, color: _brandPrimary, size: iconSize),
   );
 }

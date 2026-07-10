@@ -219,6 +219,8 @@ def _log_recent_activity(
 
 
 def _ensure_factures_status_constraint(cur):
+    # Without this column the status PATCH silently drops every refusal reason.
+    cur.execute("ALTER TABLE factures ADD COLUMN IF NOT EXISTS refusal_reason TEXT")
     cols = _columns(cur, "factures")
     for col in ("status", "statut"):
         if col in cols:

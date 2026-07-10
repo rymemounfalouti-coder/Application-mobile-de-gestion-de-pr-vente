@@ -1,16 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../api_service.dart';
 import '../../auth/current_user_session.dart';
 import '../../data/mock_presales_data.dart';
 import '../../database/database_helper.dart';
+import '../../services/local_json_store.dart';
 import '../../services/password_reset_service.dart';
 import '../../settings/app_appearance_controller.dart';
 
@@ -35,14 +34,14 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _emailError;
   String? _passwordError;
 
-  static const _primaryBlue = Color(0xFF2674F8);
+  static const _brandPrimary = Color(0xFF1B7F4B);
   static const _violet = Color(0xFF8CCB2F);
   static const _premiumText = Color(0xFF24301F);
   static const _premiumMuted = Color(0xFF7D8677);
   static const _premiumBorder = Color(0xFFE2E6DC);
-  static const _textDark = Color(0xFF18213A);
+  static const _textDark = Color(0xFF0F172A);
   static const _textMuted = Color(0xFF69758C);
-  static const _fieldBorder = Color(0xFFE4E9F3);
+  static const _fieldBorder = Color(0xFFE3EBE6);
   static const _danger = Color(0xFFE24444);
 
   @override
@@ -129,18 +128,27 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (_rememberMe) {
-        await _LocalSessionStore.save(
-          email: email,
-          password: password,
-          rememberMe: true,
-        );
-        if (mounted) {
-          setState(() {
-            _rememberedSessions = _LocalSessionStore.mergeSession(
-              _rememberedSessions,
-              _LocalSession(email: email, password: password, rememberMe: true),
-            );
-          });
+        // Auth already succeeded — never let a storage failure block sign-in.
+        try {
+          await _LocalSessionStore.save(
+            email: email,
+            password: password,
+            rememberMe: true,
+          );
+          if (mounted) {
+            setState(() {
+              _rememberedSessions = _LocalSessionStore.mergeSession(
+                _rememberedSessions,
+                _LocalSession(
+                  email: email,
+                  password: password,
+                  rememberMe: true,
+                ),
+              );
+            });
+          }
+        } catch (error) {
+          debugPrint('Session "remember me" non enregistrée: $error');
         }
       }
 
@@ -426,7 +434,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: 'Roboto',
-                                  color: Color(0xFF0F1737),
+                                  color: Color(0xFF0F172A),
                                   fontSize: 38 * scale,
                                   fontWeight: FontWeight.w800,
                                   height: 1,
@@ -903,7 +911,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0xFF1A4C93).withValues(alpha: .10),
+                      color: Color(0xFF12543A).withValues(alpha: .10),
                       blurRadius: 28,
                       offset: Offset(0, 18),
                     ),
@@ -965,7 +973,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _continue,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _LoginScreenState._primaryBlue,
+                            backgroundColor: _LoginScreenState._brandPrimary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(9),
@@ -1096,7 +1104,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
           child: Text(
             _maskEmail(widget.email),
             style: TextStyle(
-              color: _LoginScreenState._primaryBlue,
+              color: _LoginScreenState._brandPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
@@ -1266,7 +1274,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
           onChanged: (value) {
             setState(() => _disconnectDevices = value ?? true);
           },
-          activeColor: _LoginScreenState._primaryBlue,
+          activeColor: _LoginScreenState._brandPrimary,
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           title: Text(
@@ -1318,7 +1326,7 @@ class _RecoveryShell extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0xFF1A4C93).withValues(alpha: .10),
+                      color: Color(0xFF12543A).withValues(alpha: .10),
                       blurRadius: 28,
                       offset: Offset(0, 18),
                     ),
@@ -1388,9 +1396,9 @@ class _PrimaryAuthButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _LoginScreenState._primaryBlue,
+          backgroundColor: _LoginScreenState._brandPrimary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: _LoginScreenState._primaryBlue.withValues(
+          disabledBackgroundColor: _LoginScreenState._brandPrimary.withValues(
             alpha: .65,
           ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
@@ -1484,7 +1492,7 @@ class _AuthField extends StatelessWidget {
         : _LoginScreenState._fieldBorder;
     final focusedBorderColor = darkMode
         ? _LoginScreenState._violet
-        : _LoginScreenState._primaryBlue;
+        : _LoginScreenState._brandPrimary;
 
     if (darkMode) {
       return Column(
@@ -1700,8 +1708,8 @@ class _LocalSessionStore {
       await loadAll(),
       _LocalSession(email: email, password: password, rememberMe: rememberMe),
     );
-    final file = await _file();
-    await file.writeAsString(
+    await writeLocalJson(
+      _fileName,
       jsonEncode({
         'sessions': [
           for (final session in sessions)
@@ -1717,10 +1725,10 @@ class _LocalSessionStore {
 
   static Future<List<_LocalSession>> loadAll() async {
     try {
-      final file = await _file();
-      if (!await file.exists()) return const [];
+      final contents = await readLocalJson(_fileName);
+      if (contents == null) return const [];
 
-      final payload = jsonDecode(await file.readAsString());
+      final payload = jsonDecode(contents);
       if (payload is! Map<String, dynamic>) return const [];
 
       final sessionsPayload = payload['sessions'];
@@ -1750,10 +1758,5 @@ class _LocalSessionStore {
     } catch (_) {
       return const [];
     }
-  }
-
-  static Future<File> _file() async {
-    final directory = await getApplicationSupportDirectory();
-    return File('${directory.path}${Platform.pathSeparator}$_fileName');
   }
 }

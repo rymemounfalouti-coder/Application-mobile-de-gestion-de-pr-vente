@@ -6,9 +6,9 @@ import '../../data/product_image_assets.dart';
 import '../../database/database_helper.dart';
 import 'order_cart.dart';
 
-final _darkBlue = Color(0xFF041B45);
-final _deepBlue = Color(0xFF06265B);
-final _textDark = Color(0xFF111B3D);
+final _brandDark = Color(0xFF06261A);
+final _brandDeep = Color(0xFF08301F);
+final _textDark = Color(0xFF0F172A);
 
 class ProductsByCategoryScreen extends StatefulWidget {
   ProductsByCategoryScreen({
@@ -165,7 +165,7 @@ class _ProductsByCategoryScreenState extends State<ProductsByCategoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3F7FF),
+      backgroundColor: Color(0xFFF1F8F4),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, viewport) {
@@ -184,7 +184,7 @@ class _ProductsByCategoryScreenState extends State<ProductsByCategoryScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Color(0xFF193A70).withValues(alpha: .13),
+                          color: Color(0xFF0E4531).withValues(alpha: .13),
                           blurRadius: 30,
                           offset: Offset(0, 18),
                         ),
@@ -281,7 +281,7 @@ class _ProductsSidebar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_deepBlue, _darkBlue],
+          colors: [_brandDeep, _brandDark],
         ),
       ),
       child: compact
@@ -454,7 +454,7 @@ class _ProductsContent extends StatelessWidget {
                 ),
                 style: TextButton.styleFrom(
                   backgroundColor: Color(0xFFDDF1FF),
-                  foregroundColor: Color(0xFF164260),
+                  foregroundColor: Color(0xFF14603A),
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(7),
@@ -565,7 +565,7 @@ class _ProductsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return Center(child: CircularProgressIndicator(color: Color(0xFF2F8FE8)));
+      return Center(child: CircularProgressIndicator(color: Color(0xFF25A263)));
     }
 
     if (products.isEmpty) {
@@ -621,7 +621,7 @@ class _ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF193A70).withValues(alpha: .08),
+            color: Color(0xFF0E4531).withValues(alpha: .08),
             blurRadius: 14,
             offset: Offset(0, 8),
           ),
@@ -666,7 +666,7 @@ class _ProductPhoto extends StatelessWidget {
       width: 88,
       height: 98,
       decoration: BoxDecoration(
-        color: Color(0xFFEAF3FF),
+        color: Color(0xFFE6F4EC),
         borderRadius: BorderRadius.circular(10),
       ),
       clipBehavior: Clip.antiAlias,
@@ -706,7 +706,7 @@ class _QuantityButton extends StatelessWidget {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.zero,
-          backgroundColor: _darkBlue,
+          backgroundColor: _brandDark,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
@@ -737,7 +737,7 @@ class _CartPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF193A70).withValues(alpha: .08),
+            color: Color(0xFF0E4531).withValues(alpha: .08),
             blurRadius: 14,
             offset: Offset(0, 8),
           ),
@@ -826,7 +826,7 @@ class _CartPanel extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: isSaving ? null : onAddOrder,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF2F8FE8),
+                  backgroundColor: Color(0xFF25A263),
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(
@@ -859,7 +859,7 @@ class _FloatingCartBadge extends StatelessWidget {
             width: 58,
             height: 58,
             decoration: BoxDecoration(
-              color: Color(0xFF2F8FE8),
+              color: Color(0xFF25A263),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.shopping_cart_outlined, color: Colors.white),
@@ -869,7 +869,7 @@ class _FloatingCartBadge extends StatelessWidget {
             right: -2,
             child: CircleAvatar(
               radius: 11,
-              backgroundColor: Color(0xFF5AA7F0),
+              backgroundColor: Color(0xFF58B98A),
               child: Text(
                 '$count',
                 style: TextStyle(color: Colors.white, fontSize: 12),
@@ -895,7 +895,7 @@ class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFB7C7DE).withValues(alpha: .35)
+      ..color = const Color(0xFFB9CFC1).withValues(alpha: .35)
       ..isAntiAlias = true;
 
     for (var row = 0; row < 8; row++) {
@@ -925,7 +925,7 @@ class _MiniCartPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    paint.color = const Color(0xFF0D3A84).withValues(alpha: .72);
+    paint.color = const Color(0xFF0E4531).withValues(alpha: .72);
     canvas.drawCircle(Offset(w * .50, h * .50), w * .28, paint);
     canvas.drawCircle(Offset(w * .68, h * .58), w * .16, paint);
 
@@ -959,7 +959,7 @@ class _MiniCartPainter extends CustomPainter {
       ..strokeWidth = 5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..color = const Color(0xFF8ED5FF);
+      ..color = const Color(0xFFA5E3D2);
     final basket = Path()
       ..moveTo(w * .24, h * .48)
       ..lineTo(w * .75, h * .48)
@@ -971,7 +971,7 @@ class _MiniCartPainter extends CustomPainter {
 
     paint
       ..style = PaintingStyle.fill
-      ..color = const Color(0xFFD6F1FF);
+      ..color = const Color(0xFFDFF3EC);
     canvas.drawCircle(Offset(w * .35, h * .85), 5, paint);
     canvas.drawCircle(Offset(w * .64, h * .85), 5, paint);
 

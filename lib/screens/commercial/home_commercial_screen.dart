@@ -20,10 +20,10 @@ class _HomeCommercialState extends State<HomeCommercial> {
   List<CommercialClient> _persistedClients = [];
   String? _clientsLoadedForEmail;
 
-  static const primaryBlue = Color(0xFF2674F8);
-  static const textDark = Color(0xFF14204A);
+  static const brandPrimary = Color(0xFF1B7F4B);
+  static const textDark = Color(0xFF0F172A);
   static const textMuted = Color(0xFF6F7A90);
-  static const surface = Color(0xFFF7F9FD);
+  static const surface = Color(0xFFF4F8F5);
   static const success = Color(0xFF20C47B);
 
   void _redirectAfterBuild(BuildContext context, String route) {
@@ -110,7 +110,7 @@ class _HomeCommercialState extends State<HomeCommercial> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: Color(0xFF0B3B2A).withValues(alpha: .08),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -497,7 +497,7 @@ class _ClientsCommercialState extends State<ClientsCommercial> {
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _HomeCommercialState.primaryBlue,
+                            backgroundColor: _HomeCommercialState.brandPrimary,
                             foregroundColor: Colors.white,
                           ),
                           child: Text(AppLocalizations.globalText('Appliquer')),
@@ -538,7 +538,7 @@ class _ClientsCommercialState extends State<ClientsCommercial> {
                     contentPadding: EdgeInsets.symmetric(vertical: 13),
                     enabledBorder: _searchBorder(),
                     focusedBorder: _searchBorder(
-                      color: _HomeCommercialState.primaryBlue,
+                      color: _HomeCommercialState.brandPrimary,
                     ),
                   ),
                 ),
@@ -551,14 +551,14 @@ class _ClientsCommercialState extends State<ClientsCommercial> {
                   onPressed: _openFilterSheet,
                   style: OutlinedButton.styleFrom(
                     padding: EdgeInsets.zero,
-                    side: BorderSide(color: Color(0xFFE3E8F2)),
+                    side: BorderSide(color: Color(0xFFE3EBE6)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: Icon(
                     Icons.filter_alt_outlined,
-                    color: _HomeCommercialState.primaryBlue,
+                    color: _HomeCommercialState.brandPrimary,
                   ),
                 ),
               ),
@@ -686,7 +686,7 @@ class _OrdersCommercialState extends State<OrdersCommercial> {
                   trailing: _selectedFilter == filter
                       ? Icon(
                           Icons.check_rounded,
-                          color: _HomeCommercialState.primaryBlue,
+                          color: _HomeCommercialState.brandPrimary,
                         )
                       : null,
                   onTap: () {
@@ -773,7 +773,7 @@ class _OrdersCommercialState extends State<OrdersCommercial> {
           child: FloatingActionButton(
             heroTag: 'commercial-orders-fab',
             onPressed: _createOrder,
-            backgroundColor: _HomeCommercialState.primaryBlue,
+            backgroundColor: _HomeCommercialState.brandPrimary,
             foregroundColor: Colors.white,
             elevation: 10,
             child: Icon(Icons.add_rounded, size: 34),
@@ -891,7 +891,7 @@ class _OrdersSearchBar extends StatelessWidget {
               contentPadding: EdgeInsets.symmetric(vertical: 17),
               enabledBorder: _searchBorder(),
               focusedBorder: _searchBorder(
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
               ),
             ),
           ),
@@ -905,7 +905,7 @@ class _OrdersSearchBar extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: Color(0xFF475569),
               backgroundColor: Colors.white,
-              side: BorderSide(color: Color(0xFFE3E8F2)),
+              side: BorderSide(color: Color(0xFFE3EBE6)),
               padding: EdgeInsets.zero,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -939,7 +939,7 @@ class _OrdersKpiGrid extends StatelessWidget {
         title: AppLocalizations.globalText('Total commandes'),
         value: totalOrders,
         icon: Icons.shopping_bag_outlined,
-        color: Color(0xFF2563EB),
+        color: Color(0xFF1B7F4B),
       ),
       _OrderKpiData(
         title: AppLocalizations.globalText('En attente'),
@@ -1002,7 +1002,7 @@ class _OrderKpiCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Color(0xFFE8EEF7)),
+        border: Border.all(color: Color(0xFFE4EDE7)),
         boxShadow: [
           BoxShadow(
             color: Color(0xFF0F172A).withValues(alpha: .065),
@@ -1081,10 +1081,10 @@ class _OrderQuickFilters extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 17),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: selected ? Color(0xFF2563EB) : Colors.white,
+                color: selected ? Color(0xFF1B7F4B) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: selected ? Color(0xFF2563EB) : Color(0xFFE8EEF7),
+                  color: selected ? Color(0xFF1B7F4B) : Color(0xFFE4EDE7),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -1144,12 +1144,12 @@ class _OrderCard extends StatelessWidget {
                   width: 54,
                   height: 54,
                   decoration: BoxDecoration(
-                    color: Color(0xFF2563EB).withValues(alpha: .10),
+                    color: Color(0xFF1B7F4B).withValues(alpha: .10),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(
                     Icons.description_outlined,
-                    color: Color(0xFF2563EB),
+                    color: Color(0xFF1B7F4B),
                     size: 28,
                   ),
                 ),
@@ -1275,12 +1275,12 @@ class _EmptyOrdersState extends StatelessWidget {
             width: 112,
             height: 112,
             decoration: BoxDecoration(
-              color: Color(0xFF2563EB).withValues(alpha: .08),
+              color: Color(0xFF1B7F4B).withValues(alpha: .08),
               borderRadius: BorderRadius.circular(28),
             ),
             child: Icon(
               Icons.receipt_long_rounded,
-              color: Color(0xFF2563EB),
+              color: Color(0xFF1B7F4B),
               size: 54,
             ),
           ),
@@ -1300,7 +1300,7 @@ class _EmptyOrdersState extends StatelessWidget {
             icon: Icon(Icons.add_rounded),
             label: Text(AppLocalizations.globalText('Créer une commande')),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF2563EB),
+              backgroundColor: Color(0xFF1B7F4B),
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(horizontal: 18, vertical: 13),
               shape: RoundedRectangleBorder(
@@ -1361,7 +1361,7 @@ class DetailCommande extends StatelessWidget {
                     label: AppLocalizations.globalText('Motif du refus'),
                     value: 'Commande refusée par le manager.',
                   ),
-                Divider(color: Color(0xFFE8EDF5)),
+                Divider(color: Color(0xFFE4EBE6)),
                 for (final item in order.items)
                   _ConfirmationInfoRow(
                     label: item.productName,
@@ -1705,7 +1705,7 @@ class _ProfileUserCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 42,
-                backgroundColor: _HomeCommercialState.primaryBlue,
+                backgroundColor: _HomeCommercialState.brandPrimary,
                 child: Text(
                   _initials(name),
                   style: TextStyle(
@@ -1749,7 +1749,7 @@ class _ProfileUserCard extends StatelessWidget {
                 Text(
                   role,
                   style: TextStyle(
-                    color: _HomeCommercialState.primaryBlue,
+                    color: _HomeCommercialState.brandPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1810,7 +1810,7 @@ class _ProfileMenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = item.color ?? Color(0xFF123F8C);
+    final color = item.color ?? Color(0xFF0E4531);
     return InkWell(
       onTap: item.onTap,
       borderRadius: BorderRadius.circular(12),
@@ -1820,7 +1820,7 @@ class _ProfileMenuRow extends StatelessWidget {
           border: Border(
             bottom: isLast
                 ? BorderSide.none
-                : BorderSide(color: Color(0xFFE8EDF5)),
+                : BorderSide(color: Color(0xFFE4EBE6)),
           ),
         ),
         child: Row(
@@ -1891,7 +1891,7 @@ class _AboutPreSalesCard extends StatelessWidget {
                   width: 54,
                   height: 54,
                   decoration: BoxDecoration(
-                    color: _HomeCommercialState.primaryBlue,
+                    color: _HomeCommercialState.brandPrimary,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
@@ -1954,7 +1954,7 @@ class _ProfileCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .07),
+            color: Color(0xFF0B3B2A).withValues(alpha: .07),
             blurRadius: 22,
             offset: Offset(0, 10),
           ),
@@ -2142,7 +2142,7 @@ class _TourMapCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF18315E).withValues(alpha: .08),
+              color: Color(0xFF0B3B2A).withValues(alpha: .08),
               blurRadius: 18,
               offset: Offset(0, 9),
             ),
@@ -2225,7 +2225,7 @@ class _TourMapPainter extends CustomPainter {
 
     if (visits.length > 1) {
       final routePaint = Paint()
-        ..color = _HomeCommercialState.primaryBlue
+        ..color = _HomeCommercialState.brandPrimary
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
@@ -2262,12 +2262,12 @@ class _CurrentPositionDot extends StatelessWidget {
       width: 18,
       height: 18,
       decoration: BoxDecoration(
-        color: _HomeCommercialState.primaryBlue,
+        color: _HomeCommercialState.brandPrimary,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
-            color: _HomeCommercialState.primaryBlue.withValues(alpha: .28),
+            color: _HomeCommercialState.brandPrimary.withValues(alpha: .28),
             blurRadius: 10,
           ),
         ],
@@ -2298,7 +2298,7 @@ class _MapVisitPin extends StatelessWidget {
               top: 20,
               child: Icon(
                 Icons.location_on_rounded,
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
                 size: 30,
               ),
             ),
@@ -2307,7 +2307,7 @@ class _MapVisitPin extends StatelessWidget {
               height: 24,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
               ),
@@ -2348,7 +2348,7 @@ class _TourVisitsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .08),
+            color: Color(0xFF0B3B2A).withValues(alpha: .08),
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -2391,19 +2391,19 @@ class _TourVisitRow extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 13),
         decoration: BoxDecoration(
           color: selected
-              ? _HomeCommercialState.primaryBlue.withValues(alpha: .05)
+              ? _HomeCommercialState.brandPrimary.withValues(alpha: .05)
               : Colors.transparent,
           border: Border(
             bottom: isLast
                 ? BorderSide.none
-                : BorderSide(color: Color(0xFFE8EDF5)),
+                : BorderSide(color: Color(0xFFE4EBE6)),
           ),
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 14,
-              backgroundColor: _HomeCommercialState.primaryBlue,
+              backgroundColor: _HomeCommercialState.brandPrimary,
               child: Text(
                 '${visit.id}',
                 style: TextStyle(
@@ -2636,7 +2636,7 @@ class _DetailClientState extends State<DetailClient> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: Color(0xFF0B3B2A).withValues(alpha: .08),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -2715,12 +2715,12 @@ class _DetailClientState extends State<DetailClient> {
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor:
                                                     _HomeCommercialState
-                                                        .primaryBlue,
+                                                        .brandPrimary,
                                                 foregroundColor: Colors.white,
                                                 elevation: 8,
                                                 shadowColor:
                                                     _HomeCommercialState
-                                                        .primaryBlue
+                                                        .brandPrimary
                                                         .withValues(alpha: .26),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
@@ -2883,7 +2883,7 @@ class _SelectionClientCommandeState extends State<SelectionClientCommande> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: Color(0xFF0B3B2A).withValues(alpha: .08),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -2934,7 +2934,7 @@ class _SelectionClientCommandeState extends State<SelectionClientCommande> {
                               ),
                               enabledBorder: _searchBorder(),
                               focusedBorder: _searchBorder(
-                                color: _HomeCommercialState.primaryBlue,
+                                color: _HomeCommercialState.brandPrimary,
                               ),
                             ),
                           ),
@@ -3019,7 +3019,7 @@ class _ProspectConversionSheet extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onConvert,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _HomeCommercialState.primaryBlue,
+                    backgroundColor: _HomeCommercialState.brandPrimary,
                     foregroundColor: Colors.white,
                   ),
                   child: Text(
@@ -3061,12 +3061,12 @@ class _OrderClientCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: inactive ? Color(0xFFF8FAFC) : Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Color(0xFFE8EDF5)),
+            border: Border.all(color: Color(0xFFE4EBE6)),
             boxShadow: inactive
                 ? null
                 : [
                     BoxShadow(
-                      color: Color(0xFF18315E).withValues(alpha: .05),
+                      color: Color(0xFF0B3B2A).withValues(alpha: .05),
                       blurRadius: 14,
                       offset: Offset(0, 7),
                     ),
@@ -3463,7 +3463,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: Color(0xFF0B3B2A).withValues(alpha: .08),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -3546,7 +3546,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor:
                                         _HomeCommercialState.textDark,
-                                    side: BorderSide(color: Color(0xFFD7DEE9)),
+                                    side: BorderSide(color: Color(0xFFD7E2DA)),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(11),
                                     ),
@@ -3569,11 +3569,11 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
                                   onPressed: _sendToManager,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor:
-                                        _HomeCommercialState.primaryBlue,
+                                        _HomeCommercialState.brandPrimary,
                                     foregroundColor: Colors.white,
                                     elevation: 8,
                                     shadowColor: _HomeCommercialState
-                                        .primaryBlue
+                                        .brandPrimary
                                         .withValues(alpha: .24),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(11),
@@ -3636,7 +3636,7 @@ OrderProduct _commercialOrderProductFromApi(Map<dynamic, dynamic> json) {
     unitPrice: price,
     stock: _commercialApiInt(json, ['stock', 'quantite_stock', 'quantity']),
     icon: Icons.local_cafe_rounded,
-    imageColor: _HomeCommercialState.primaryBlue,
+    imageColor: _HomeCommercialState.brandPrimary,
   );
 }
 
@@ -3716,7 +3716,7 @@ class _NewOrderHeader extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Color(0xFFE8EDF5)),
+            border: Border.all(color: Color(0xFFE4EBE6)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3799,7 +3799,7 @@ class _OrderDatesCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Color(0xFFE8EDF5)),
+        border: Border.all(color: Color(0xFFE4EBE6)),
       ),
       child: Row(
         children: [
@@ -3839,7 +3839,7 @@ class _DateInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: _HomeCommercialState.primaryBlue, size: 18),
+        Icon(icon, color: _HomeCommercialState.brandPrimary, size: 18),
         SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -3896,7 +3896,7 @@ class _ProductSearchBar extends StatelessWidget {
               contentPadding: EdgeInsets.symmetric(vertical: 13),
               enabledBorder: _searchBorder(),
               focusedBorder: _searchBorder(
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
               ),
             ),
           ),
@@ -3909,7 +3909,7 @@ class _ProductSearchBar extends StatelessWidget {
             onPressed: onScan,
             style: OutlinedButton.styleFrom(
               padding: EdgeInsets.zero,
-              side: BorderSide(color: Color(0xFFE3E8F2)),
+              side: BorderSide(color: Color(0xFFE3EBE6)),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -3954,7 +3954,7 @@ class _OrderProductTile extends StatelessWidget {
           border: Border(
             bottom: isLast
                 ? BorderSide.none
-                : BorderSide(color: Color(0xFFE8EDF5)),
+                : BorderSide(color: Color(0xFFE4EBE6)),
           ),
         ),
         child: Row(
@@ -4119,7 +4119,7 @@ class _QuantityStepper extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Color(0xFFE3E8F2)),
+        border: Border.all(color: Color(0xFFE3EBE6)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -4168,7 +4168,7 @@ class _QuantityButton extends StatelessWidget {
           size: 17,
           color: onTap == null
               ? _HomeCommercialState.textMuted.withValues(alpha: .45)
-              : _HomeCommercialState.primaryBlue,
+              : _HomeCommercialState.brandPrimary,
         ),
       ),
     );
@@ -4208,7 +4208,7 @@ class _ScannerSimulationSheet extends StatelessWidget {
               subtitle: Text('${product.category} · Stock ${product.stock}'),
               trailing: Icon(
                 Icons.add_circle_rounded,
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
               ),
               onTap: () => Navigator.pop(context, product),
             ),
@@ -4238,7 +4238,7 @@ class _OrderTotals extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Color(0xFFE8EDF5)),
+        border: Border.all(color: Color(0xFFE4EBE6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4407,7 +4407,7 @@ class _ConfirmationCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF18315E).withValues(alpha: .08),
+              color: Color(0xFF0B3B2A).withValues(alpha: .08),
               blurRadius: 28,
               offset: Offset(0, 14),
             ),
@@ -4438,7 +4438,7 @@ class _ConfirmationCard extends StatelessWidget {
               ),
             ),
             SizedBox(height: 28),
-            Divider(color: Color(0xFFE8EDF5)),
+            Divider(color: Color(0xFFE4EBE6)),
             SizedBox(height: 8),
             _ConfirmationInfoRow(
               label: AppLocalizations.globalText('Client'),
@@ -4461,7 +4461,7 @@ class _ConfirmationCard extends StatelessWidget {
               value: order.status,
             ),
             SizedBox(height: 8),
-            Divider(color: Color(0xFFE8EDF5)),
+            Divider(color: Color(0xFFE4EBE6)),
             SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
@@ -4469,10 +4469,10 @@ class _ConfirmationCard extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onOrders,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _HomeCommercialState.primaryBlue,
+                  backgroundColor: _HomeCommercialState.brandPrimary,
                   foregroundColor: Colors.white,
                   elevation: 8,
-                  shadowColor: _HomeCommercialState.primaryBlue.withValues(
+                  shadowColor: _HomeCommercialState.brandPrimary.withValues(
                     alpha: .24,
                   ),
                   shape: RoundedRectangleBorder(
@@ -4493,7 +4493,7 @@ class _ConfirmationCard extends StatelessWidget {
                 onPressed: onHome,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _HomeCommercialState.textDark,
-                  side: BorderSide(color: Color(0xFFD7DEE9)),
+                  side: BorderSide(color: Color(0xFFD7E2DA)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -4522,9 +4522,9 @@ class _SuccessBadge extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          _ConfettiDot(left: 12, top: 16, color: Color(0xFF2674F8)),
+          _ConfettiDot(left: 12, top: 16, color: Color(0xFF1B7F4B)),
           _ConfettiDot(left: 38, top: 0, color: Color(0xFFFF2FA0)),
-          _ConfettiDot(right: 16, top: 12, color: Color(0xFF2674F8)),
+          _ConfettiDot(right: 16, top: 12, color: Color(0xFF1B7F4B)),
           _ConfettiDot(right: 2, top: 48, color: Color(0xFFFFC24B)),
           _ConfettiDot(left: 4, bottom: 34, color: Color(0xFFFF8A1F)),
           _ConfettiDot(right: 34, bottom: 24, color: Color(0xFFFF2FA0)),
@@ -4648,7 +4648,7 @@ class _MissingOrderCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF18315E).withValues(alpha: .08),
+              color: Color(0xFF0B3B2A).withValues(alpha: .08),
               blurRadius: 28,
               offset: Offset(0, 14),
             ),
@@ -4835,7 +4835,7 @@ class _ClientIdentity extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 27,
-          backgroundColor: _HomeCommercialState.primaryBlue,
+          backgroundColor: _HomeCommercialState.brandPrimary,
           child: Text(
             client.initials,
             style: TextStyle(
@@ -4891,10 +4891,10 @@ class _ClientSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: Color(0xFFE8EDF5)),
+        border: Border.all(color: Color(0xFFE4EBE6)),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .05),
+            color: Color(0xFF0B3B2A).withValues(alpha: .05),
             blurRadius: 14,
             offset: Offset(0, 7),
           ),
@@ -4972,7 +4972,7 @@ class _SummaryDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 42, color: Color(0xFFE8EDF5));
+    return Container(width: 1, height: 42, color: Color(0xFFE4EBE6));
   }
 }
 
@@ -5001,18 +5001,18 @@ class _DetailTabs extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: selectedIndex == i
-                        ? _HomeCommercialState.primaryBlue
+                        ? _HomeCommercialState.brandPrimary
                         : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: selectedIndex == i
-                          ? _HomeCommercialState.primaryBlue
-                          : Color(0xFFE8EDF5),
+                          ? _HomeCommercialState.brandPrimary
+                          : Color(0xFFE4EBE6),
                     ),
                     boxShadow: selectedIndex == i
                         ? [
                             BoxShadow(
-                              color: _HomeCommercialState.primaryBlue
+                              color: _HomeCommercialState.brandPrimary
                                   .withValues(alpha: .18),
                               blurRadius: 12,
                               offset: Offset(0, 6),
@@ -5158,7 +5158,7 @@ class _InfoActionRow extends StatelessWidget {
       trailing: IconButton(
         onPressed: onAction,
         icon: Icon(actionIcon, size: 18),
-        color: _HomeCommercialState.primaryBlue,
+        color: _HomeCommercialState.brandPrimary,
         padding: EdgeInsets.zero,
         constraints: BoxConstraints.tightFor(width: 34, height: 34),
       ),
@@ -5218,7 +5218,7 @@ class _InfoRowShell extends StatelessWidget {
         border: Border(
           bottom: isLast
               ? BorderSide.none
-              : BorderSide(color: Color(0xFFE8EDF5)),
+              : BorderSide(color: Color(0xFFE4EBE6)),
         ),
       ),
       child: Row(
@@ -5332,7 +5332,7 @@ class _SimpleDetailRow extends StatelessWidget {
         border: Border(
           bottom: isLast
               ? BorderSide.none
-              : BorderSide(color: Color(0xFFE8EDF5)),
+              : BorderSide(color: Color(0xFFE4EBE6)),
         ),
       ),
       child: Row(
@@ -5416,10 +5416,10 @@ class _DetailCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: Color(0xFFE8EDF5)),
+        border: Border.all(color: Color(0xFFE4EBE6)),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .05),
+            color: Color(0xFF0B3B2A).withValues(alpha: .05),
             blurRadius: 14,
             offset: Offset(0, 7),
           ),
@@ -5461,7 +5461,7 @@ class _LegacyDetailClient extends StatelessWidget {
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0xFF18315E).withValues(alpha: .08),
+                    color: Color(0xFF0B3B2A).withValues(alpha: .08),
                     blurRadius: 24,
                     offset: Offset(0, 12),
                   ),
@@ -5472,12 +5472,12 @@ class _LegacyDetailClient extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: _HomeCommercialState.primaryBlue
+                    backgroundColor: _HomeCommercialState.brandPrimary
                         .withValues(alpha: .14),
                     child: Text(
                       client.initials,
                       style: TextStyle(
-                        color: _HomeCommercialState.primaryBlue,
+                        color: _HomeCommercialState.brandPrimary,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -5536,7 +5536,7 @@ class _ClientTabs extends StatelessWidget {
                       _tabLabel(status),
                       style: TextStyle(
                         color: selectedStatus == status
-                            ? _HomeCommercialState.primaryBlue
+                            ? _HomeCommercialState.brandPrimary
                             : _HomeCommercialState.textMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
@@ -5548,7 +5548,7 @@ class _ClientTabs extends StatelessWidget {
                       width: selectedStatus == status ? 28 : 0,
                       height: 2,
                       decoration: BoxDecoration(
-                        color: _HomeCommercialState.primaryBlue,
+                        color: _HomeCommercialState.brandPrimary,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -5585,10 +5585,10 @@ class _ClientCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Color(0xFFE8EDF5)),
+          border: Border.all(color: Color(0xFFE4EBE6)),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF18315E).withValues(alpha: .05),
+              color: Color(0xFF0B3B2A).withValues(alpha: .05),
               blurRadius: 14,
               offset: Offset(0, 7),
             ),
@@ -5657,7 +5657,7 @@ class _ClientAvatar extends StatelessWidget {
 
   Color _avatarColor(int id) {
     final colors = [
-      Color(0xFF78AFFF),
+      Color(0xFF7FC8A2),
       Color(0xFFFF8A76),
       Color(0xFF8FDFAE),
       Color(0xFFA88AF4),
@@ -5745,7 +5745,7 @@ class _FilterLabel extends StatelessWidget {
   }
 }
 
-OutlineInputBorder _searchBorder({Color color = const Color(0xFFE3E8F2)}) {
+OutlineInputBorder _searchBorder({Color color = const Color(0xFFE3EBE6)}) {
   return OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
     borderSide: BorderSide(color: color),
@@ -5755,10 +5755,10 @@ OutlineInputBorder _searchBorder({Color color = const Color(0xFFE3E8F2)}) {
 InputDecoration _sheetDecoration() {
   return InputDecoration(
     filled: true,
-    fillColor: Color(0xFFF7F9FD),
+    fillColor: Color(0xFFF4F8F5),
     contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     enabledBorder: _searchBorder(),
-    focusedBorder: _searchBorder(color: _HomeCommercialState.primaryBlue),
+    focusedBorder: _searchBorder(color: _HomeCommercialState.brandPrimary),
   );
 }
 
@@ -5782,7 +5782,7 @@ class _DashboardTab extends StatelessWidget {
   final ValueChanged<int> onNavigate;
 
   static const _navy = Color(0xFF0F172A);
-  static const _blue = Color(0xFF2563EB);
+  static const _brand = Color(0xFF1B7F4B);
   static const _green = Color(0xFF22C55E);
   static const _orange = Color(0xFFF59E0B);
 
@@ -5957,11 +5957,11 @@ class _CommercialHomeHeader extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [_DashboardTab._blue, Color(0xFF38BDF8)],
+                colors: [_DashboardTab._brand, Color(0xFF34C88E)],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _DashboardTab._blue.withValues(alpha: .22),
+                  color: _DashboardTab._brand.withValues(alpha: .22),
                   blurRadius: 18,
                   offset: Offset(0, 8),
                 ),
@@ -5998,11 +5998,11 @@ class _DailyObjectiveCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_DashboardTab._navy, _DashboardTab._blue],
+          colors: [_DashboardTab._navy, _DashboardTab._brand],
         ),
         boxShadow: [
           BoxShadow(
-            color: _DashboardTab._blue.withValues(alpha: .24),
+            color: _DashboardTab._brand.withValues(alpha: .24),
             blurRadius: 26,
             offset: Offset(0, 14),
           ),
@@ -6054,7 +6054,7 @@ class _DailyObjectiveCard extends StatelessWidget {
           Text(
             AppLocalizations.globalText('17 commandes / 25 objectif'),
             style: TextStyle(
-              color: Color(0xFFD9E6FF),
+              color: Color(0xFFCDE9DA),
               fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
@@ -6150,10 +6150,10 @@ class _QuickStatCard extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: _DashboardTab._blue.withValues(alpha: .10),
+              color: _DashboardTab._brand.withValues(alpha: .10),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(data.icon, color: _DashboardTab._blue, size: 21),
+            child: Icon(data.icon, color: _DashboardTab._brand, size: 21),
           ),
           Spacer(),
           Text(
@@ -6208,10 +6208,10 @@ class _NewOrderAction extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 18, vertical: 17),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: _DashboardTab._blue,
+            color: _DashboardTab._brand,
             boxShadow: [
               BoxShadow(
-                color: _DashboardTab._blue.withValues(alpha: .28),
+                color: _DashboardTab._brand.withValues(alpha: .28),
                 blurRadius: 22,
                 offset: Offset(0, 12),
               ),
@@ -6265,7 +6265,7 @@ class _SectionTitle extends StatelessWidget {
           TextButton(
             onPressed: onActionTap,
             style: TextButton.styleFrom(
-              foregroundColor: _DashboardTab._blue,
+              foregroundColor: _DashboardTab._brand,
               padding: EdgeInsets.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
@@ -6404,7 +6404,7 @@ class _RecentActivityCard extends StatelessWidget {
         'Visite client terminée',
         _DashboardTab._green,
       ),
-      (Icons.send_rounded, 'Commande envoyée au manager', _DashboardTab._blue),
+      (Icons.send_rounded, 'Commande envoyée au manager', _DashboardTab._brand),
       (
         Icons.person_add_alt_rounded,
         'Nouveau client ajouté',
@@ -6544,7 +6544,7 @@ class _NotificationTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: _DashboardTab._blue),
+          Icon(icon, color: _DashboardTab._brand),
           SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -6613,7 +6613,7 @@ class _CommercialBottomNav extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .09),
+            color: Color(0xFF0B3B2A).withValues(alpha: .09),
             blurRadius: 20,
             offset: Offset(0, -8),
           ),
@@ -6658,7 +6658,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected
-        ? _HomeCommercialState.primaryBlue
+        ? _HomeCommercialState.brandPrimary
         : _HomeCommercialState.textMuted;
 
     return InkWell(
@@ -6712,12 +6712,12 @@ class _TemporaryTab extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: _HomeCommercialState.primaryBlue.withValues(alpha: .10),
+                color: _HomeCommercialState.brandPrimary.withValues(alpha: .10),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
                 icon,
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
                 size: 34,
               ),
             ),

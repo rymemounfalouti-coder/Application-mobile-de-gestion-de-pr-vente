@@ -1108,9 +1108,7 @@ class ApiService {
               'name': item.productName,
               'quantity': item.quantity,
               'quantite': item.quantity,
-              'unit_price': item.quantity == 0
-                  ? 0
-                  : item.total / item.quantity,
+              'unit_price': item.quantity == 0 ? 0 : item.total / item.quantity,
               'total': item.total,
               'total_ligne': item.total,
             },

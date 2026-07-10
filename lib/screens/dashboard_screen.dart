@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_palette.dart';
 import '../../database/database_helper.dart';
 import '../../screens/clients/clients_screen.dart';
 import '../../screens/categories/categories_screen.dart';
@@ -86,7 +87,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: GridView.count(
                 crossAxisCount: 2,
                 children: [
-                  buildCard("Clients", "$nbClients", Icons.person, Colors.blue),
+                  buildCard(
+                    "Clients",
+                    "$nbClients",
+                    Icons.person,
+                    AppPalette.brand,
+                  ),
 
                   buildCard(
                     "Catégories",

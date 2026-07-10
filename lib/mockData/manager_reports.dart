@@ -39,7 +39,7 @@ class ManagerReportsMockData {
           label: 'Validées',
           count: validatedCount,
           percent: _percent(validatedCount, totalStatus),
-          colorHex: 0xFF2674F8,
+          colorHex: 0xFF1B7F4B,
         ),
         OrderStatusReport(
           label: 'En attente',

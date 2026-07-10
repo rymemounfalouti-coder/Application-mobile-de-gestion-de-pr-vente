@@ -84,11 +84,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3F7FF),
+      backgroundColor: Color(0xFFF1F8F4),
       appBar: AppBar(
         title: Text(AppLocalizations.globalText('Historique')),
         backgroundColor: Colors.white,
-        foregroundColor: Color(0xFF111B3D),
+        foregroundColor: Color(0xFF0F172A),
         elevation: 0,
       ),
       body: Center(
@@ -110,7 +110,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     Text(
                       widget.clientName,
                       style: TextStyle(
-                        color: Color(0xFF111B3D),
+                        color: Color(0xFF0F172A),
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
                       ),
@@ -162,7 +162,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                       '${total.toStringAsFixed(2)} DH',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w900,
-                                        color: Color(0xFF111B3D),
+                                        color: Color(0xFF0F172A),
                                       ),
                                     ),
                                     SizedBox(width: 8),

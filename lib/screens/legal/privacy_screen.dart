@@ -26,11 +26,11 @@ class _LegalPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3F7FF),
+      backgroundColor: Color(0xFFF1F8F4),
       appBar: AppBar(
         title: Text(title),
         backgroundColor: Colors.white,
-        foregroundColor: Color(0xFF111B3D),
+        foregroundColor: Color(0xFF0F172A),
         elevation: 0,
       ),
       body: Center(

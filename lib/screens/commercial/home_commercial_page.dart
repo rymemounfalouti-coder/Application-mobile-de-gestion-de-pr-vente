@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -13,6 +14,7 @@ import '../../data/product_image_assets.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/commercial_objectives_service.dart';
 import '../../services/pricing_service.dart';
+import '../../theme/app_palette.dart';
 import 'profile_screen.dart';
 
 final Map<String, List<CommercialOrder>> _runtimeCommercialOrdersByEmail = {};
@@ -142,17 +144,17 @@ class _HomeCommercialState extends State<HomeCommercial> {
   int? _objectiveCommercialId;
   CommercialObjective? _commercialObjective;
 
-  static const primaryBlue = Color(0xFF2674F8);
-  static Color textDark = const Color(0xFF14204A);
+  static const brandPrimary = AppPalette.brand;
+  static Color textDark = AppPalette.ink;
   static Color textMuted = const Color(0xFF6F7A90);
-  static Color surface = const Color(0xFFF8FAFC);
+  static Color surface = AppPalette.surface;
   static Color cardBg = Colors.white;
   static const success = Color(0xFF20C47B);
-  static const error = Color(0xFFEF4444);
+  static const error = AppPalette.danger;
 
   static void syncTheme(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    textDark = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF14204A);
+    textDark = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
     textMuted = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6F7A90);
     surface = isDark ? Colors.black : const Color(0xFFF8FAFC);
     cardBg = isDark ? const Color(0xFF111111) : Colors.white;
@@ -349,7 +351,7 @@ class _HomeCommercialState extends State<HomeCommercial> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF18315E).withValues(alpha: .08),
+                        color: Color(0xFF0B3B2A).withValues(alpha: .08),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -733,7 +735,7 @@ class _ClientsCommercialState extends State<ClientsCommercial> {
           child: FloatingActionButton(
             heroTag: 'commercial-clients-fab',
             onPressed: _openAddClient,
-            backgroundColor: _DashboardTab._blue,
+            backgroundColor: _DashboardTab._brand,
             foregroundColor: Colors.white,
             elevation: 12,
             child: Icon(Icons.add_rounded, size: 34),
@@ -802,7 +804,7 @@ class _ClientViewData {
       client: effectiveClient,
       name: preset.name ?? effectiveClient.name,
       type: effectiveClient.businessType,
-      uiStatus: _clientUiStatusFromStatus(effectiveClient.status),
+      uiStatus: _clientUiStatusFor(effectiveClient),
       orderCount: effectiveClient.orders.length,
       revenue: calculatedRevenue,
       lastActivityRank: preset.rank,
@@ -813,12 +815,14 @@ class _ClientViewData {
   }
 }
 
-_ClientUiStatus _clientUiStatusFromStatus(ClientStatus status) {
-  return switch (status) {
-    ClientStatus.visited => _ClientUiStatus.active,
-    ClientStatus.inactive => _ClientUiStatus.inactive,
-    ClientStatus.toVisit => _ClientUiStatus.prospect,
-  };
+/// A client with no order is a prospect, whatever its stored [ClientStatus] —
+/// unless it was just converted, which grants "actif" before the first order.
+_ClientUiStatus _clientUiStatusFor(CommercialClient client) {
+  if (_convertedOrderClientIds.contains(client.id))
+    return _ClientUiStatus.active;
+  if (client.orders.isEmpty) return _ClientUiStatus.prospect;
+  if (client.status == ClientStatus.inactive) return _ClientUiStatus.inactive;
+  return _ClientUiStatus.active;
 }
 
 String _clientFilterButtonLabel(String? category) {
@@ -904,7 +908,7 @@ _ClientPreset _clientPreset(String rawName, int index) {
       revenue: 28750,
       rank: 4,
       icon: Icons.shopping_bag_rounded,
-      color: Color(0xFF0B63CE),
+      color: Color(0xFF12543A),
       logoText: 'bim',
     );
   }
@@ -928,7 +932,7 @@ _ClientPreset _clientPreset(String rawName, int index) {
     revenue: null,
     rank: index,
     icon: Icons.storefront_rounded,
-    color: _DashboardTab._blue,
+    color: _DashboardTab._brand,
   );
 }
 
@@ -1108,7 +1112,7 @@ class _OrdersCommercialState extends State<OrdersCommercial> {
           child: FloatingActionButton(
             heroTag: 'commercial-orders-fab',
             onPressed: _createOrder,
-            backgroundColor: _HomeCommercialState.primaryBlue,
+            backgroundColor: _HomeCommercialState.brandPrimary,
             foregroundColor: Colors.white,
             elevation: 10,
             child: Icon(Icons.add_rounded, size: 34),
@@ -1190,7 +1194,7 @@ class _OrderFilterSheet extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: selectedFilter == filter
-                                  ? _DashboardTab._blue
+                                  ? _DashboardTab._brand
                                   : _activityBorderColor(),
                               width: 2,
                             ),
@@ -1202,7 +1206,7 @@ class _OrderFilterSheet extends StatelessWidget {
                                     height: 10,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: _DashboardTab._blue,
+                                      color: _DashboardTab._brand,
                                     ),
                                   ),
                                 )
@@ -1314,7 +1318,7 @@ class _OrdersSearchBar extends StatelessWidget {
               contentPadding: EdgeInsets.symmetric(vertical: 16),
               enabledBorder: _searchBorder(),
               focusedBorder: _searchBorder(
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
               ),
             ),
           ),
@@ -1362,7 +1366,7 @@ class _OrdersKpiSummary extends StatelessWidget {
         title: AppLocalizations.globalText('Total'),
         value: totalOrders,
         icon: Icons.shopping_bag_outlined,
-        color: Color(0xFF2563EB),
+        color: Color(0xFF1B7F4B),
       ),
       _OrderKpiData(
         title: AppLocalizations.globalText('En attente'),
@@ -1501,11 +1505,11 @@ class _OrderQuickFilters extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: selected
-                    ? Color(0xFF2563EB)
+                    ? Color(0xFF1B7F4B)
                     : _HomeCommercialState.cardBg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: selected ? Color(0xFF2563EB) : _activityBorderColor(),
+                  color: selected ? Color(0xFF1B7F4B) : _activityBorderColor(),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -1557,12 +1561,12 @@ class _OrderCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: Color(0xFF2563EB).withValues(alpha: .09),
+                  color: Color(0xFF1B7F4B).withValues(alpha: .09),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   Icons.receipt_long_rounded,
-                  color: Color(0xFF2563EB),
+                  color: Color(0xFF1B7F4B),
                   size: 23,
                 ),
               ),
@@ -1687,12 +1691,12 @@ class _EmptyOrdersState extends StatelessWidget {
             width: 112,
             height: 112,
             decoration: BoxDecoration(
-              color: Color(0xFF2563EB).withValues(alpha: .08),
+              color: Color(0xFF1B7F4B).withValues(alpha: .08),
               borderRadius: BorderRadius.circular(28),
             ),
             child: Icon(
               Icons.receipt_long_rounded,
-              color: Color(0xFF2563EB),
+              color: Color(0xFF1B7F4B),
               size: 54,
             ),
           ),
@@ -1712,7 +1716,7 @@ class _EmptyOrdersState extends StatelessWidget {
             icon: Icon(Icons.add_rounded),
             label: Text(AppLocalizations.globalText('Cr\u00E9er une commande')),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF2563EB),
+              backgroundColor: Color(0xFF1B7F4B),
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(horizontal: 18, vertical: 13),
               shape: RoundedRectangleBorder(
@@ -1731,11 +1735,11 @@ class DetailCommande extends StatelessWidget {
 
   final CommercialOrder order;
 
-  static const _surface = Color(0xFFF8FAFC);
-  static const _primary = Color(0xFF2563EB);
-  static const _text = Color(0xFF0F172A);
-  static const _muted = Color(0xFF64748B);
-  static const _line = Color(0xFFE2E8F0);
+  static const _surface = AppPalette.surface;
+  static const _primary = AppPalette.brand;
+  static const _text = AppPalette.ink;
+  static const _muted = AppPalette.muted;
+  static const _line = AppPalette.border;
 
   @override
   Widget build(BuildContext context) {
@@ -1785,13 +1789,13 @@ class DetailCommande extends StatelessWidget {
                                   delegate: SliverChildListDelegate([
                                     _OrderDetailHeader(
                                       onBack: () => Navigator.pop(context),
-                                      onPdf: () => _showAction(
+                                      onPdf: () => _downloadOrderPdf(
                                         context,
-                                        'Bon de commande PDF en pr\u00e9paration.',
+                                        commercialName,
                                       ),
-                                      onShare: () => _showAction(
+                                      onShare: () => _shareOrderPdf(
                                         context,
-                                        'Partage du bon de commande en pr\u00e9paration.',
+                                        commercialName,
                                       ),
                                       onMenu: () => _showActionsMenu(context),
                                     ),
@@ -1816,9 +1820,9 @@ class DetailCommande extends StatelessWidget {
                                     _OrderActionsCard(
                                       canCancel:
                                           order.status == OrderStatus.pending,
-                                      onPdf: () => _showAction(
+                                      onPdf: () => _downloadOrderPdf(
                                         context,
-                                        'Bon de commande PDF en pr\u00e9paration.',
+                                        commercialName,
                                       ),
                                       onDuplicate: () =>
                                           _duplicateOrder(context),
@@ -1851,6 +1855,94 @@ class DetailCommande extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String get _pdfFileName =>
+      'bon_commande_${order.orderNumber.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_')}.pdf';
+
+  Future<Uint8List> _buildOrderPdf(String commercialName) async {
+    final lines = _detailLines(order);
+    final total = lines.fold<double>(0, (sum, line) => sum + line.total);
+    final document = pw.Document();
+
+    document.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: pw.EdgeInsets.all(28),
+        build: (context) => [
+          pw.Text(
+            'Bon de commande',
+            style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 10),
+          pw.Text('N° ${order.orderNumber}'),
+          pw.Text('Client : ${order.clientName}'),
+          pw.Text('Commercial : $commercialName'),
+          pw.Text('Date : ${order.date}'),
+          pw.Text('Statut : ${order.status.label}'),
+          pw.SizedBox(height: 18),
+          pw.TableHelper.fromTextArray(
+            headers: ['Produit', 'Référence', 'Qté', 'P.U.', 'Total'],
+            cellAlignment: pw.Alignment.centerLeft,
+            data: [
+              for (final line in lines)
+                [
+                  line.name,
+                  line.reference,
+                  '${line.quantity}',
+                  '${_money(line.unitPrice)} DH',
+                  '${_money(line.total)} DH',
+                ],
+            ],
+          ),
+          pw.SizedBox(height: 18),
+          pw.Align(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text(
+              'Total : ${_money(total)} DH',
+              style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return document.save();
+  }
+
+  Future<void> _downloadOrderPdf(
+    BuildContext context,
+    String commercialName,
+  ) async {
+    try {
+      final bytes = await _buildOrderPdf(commercialName);
+      await Printing.sharePdf(bytes: bytes, filename: _pdfFileName);
+    } catch (error) {
+      debugPrint('Échec du PDF de commande: $error');
+      if (context.mounted) {
+        _showAction(context, 'Impossible de générer le PDF.');
+      }
+    }
+  }
+
+  Future<void> _shareOrderPdf(
+    BuildContext context,
+    String commercialName,
+  ) async {
+    try {
+      final bytes = await _buildOrderPdf(commercialName);
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: _pdfFileName,
+        subject: 'Bon de commande ${order.orderNumber}',
+        body: 'Bon de commande ${order.orderNumber} — ${order.clientName}',
+      );
+    } catch (error) {
+      debugPrint('Échec du partage de commande: $error');
+      if (context.mounted) {
+        _showAction(context, 'Impossible de partager le bon de commande.');
+      }
+    }
   }
 
   void _navigateFromDetail(BuildContext context, int index) {
@@ -2217,7 +2309,13 @@ class _ProductLineTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: DetailCommande._line),
             ),
-            child: Icon(line.icon, color: line.color, size: 28),
+            clipBehavior: Clip.antiAlias,
+            child: _ProductThumb(
+              image: line.image,
+              icon: line.icon,
+              color: line.color,
+              iconSize: 28,
+            ),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -2620,7 +2718,7 @@ class _OrderDetailShellCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: Color(0xFFE8EEF7)),
+      border: Border.all(color: Color(0xFFE4EDE7)),
       boxShadow: [
         BoxShadow(
           color: Color(0xFF0F172A).withValues(alpha: .055),
@@ -2642,6 +2740,7 @@ class _OrderDetailLine {
     required this.total,
     required this.icon,
     required this.color,
+    this.image = '',
     this.tariffLabel = 'Standard',
     this.discountRate = 0,
   });
@@ -2652,6 +2751,7 @@ class _OrderDetailLine {
   final double total;
   final IconData icon;
   final Color color;
+  final String image;
   final String tariffLabel;
   final double discountRate;
 }
@@ -2685,6 +2785,11 @@ List<_OrderDetailLine> _detailLines(CommercialOrder order) {
       total: item.total,
       icon: product?.icon ?? Icons.inventory_2_outlined,
       color: product?.imageColor ?? DetailCommande._primary,
+      image: resolveProductImageAsset(
+        image: product?.image ?? '',
+        name: item.productName,
+        reference: product?.reference ?? '',
+      ),
       tariffLabel: 'Historique',
       discountRate: 0,
     );
@@ -3151,7 +3256,7 @@ class _ProfileUserCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 42,
-                backgroundColor: _HomeCommercialState.primaryBlue,
+                backgroundColor: _HomeCommercialState.brandPrimary,
                 child: Text(
                   _initials(name),
                   style: TextStyle(
@@ -3195,7 +3300,7 @@ class _ProfileUserCard extends StatelessWidget {
                 Text(
                   role,
                   style: TextStyle(
-                    color: _HomeCommercialState.primaryBlue,
+                    color: _HomeCommercialState.brandPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -3256,7 +3361,7 @@ class _ProfileMenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = item.color ?? Color(0xFF123F8C);
+    final color = item.color ?? Color(0xFF0E4531);
     return InkWell(
       onTap: item.onTap,
       borderRadius: BorderRadius.circular(12),
@@ -3337,7 +3442,7 @@ class _AboutPreSalesCard extends StatelessWidget {
                   width: 54,
                   height: 54,
                   decoration: BoxDecoration(
-                    color: _HomeCommercialState.primaryBlue,
+                    color: _HomeCommercialState.brandPrimary,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
@@ -3400,7 +3505,7 @@ class _ProfileCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .07),
+            color: Color(0xFF0B3B2A).withValues(alpha: .07),
             blurRadius: 22,
             offset: Offset(0, 10),
           ),
@@ -3608,6 +3713,17 @@ extension _ActivityFilterText on _ActivityFilter {
   }
 }
 
+/// Visits started or finished from the detail page, by activity id. Keeps the
+/// list, the counters and the detail page reading one status.
+final Map<int, _CommercialActivityStatus> _activityStatusOverrides = {};
+
+final ValueNotifier<int> _activityDataRevision = ValueNotifier<int>(0);
+
+void _setActivityStatus(int id, _CommercialActivityStatus status) {
+  _activityStatusOverrides[id] = status;
+  _activityDataRevision.value++;
+}
+
 class _CommercialActivityItem {
   _CommercialActivityItem({
     required this.id,
@@ -3616,13 +3732,13 @@ class _CommercialActivityItem {
     required this.location,
     required this.time,
     required this.date,
-    required this.status,
+    required _CommercialActivityStatus status,
     required this.icon,
     required this.color,
     this.client,
     this.phone = '',
     this.notes = '',
-  });
+  }) : _initialStatus = status;
 
   factory _CommercialActivityItem.fromVisit({
     required TourVisit visit,
@@ -3638,7 +3754,7 @@ class _CommercialActivityItem {
       date: date,
       status: _visitActivityStatus(visit),
       icon: Icons.groups_rounded,
-      color: _HomeCommercialState.primaryBlue,
+      color: _HomeCommercialState.brandPrimary,
       client: client,
       phone: client?.phone ?? '',
       notes: 'Visite commerciale planifi\u00e9e \u00e0 Casablanca.',
@@ -3651,9 +3767,12 @@ class _CommercialActivityItem {
   final String location;
   final String time;
   final DateTime date;
-  final _CommercialActivityStatus status;
+  final _CommercialActivityStatus _initialStatus;
   final IconData icon;
   final Color color;
+
+  _CommercialActivityStatus get status =>
+      _activityStatusOverrides[id] ?? _initialStatus;
   final CommercialClient? client;
   final String phone;
   final String notes;
@@ -3714,7 +3833,7 @@ _CommercialActivityItem? _commercialActivityItemFromActivityApi(
     date: DateUtils.dateOnly(createdAt),
     status: _CommercialActivityStatus.todo,
     icon: Icons.event_available_rounded,
-    color: _HomeCommercialState.primaryBlue,
+    color: _HomeCommercialState.brandPrimary,
     notes: description,
   );
 }
@@ -3753,6 +3872,17 @@ class _PremiumActivitiesPageState extends State<PremiumActivitiesPage> {
     _selectedDate = widget.createdActivities.isNotEmpty
         ? DateUtils.dateOnly(widget.createdActivities.first.date)
         : DateUtils.dateOnly(DateTime.now());
+    _activityDataRevision.addListener(_handleActivityRevision);
+  }
+
+  @override
+  void dispose() {
+    _activityDataRevision.removeListener(_handleActivityRevision);
+    super.dispose();
+  }
+
+  void _handleActivityRevision() {
+    if (mounted) setState(() {});
   }
 
   CommercialClient? _clientForVisit(TourVisit visit) {
@@ -3925,7 +4055,7 @@ class _PremiumActivitiesPageState extends State<PremiumActivitiesPage> {
           bottom: 18,
           child: FloatingActionButton(
             onPressed: _openNewActivity,
-            backgroundColor: _HomeCommercialState.primaryBlue,
+            backgroundColor: _HomeCommercialState.brandPrimary,
             foregroundColor: Colors.white,
             elevation: 10,
             child: Icon(Icons.add_rounded, size: 34),
@@ -3982,7 +4112,7 @@ bool _isCommercialDarkMode() {
 Color _activityBorderColor() {
   return _isCommercialDarkMode()
       ? const Color(0xFF334155)
-      : const Color(0xFFE8EEF7);
+      : const Color(0xFFE4EDE7);
 }
 
 Color _activitySoftSurface() {
@@ -4119,7 +4249,7 @@ class _ActivityDateTile extends StatelessWidget {
             padding: EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
               color: selected
-                  ? _HomeCommercialState.primaryBlue
+                  ? _HomeCommercialState.brandPrimary
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(15),
             ),
@@ -4166,7 +4296,7 @@ class _ActivityDateTile extends StatelessWidget {
             child: selected
                 ? CircleAvatar(
                     radius: 4,
-                    backgroundColor: _HomeCommercialState.primaryBlue,
+                    backgroundColor: _HomeCommercialState.brandPrimary,
                   )
                 : SizedBox.shrink(),
           ),
@@ -4208,7 +4338,7 @@ class _ActivityKpiCard extends StatelessWidget {
         'Total',
         total,
         Icons.assignment_outlined,
-        _HomeCommercialState.primaryBlue,
+        _HomeCommercialState.brandPrimary,
       ),
       _ActivityKpiData(
         'En cours',
@@ -4318,7 +4448,7 @@ class _ActivityFilterTabs extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: selectedFilter == filter
-                      ? _HomeCommercialState.primaryBlue
+                      ? _HomeCommercialState.brandPrimary
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -4483,11 +4613,11 @@ class _ActivityStatusStyle {
     return switch (status) {
       _CommercialActivityStatus.todo => _ActivityStatusStyle(
         '\u00c0 faire',
-        Color(0xFF2563EB),
+        Color(0xFF1B7F4B),
       ),
       _CommercialActivityStatus.inProgress => _ActivityStatusStyle(
         'En cours',
-        Color(0xFF2563EB),
+        Color(0xFF1B7F4B),
       ),
       _CommercialActivityStatus.done => _ActivityStatusStyle(
         'Termin\u00e9e',
@@ -4514,7 +4644,7 @@ class _EmptyActivitiesCard extends StatelessWidget {
       children: [
         Icon(
           Icons.event_available_rounded,
-          color: _HomeCommercialState.primaryBlue,
+          color: _HomeCommercialState.brandPrimary,
           size: 42,
         ),
         SizedBox(height: 14),
@@ -4545,16 +4675,46 @@ class _EmptyActivitiesCard extends StatelessWidget {
   );
 }
 
-class _ActivityVisitDetailPage extends StatelessWidget {
+class _ActivityVisitDetailPage extends StatefulWidget {
   _ActivityVisitDetailPage({required this.activity});
   final _CommercialActivityItem activity;
 
   @override
+  State<_ActivityVisitDetailPage> createState() =>
+      _ActivityVisitDetailPageState();
+}
+
+class _ActivityVisitDetailPageState extends State<_ActivityVisitDetailPage> {
+  String _report = '';
+
+  Future<void> _addReport() async {
+    final report = await _showMobileOrderSheet<String>(
+      context: context,
+      child: _ClientNoteSheet(
+        title: 'Ajouter compte rendu',
+        subtitle: 'Ce compte rendu sera joint \u00e0 la visite.',
+        hintText: 'Saisissez votre compte rendu...',
+      ),
+    );
+    if (report == null || report.trim().isEmpty || !mounted) return;
+    setState(() => _report = report.trim());
+  }
+
+  void _updateStatus(_CommercialActivityStatus status) {
+    _setActivityStatus(widget.activity.id, status);
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final activity = widget.activity;
+    final status = activity.status;
+    final isDone = status == _CommercialActivityStatus.done;
+    final isInProgress = status == _CommercialActivityStatus.inProgress;
     return _ActivityDetailScaffold(
       title: AppLocalizations.globalText('D\u00e9tail visite client'),
       icon: Icons.groups_rounded,
-      color: _HomeCommercialState.primaryBlue,
+      color: _HomeCommercialState.brandPrimary,
       children: [
         _ActivityDetailRow(
           label: AppLocalizations.globalText('Nom client'),
@@ -4578,22 +4738,37 @@ class _ActivityVisitDetailPage extends StatelessWidget {
         ),
         _ActivityDetailRow(
           label: AppLocalizations.globalText('Statut'),
-          value: _ActivityStatusStyle.fromStatus(activity.status).label,
+          value: _ActivityStatusStyle.fromStatus(status).label,
         ),
+        if (_report.isNotEmpty)
+          _ActivityDetailRow(
+            label: AppLocalizations.globalText('Compte rendu'),
+            value: _report,
+          ),
         SizedBox(height: 18),
-        _ActivityPrimaryButton(
-          label: AppLocalizations.globalText('D\u00e9marrer visite'),
-          icon: Icons.play_arrow_rounded,
-        ),
-        SizedBox(height: 10),
-        _ActivityPrimaryButton(
-          label: AppLocalizations.globalText('Terminer visite'),
-          icon: Icons.check_rounded,
-        ),
-        SizedBox(height: 10),
+        // A finished visit can no longer be started or closed; a visit already
+        // under way can only be closed.
+        if (!isDone) ...[
+          if (!isInProgress) ...[
+            _ActivityPrimaryButton(
+              label: AppLocalizations.globalText('D\u00e9marrer visite'),
+              icon: Icons.play_arrow_rounded,
+              onPressed: () =>
+                  _updateStatus(_CommercialActivityStatus.inProgress),
+            ),
+            SizedBox(height: 10),
+          ],
+          _ActivityPrimaryButton(
+            label: AppLocalizations.globalText('Terminer visite'),
+            icon: Icons.check_rounded,
+            onPressed: () => _updateStatus(_CommercialActivityStatus.done),
+          ),
+          SizedBox(height: 10),
+        ],
         _ActivitySecondaryButton(
           label: AppLocalizations.globalText('Ajouter compte rendu'),
           icon: Icons.note_add_outlined,
+          onPressed: _addReport,
         ),
       ],
     );
@@ -4757,20 +4932,25 @@ class _ActivityDetailRow extends StatelessWidget {
 }
 
 class _ActivityPrimaryButton extends StatelessWidget {
-  _ActivityPrimaryButton({required this.label, required this.icon});
+  _ActivityPrimaryButton({
+    required this.label,
+    required this.icon,
+    this.onPressed,
+  });
   final String label;
   final IconData icon;
+  final VoidCallback? onPressed;
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 52,
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: onPressed,
         icon: Icon(icon),
         label: Text(label),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _HomeCommercialState.primaryBlue,
+          backgroundColor: _HomeCommercialState.brandPrimary,
           foregroundColor: Colors.white,
           textStyle: TextStyle(fontWeight: FontWeight.w700),
           shape: RoundedRectangleBorder(
@@ -4783,21 +4963,26 @@ class _ActivityPrimaryButton extends StatelessWidget {
 }
 
 class _ActivitySecondaryButton extends StatelessWidget {
-  _ActivitySecondaryButton({required this.label, required this.icon});
+  _ActivitySecondaryButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
   final String label;
   final IconData icon;
+  final VoidCallback onPressed;
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 52,
       width: double.infinity,
       child: OutlinedButton.icon(
-        onPressed: () {},
+        onPressed: onPressed,
         icon: Icon(icon),
         label: Text(label),
         style: OutlinedButton.styleFrom(
-          foregroundColor: _HomeCommercialState.primaryBlue,
-          side: BorderSide(color: _HomeCommercialState.primaryBlue),
+          foregroundColor: _HomeCommercialState.brandPrimary,
+          side: BorderSide(color: _HomeCommercialState.brandPrimary),
           textStyle: TextStyle(fontWeight: FontWeight.w700),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -4928,7 +5113,7 @@ class _NewActivityPageState extends State<NewActivityPage> {
     return switch (_priority) {
       'Urgente' => const Color(0xFFEF4444),
       'Haute' => const Color(0xFFF97316),
-      _ => _HomeCommercialState.primaryBlue,
+      _ => _HomeCommercialState.brandPrimary,
     };
   }
 
@@ -5244,7 +5429,7 @@ class _NewActivityPageState extends State<NewActivityPage> {
                                       label: Text('Ouvrir dans Google Maps'),
                                       style: TextButton.styleFrom(
                                         foregroundColor:
-                                            _HomeCommercialState.primaryBlue,
+                                            _HomeCommercialState.brandPrimary,
                                       ),
                                     ),
                                   ),
@@ -5318,11 +5503,11 @@ class _NewActivityPageState extends State<NewActivityPage> {
                                     label: Text('Créer activité'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor:
-                                          _HomeCommercialState.primaryBlue,
+                                          _HomeCommercialState.brandPrimary,
                                       foregroundColor: Colors.white,
                                       elevation: 8,
                                       shadowColor: _HomeCommercialState
-                                          .primaryBlue
+                                          .brandPrimary
                                           .withValues(alpha: .25),
                                       textStyle: TextStyle(
                                         fontWeight: FontWeight.w900,
@@ -5363,7 +5548,7 @@ class _NewActivityHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded, size: 30),
-          color: _HomeCommercialState.primaryBlue,
+          color: _HomeCommercialState.brandPrimary,
           padding: EdgeInsets.zero,
           constraints: BoxConstraints.tightFor(width: 42, height: 42),
         ),
@@ -5663,12 +5848,12 @@ class _SelectedClientCard extends StatelessWidget {
             width: 76,
             height: 76,
             decoration: BoxDecoration(
-              color: _HomeCommercialState.primaryBlue.withValues(alpha: .08),
+              color: _HomeCommercialState.brandPrimary.withValues(alpha: .08),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
               Icons.storefront_outlined,
-              color: _HomeCommercialState.primaryBlue,
+              color: _HomeCommercialState.brandPrimary,
               size: 42,
             ),
           ),
@@ -5691,7 +5876,7 @@ class _SelectedClientCard extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _HomeCommercialState.primaryBlue.withValues(
+                    color: _HomeCommercialState.brandPrimary.withValues(
                       alpha: .08,
                     ),
                     borderRadius: BorderRadius.circular(8),
@@ -5806,7 +5991,7 @@ InputDecoration _newActivityDecoration({
     border: _activityOutlineBorder(),
     enabledBorder: _activityOutlineBorder(),
     focusedBorder: _activityOutlineBorder(
-      _HomeCommercialState.primaryBlue,
+      _HomeCommercialState.brandPrimary,
       1.4,
     ),
     errorBorder: _activityOutlineBorder(_HomeCommercialState.error, 1.2),
@@ -5869,7 +6054,7 @@ class _TourMapCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF18315E).withValues(alpha: .08),
+              color: Color(0xFF0B3B2A).withValues(alpha: .08),
               blurRadius: 18,
               offset: Offset(0, 9),
             ),
@@ -5952,7 +6137,7 @@ class _TourMapPainter extends CustomPainter {
 
     if (visits.length > 1) {
       final routePaint = Paint()
-        ..color = _HomeCommercialState.primaryBlue
+        ..color = _HomeCommercialState.brandPrimary
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
@@ -5989,12 +6174,12 @@ class _CurrentPositionDot extends StatelessWidget {
       width: 18,
       height: 18,
       decoration: BoxDecoration(
-        color: _HomeCommercialState.primaryBlue,
+        color: _HomeCommercialState.brandPrimary,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
-            color: _HomeCommercialState.primaryBlue.withValues(alpha: .28),
+            color: _HomeCommercialState.brandPrimary.withValues(alpha: .28),
             blurRadius: 10,
           ),
         ],
@@ -6025,7 +6210,7 @@ class _MapVisitPin extends StatelessWidget {
               top: 20,
               child: Icon(
                 Icons.location_on_rounded,
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
                 size: 30,
               ),
             ),
@@ -6034,7 +6219,7 @@ class _MapVisitPin extends StatelessWidget {
               height: 24,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
               ),
@@ -6075,7 +6260,7 @@ class _TourVisitsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF18315E).withValues(alpha: .08),
+            color: Color(0xFF0B3B2A).withValues(alpha: .08),
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -6118,7 +6303,7 @@ class _TourVisitRow extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 13),
         decoration: BoxDecoration(
           color: selected
-              ? _HomeCommercialState.primaryBlue.withValues(alpha: .05)
+              ? _HomeCommercialState.brandPrimary.withValues(alpha: .05)
               : Colors.transparent,
           border: Border(
             bottom: isLast
@@ -6130,7 +6315,7 @@ class _TourVisitRow extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 14,
-              backgroundColor: _HomeCommercialState.primaryBlue,
+              backgroundColor: _HomeCommercialState.brandPrimary,
               child: Text(
                 '${visit.id}',
                 style: TextStyle(
@@ -6311,13 +6496,14 @@ class _DetailClientState extends State<DetailClient> {
   }
 
   Future<void> _openNewOrder(CommercialClient client) async {
-    if (client.status == ClientStatus.inactive) {
+    final uiStatus = _clientUiStatusFor(client);
+    if (uiStatus == _ClientUiStatus.inactive) {
       await _showInactiveClientSheet(context);
       return;
     }
 
     var orderClient = client;
-    if (client.status == ClientStatus.toVisit) {
+    if (uiStatus == _ClientUiStatus.prospect) {
       final navigator = Navigator.of(context);
       final shouldConvert = await _showMobileOrderSheet<bool>(
         context: context,
@@ -6459,12 +6645,12 @@ class _DetailClientState extends State<DetailClient> {
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor:
                                                     _HomeCommercialState
-                                                        .primaryBlue,
+                                                        .brandPrimary,
                                                 foregroundColor: Colors.white,
                                                 elevation: 8,
                                                 shadowColor:
                                                     _HomeCommercialState
-                                                        .primaryBlue
+                                                        .brandPrimary
                                                         .withValues(alpha: .26),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
@@ -6647,7 +6833,6 @@ class _NouvelleCommandeClientSelectionState
                             delegate: SliverChildListDelegate([
                               _NewOrderHeader(
                                 onBack: () => Navigator.pop(context),
-                                onHistory: () {},
                                 subtitle: AppLocalizations.globalText(
                                   'S\u00E9lectionnez un client pour commencer',
                                 ),
@@ -6682,7 +6867,7 @@ class _NouvelleCommandeClientSelectionState
                                     color: _activityBorderColor(),
                                   ),
                                   focusedBorder: _searchBorder(
-                                    color: _DashboardTab._blue,
+                                    color: _DashboardTab._brand,
                                   ),
                                 ),
                               ),
@@ -6783,7 +6968,7 @@ class _ProspectConversionSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return _OrderDecisionSheetShell(
       icon: Icons.person_add_disabled_rounded,
-      iconColor: _DashboardTab._blue,
+      iconColor: _DashboardTab._brand,
       title: 'Client prospect',
       message:
           'Ce client est encore un prospect. Vous devez le convertir en client actif avant de créer une commande.',
@@ -6963,9 +7148,9 @@ class _OrderSheetOutlinedButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: _DashboardTab._blue,
+        foregroundColor: _DashboardTab._brand,
         backgroundColor: _HomeCommercialState.cardBg,
-        side: BorderSide(color: _DashboardTab._blue, width: 1.3),
+        side: BorderSide(color: _DashboardTab._brand, width: 1.3),
         padding: EdgeInsets.symmetric(vertical: 15, horizontal: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
@@ -6989,7 +7174,7 @@ class _OrderSheetPrimaryButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: _DashboardTab._blue,
+        backgroundColor: _DashboardTab._brand,
         foregroundColor: Colors.white,
         elevation: 0,
         padding: EdgeInsets.symmetric(vertical: 15, horizontal: 14),
@@ -7262,6 +7447,20 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
     });
   }
 
+  void _openDrafts() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrderDraftsPage(
+          currentEmail: widget.currentEmail,
+          currentUserName: widget.currentUserName,
+          initialClient: widget.client,
+          selectedClientData: widget.selectedClientData,
+        ),
+      ),
+    );
+  }
+
   Future<void> _changeClient() async {
     final rows = await ApiService.getClients(
       commercialEmail: widget.currentEmail,
@@ -7278,20 +7477,6 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
           clients: clients,
           currentEmail: widget.currentEmail,
           currentUserName: widget.currentUserName,
-        ),
-      ),
-    );
-  }
-
-  void _openDrafts() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OrderDraftsPage(
-          currentEmail: widget.currentEmail,
-          currentUserName: widget.currentUserName,
-          initialClient: widget.client,
-          selectedClientData: widget.selectedClientData,
         ),
       ),
     );
@@ -7571,7 +7756,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
                                               iconAlignment: IconAlignment.end,
                                               style: TextButton.styleFrom(
                                                 foregroundColor:
-                                                    _DashboardTab._blue,
+                                                    _DashboardTab._brand,
                                               ),
                                             ),
                                           ],
@@ -7888,12 +8073,12 @@ class _EmptyDraftsCard extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: _DashboardTab._blue.withValues(alpha: .10),
+              color: _DashboardTab._brand.withValues(alpha: .10),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
               Icons.description_outlined,
-              color: _DashboardTab._blue,
+              color: _DashboardTab._brand,
               size: 34,
             ),
           ),
@@ -7928,7 +8113,7 @@ class _EmptyDraftsCard extends StatelessWidget {
               icon: Icon(Icons.add_rounded),
               label: Text(AppLocalizations.globalText('Créer une commande')),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _DashboardTab._blue,
+                backgroundColor: _DashboardTab._brand,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -7978,12 +8163,12 @@ class _OrderDraftCard extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: _DashboardTab._blue.withValues(alpha: .10),
+                      color: _DashboardTab._brand.withValues(alpha: .10),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
                       Icons.description_outlined,
-                      color: _DashboardTab._blue,
+                      color: _DashboardTab._brand,
                     ),
                   ),
                   SizedBox(width: 12),
@@ -8134,14 +8319,14 @@ class _DraftActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = destructive ? Color(0xFFEF4444) : _DashboardTab._blue;
+    final color = destructive ? Color(0xFFEF4444) : _DashboardTab._brand;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         decoration: BoxDecoration(
-          color: filled ? _DashboardTab._blue : color.withValues(alpha: .08),
+          color: filled ? _DashboardTab._brand : color.withValues(alpha: .08),
           borderRadius: BorderRadius.circular(12),
           border: filled
               ? null
@@ -8170,12 +8355,12 @@ class _DraftActionButton extends StatelessWidget {
 class _NewOrderHeader extends StatelessWidget {
   _NewOrderHeader({
     required this.onBack,
-    required this.onHistory,
+    this.onHistory,
     this.subtitle = 'Cr\u00E9ez une nouvelle commande pour votre client',
   });
 
   final VoidCallback onBack;
-  final VoidCallback onHistory;
+  final VoidCallback? onHistory;
   final String subtitle;
 
   @override
@@ -8221,17 +8406,19 @@ class _NewOrderHeader extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(width: 12),
-        IconButton(
-          onPressed: onHistory,
-          icon: Icon(Icons.description_outlined),
-          color: _HomeCommercialState.textDark,
-          style: IconButton.styleFrom(
-            backgroundColor: _HomeCommercialState.cardBg,
-            shadowColor: _activityShadowColor(),
-            elevation: 5,
+        if (onHistory != null) ...[
+          SizedBox(width: 12),
+          IconButton(
+            onPressed: onHistory,
+            icon: Icon(Icons.description_outlined),
+            color: _HomeCommercialState.textDark,
+            style: IconButton.styleFrom(
+              backgroundColor: _HomeCommercialState.cardBg,
+              shadowColor: _activityShadowColor(),
+              elevation: 5,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -8364,7 +8551,7 @@ class _SelectedOrderClientCard extends StatelessWidget {
                   TextButton(
                     onPressed: onTap,
                     style: TextButton.styleFrom(
-                      foregroundColor: _DashboardTab._blue,
+                      foregroundColor: _DashboardTab._brand,
                       padding: EdgeInsets.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -8447,7 +8634,7 @@ class _OrderInfoCard extends StatelessWidget {
               filled: true,
               fillColor: _HomeCommercialState.cardBg,
               enabledBorder: _searchBorder(color: _activityBorderColor()),
-              focusedBorder: _searchBorder(color: _DashboardTab._blue),
+              focusedBorder: _searchBorder(color: _DashboardTab._brand),
             ),
           ),
         ],
@@ -8535,7 +8722,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: _DashboardTab._blue, size: 20),
+              Icon(icon, color: _DashboardTab._brand, size: 20),
               SizedBox(width: 10),
               Text(
                 title,
@@ -8603,7 +8790,7 @@ class _ProductSearchBar extends StatelessWidget {
               contentPadding: EdgeInsets.symmetric(vertical: 13),
               enabledBorder: _searchBorder(color: _activityBorderColor()),
               focusedBorder: _searchBorder(
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
               ),
             ),
           ),
@@ -8615,7 +8802,7 @@ class _ProductSearchBar extends StatelessWidget {
             onPressed: onScan,
             style: OutlinedButton.styleFrom(
               padding: EdgeInsets.symmetric(horizontal: 12),
-              foregroundColor: _DashboardTab._blue,
+              foregroundColor: _DashboardTab._brand,
               backgroundColor: _HomeCommercialState.cardBg,
               side: BorderSide(color: _activityBorderColor()),
               shape: RoundedRectangleBorder(
@@ -8727,7 +8914,7 @@ class _OrderProductTile extends StatelessWidget {
                   Text(
                     'Tarif : ${pricing.tariffLabel}',
                     style: TextStyle(
-                      color: _DashboardTab._blue,
+                      color: _DashboardTab._brand,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
@@ -8823,26 +9010,47 @@ class _ProductImage extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       clipBehavior: Clip.antiAlias,
-      child: product.image.isEmpty
-          ? Center(
-              child: Icon(product.icon, color: product.imageColor, size: 30),
-            )
-          : product.image.startsWith('http')
-          ? Image.network(
-              product.image,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Center(
-                child: Icon(product.icon, color: product.imageColor, size: 30),
-              ),
-            )
-          : Image.asset(
-              product.image,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Center(
-                child: Icon(product.icon, color: product.imageColor, size: 30),
-              ),
-            ),
+      child: _ProductThumb(
+        image: product.image,
+        icon: product.icon,
+        color: product.imageColor,
+        iconSize: 30,
+      ),
     );
+  }
+}
+
+/// The product photo when one resolves, otherwise the product's icon.
+class _ProductThumb extends StatelessWidget {
+  _ProductThumb({
+    required this.image,
+    required this.icon,
+    required this.color,
+    required this.iconSize,
+  });
+
+  final String image;
+  final IconData icon;
+  final Color color;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Center(
+      child: Icon(icon, color: color, size: iconSize),
+    );
+    if (image.isEmpty) return fallback;
+    return image.startsWith('http')
+        ? Image.network(
+            image,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => fallback,
+          )
+        : Image.asset(
+            image,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => fallback,
+          );
   }
 }
 
@@ -8917,7 +9125,7 @@ class _QuantityButton extends StatelessWidget {
           size: 17,
           color: onTap == null
               ? _HomeCommercialState.textMuted.withValues(alpha: .45)
-              : _HomeCommercialState.primaryBlue,
+              : _HomeCommercialState.brandPrimary,
         ),
       ),
     );
@@ -9072,7 +9280,7 @@ class _ScannerProductRow extends StatelessWidget {
                         Text(
                           'Tarif : ${pricing.tariffLabel}',
                           style: TextStyle(
-                            color: _DashboardTab._blue,
+                            color: _DashboardTab._brand,
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                           ),
@@ -9096,7 +9304,7 @@ class _ScannerProductRow extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: _DashboardTab._blue,
+                  color: _DashboardTab._brand,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(Icons.add_rounded, color: Colors.white, size: 23),
@@ -9200,9 +9408,9 @@ class _NewOrderActions extends StatelessWidget {
               icon: Icon(Icons.description_outlined),
               label: Text(AppLocalizations.globalText('Enregistrer brouillon')),
               style: OutlinedButton.styleFrom(
-                foregroundColor: _DashboardTab._blue,
+                foregroundColor: _DashboardTab._brand,
                 backgroundColor: _HomeCommercialState.cardBg,
-                side: BorderSide(color: _DashboardTab._blue),
+                side: BorderSide(color: _DashboardTab._brand),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(13),
                 ),
@@ -9220,10 +9428,10 @@ class _NewOrderActions extends StatelessWidget {
               icon: Icon(Icons.send_outlined),
               label: Text(AppLocalizations.globalText('Envoyer au manager')),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _DashboardTab._blue,
+                backgroundColor: _DashboardTab._brand,
                 foregroundColor: Colors.white,
                 elevation: 10,
-                shadowColor: _DashboardTab._blue.withValues(alpha: .25),
+                shadowColor: _DashboardTab._brand.withValues(alpha: .25),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(13),
                 ),
@@ -9262,7 +9470,7 @@ class _TotalRow extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            color: large ? _DashboardTab._blue : _HomeCommercialState.textDark,
+            color: large ? _DashboardTab._brand : _HomeCommercialState.textDark,
             fontSize: large ? 22 : 12,
             fontWeight: large ? FontWeight.w700 : FontWeight.w600,
           ),
@@ -9427,7 +9635,7 @@ class _ConfirmationCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF18315E).withValues(alpha: .08),
+              color: Color(0xFF0B3B2A).withValues(alpha: .08),
               blurRadius: 28,
               offset: Offset(0, 14),
             ),
@@ -9464,7 +9672,7 @@ class _ConfirmationCard extends StatelessWidget {
               ),
             ),
             SizedBox(height: 28),
-            Divider(color: Color(0xFFE8EDF5)),
+            Divider(color: Color(0xFFE4EBE6)),
             SizedBox(height: 8),
             _ConfirmationInfoRow(
               label: AppLocalizations.globalText('Client'),
@@ -9483,7 +9691,7 @@ class _ConfirmationCard extends StatelessWidget {
               value: order.status,
             ),
             SizedBox(height: 8),
-            Divider(color: Color(0xFFE8EDF5)),
+            Divider(color: Color(0xFFE4EBE6)),
             SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
@@ -9491,10 +9699,10 @@ class _ConfirmationCard extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onOrders,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _HomeCommercialState.primaryBlue,
+                  backgroundColor: _HomeCommercialState.brandPrimary,
                   foregroundColor: Colors.white,
                   elevation: 8,
-                  shadowColor: _HomeCommercialState.primaryBlue.withValues(
+                  shadowColor: _HomeCommercialState.brandPrimary.withValues(
                     alpha: .24,
                   ),
                   shape: RoundedRectangleBorder(
@@ -9515,7 +9723,7 @@ class _ConfirmationCard extends StatelessWidget {
                 onPressed: onHome,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _HomeCommercialState.textDark,
-                  side: BorderSide(color: Color(0xFFD7DEE9)),
+                  side: BorderSide(color: Color(0xFFD7E2DA)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -9544,9 +9752,9 @@ class _SuccessBadge extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          _ConfettiDot(left: 12, top: 16, color: Color(0xFF2674F8)),
+          _ConfettiDot(left: 12, top: 16, color: Color(0xFF1B7F4B)),
           _ConfettiDot(left: 38, top: 0, color: Color(0xFFFF2FA0)),
-          _ConfettiDot(right: 16, top: 12, color: Color(0xFF2674F8)),
+          _ConfettiDot(right: 16, top: 12, color: Color(0xFF1B7F4B)),
           _ConfettiDot(right: 2, top: 48, color: Color(0xFFFFC24B)),
           _ConfettiDot(left: 4, bottom: 34, color: Color(0xFFFF8A1F)),
           _ConfettiDot(right: 34, bottom: 24, color: Color(0xFFFF2FA0)),
@@ -9670,7 +9878,7 @@ class _MissingOrderCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFF18315E).withValues(alpha: .08),
+              color: Color(0xFF0B3B2A).withValues(alpha: .08),
               blurRadius: 28,
               offset: Offset(0, 14),
             ),
@@ -10204,7 +10412,7 @@ class _ClientIdentity extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 27,
-          backgroundColor: _HomeCommercialState.primaryBlue,
+          backgroundColor: _HomeCommercialState.brandPrimary,
           child: Text(
             client.initials,
             style: TextStyle(
@@ -10380,18 +10588,18 @@ class _DetailTabs extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: selectedIndex == i
-                        ? _HomeCommercialState.primaryBlue
+                        ? _HomeCommercialState.brandPrimary
                         : _HomeCommercialState.cardBg,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: selectedIndex == i
-                          ? _HomeCommercialState.primaryBlue
+                          ? _HomeCommercialState.brandPrimary
                           : _activityBorderColor(),
                     ),
                     boxShadow: selectedIndex == i
                         ? [
                             BoxShadow(
-                              color: _HomeCommercialState.primaryBlue
+                              color: _HomeCommercialState.brandPrimary
                                   .withValues(alpha: .18),
                               blurRadius: 12,
                               offset: Offset(0, 6),
@@ -10546,7 +10754,7 @@ class _InfoActionRow extends StatelessWidget {
       trailing: IconButton(
         onPressed: onAction,
         icon: Icon(actionIcon, size: 18),
-        color: _HomeCommercialState.primaryBlue,
+        color: _HomeCommercialState.brandPrimary,
         padding: EdgeInsets.zero,
         constraints: BoxConstraints.tightFor(width: 34, height: 34),
       ),
@@ -10726,7 +10934,15 @@ class _ClientNote {
 }
 
 class _ClientNoteSheet extends StatefulWidget {
-  _ClientNoteSheet();
+  _ClientNoteSheet({
+    this.title = 'Ajouter une note',
+    this.subtitle = 'Cette note sera ajoutée à l’historique du client.',
+    this.hintText = 'Saisissez votre note...',
+  });
+
+  final String title;
+  final String subtitle;
+  final String hintText;
 
   @override
   State<_ClientNoteSheet> createState() => _ClientNoteSheetState();
@@ -10755,7 +10971,7 @@ class _ClientNoteSheetState extends State<_ClientNoteSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Ajouter une note',
+            AppLocalizations.globalText(widget.title),
             style: TextStyle(
               color: _HomeCommercialState.textDark,
               fontSize: 22,
@@ -10764,7 +10980,7 @@ class _ClientNoteSheetState extends State<_ClientNoteSheet> {
           ),
           SizedBox(height: 8),
           Text(
-            'Cette note sera ajoutée à l’historique du client.',
+            AppLocalizations.globalText(widget.subtitle),
             style: TextStyle(
               color: _HomeCommercialState.textMuted,
               fontSize: 13,
@@ -10782,7 +10998,7 @@ class _ClientNoteSheetState extends State<_ClientNoteSheet> {
               fontWeight: FontWeight.w600,
             ),
             decoration: InputDecoration(
-              hintText: 'Saisissez votre note...',
+              hintText: AppLocalizations.globalText(widget.hintText),
               filled: true,
               fillColor: _HomeCommercialState.cardBg,
               hintStyle: TextStyle(color: _HomeCommercialState.textMuted),
@@ -10798,7 +11014,7 @@ class _ClientNoteSheetState extends State<_ClientNoteSheet> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: _HomeCommercialState.primaryBlue,
+                  color: _HomeCommercialState.brandPrimary,
                   width: 1.4,
                 ),
               ),
@@ -10811,8 +11027,8 @@ class _ClientNoteSheetState extends State<_ClientNoteSheet> {
                 child: OutlinedButton(
                   onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: _HomeCommercialState.primaryBlue,
-                    side: BorderSide(color: _HomeCommercialState.primaryBlue),
+                    foregroundColor: _HomeCommercialState.brandPrimary,
+                    side: BorderSide(color: _HomeCommercialState.brandPrimary),
                     backgroundColor: _HomeCommercialState.cardBg,
                     minimumSize: Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
@@ -10831,7 +11047,7 @@ class _ClientNoteSheetState extends State<_ClientNoteSheet> {
                     Navigator.pop(context, note);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _HomeCommercialState.primaryBlue,
+                    backgroundColor: _HomeCommercialState.brandPrimary,
                     foregroundColor: Colors.white,
                     minimumSize: Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
@@ -10952,7 +11168,7 @@ class _DocumentDetailRow extends StatelessWidget {
           TextButton(
             onPressed: () {},
             style: TextButton.styleFrom(
-              foregroundColor: _HomeCommercialState.primaryBlue,
+              foregroundColor: _HomeCommercialState.brandPrimary,
               padding: EdgeInsets.symmetric(horizontal: 8),
               minimumSize: Size(44, 34),
             ),
@@ -10985,7 +11201,7 @@ class _EmptyDocumentsState extends StatelessWidget {
             ),
             child: Icon(
               Icons.description_outlined,
-              color: _HomeCommercialState.primaryBlue,
+              color: _HomeCommercialState.brandPrimary,
               size: 34,
             ),
           ),
@@ -11239,12 +11455,12 @@ class _LegacyDetailClient extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: _HomeCommercialState.primaryBlue
+                    backgroundColor: _HomeCommercialState.brandPrimary
                         .withValues(alpha: .14),
                     child: Text(
                       client.initials,
                       style: TextStyle(
-                        color: _HomeCommercialState.primaryBlue,
+                        color: _HomeCommercialState.brandPrimary,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -11368,7 +11584,7 @@ class _ClientsSearchAndFilter extends StatelessWidget {
                   fillColor: _HomeCommercialState.cardBg,
                   contentPadding: EdgeInsets.symmetric(vertical: 16),
                   enabledBorder: _searchBorder(color: _activityBorderColor()),
-                  focusedBorder: _searchBorder(color: _DashboardTab._blue),
+                  focusedBorder: _searchBorder(color: _DashboardTab._brand),
                 ),
               ),
             ),
@@ -11482,7 +11698,7 @@ class _ClientFilterSheet extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: selectedCategory == category
-                                ? _DashboardTab._blue
+                                ? _DashboardTab._brand
                                 : _activityBorderColor(),
                             width: 2,
                           ),
@@ -11494,7 +11710,7 @@ class _ClientFilterSheet extends StatelessWidget {
                                   height: 10,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: _DashboardTab._blue,
+                                    color: _DashboardTab._brand,
                                   ),
                                 ),
                               )
@@ -11533,29 +11749,21 @@ class _ClientKpiGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = clients.length;
     final active = clients
-        .where(
-          (client) =>
-              _clientUiStatusFromStatus(client.status) ==
-              _ClientUiStatus.active,
-        )
+        .where((client) => _clientUiStatusFor(client) == _ClientUiStatus.active)
         .length;
     final inactive = clients
         .where(
-          (client) =>
-              _clientUiStatusFromStatus(client.status) ==
-              _ClientUiStatus.inactive,
+          (client) => _clientUiStatusFor(client) == _ClientUiStatus.inactive,
         )
         .length;
     final prospect = clients
         .where(
-          (client) =>
-              _clientUiStatusFromStatus(client.status) ==
-              _ClientUiStatus.prospect,
+          (client) => _clientUiStatusFor(client) == _ClientUiStatus.prospect,
         )
         .length;
     final potentialRevenue = clients
         .where((client) {
-          final status = _clientUiStatusFromStatus(client.status);
+          final status = _clientUiStatusFor(client);
           return status == _ClientUiStatus.active ||
               status == _ClientUiStatus.prospect;
         })
@@ -11569,7 +11777,7 @@ class _ClientKpiGrid extends StatelessWidget {
         '$total',
         'Total clients',
         'à jour',
-        _DashboardTab._blue,
+        _DashboardTab._brand,
       ),
       _ClientKpi(
         Icons.event_available_rounded,
@@ -11732,12 +11940,12 @@ class _ClientTabs extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
                     color: selectedCategory == categories[i]
-                        ? _DashboardTab._blue
+                        ? _DashboardTab._brand
                         : _HomeCommercialState.cardBg,
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: selectedCategory == categories[i]
-                          ? _DashboardTab._blue
+                          ? _DashboardTab._brand
                           : _activityBorderColor(),
                     ),
                   ),
@@ -12003,7 +12211,7 @@ class _EmptyClients extends StatelessWidget {
   }
 }
 
-OutlineInputBorder _searchBorder({Color color = const Color(0xFFE3E8F2)}) {
+OutlineInputBorder _searchBorder({Color color = const Color(0xFFE3EBE6)}) {
   return OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
     borderSide: BorderSide(color: color),
@@ -12045,10 +12253,10 @@ class _DashboardTab extends StatelessWidget {
   final ValueChanged<_CommercialActivityItem> onActivityCreated;
   final ValueChanged<int> onNavigate;
 
-  static const _navy = Color(0xFF0F172A);
-  static const _blue = Color(0xFF2563EB);
-  static const _green = Color(0xFF22C55E);
-  static const _orange = Color(0xFFF59E0B);
+  static const _navy = AppPalette.ink;
+  static const _brand = AppPalette.brand;
+  static const _green = AppPalette.success;
+  static const _orange = AppPalette.warning;
 
   Future<void> _openNotifications(BuildContext context) async {
     await Navigator.push(
@@ -12741,7 +12949,7 @@ _activityLogStyle(String typeAction) {
       return (
         title: 'Commande envoyée au manager',
         icon: Icons.send_rounded,
-        color: _HomeCommercialState.primaryBlue,
+        color: _HomeCommercialState.brandPrimary,
         type: _ActivityHistoryType.orders,
         status: _ActivityHistoryStatus.completed,
         target: _ActivityHistoryTarget.order,
@@ -12777,7 +12985,7 @@ _activityLogStyle(String typeAction) {
       return (
         title: 'Nouvelle activité créée',
         icon: Icons.event_available_rounded,
-        color: _HomeCommercialState.primaryBlue,
+        color: _HomeCommercialState.brandPrimary,
         type: _ActivityHistoryType.visits,
         status: _ActivityHistoryStatus.pending,
         target: _ActivityHistoryTarget.visit,
@@ -12786,7 +12994,7 @@ _activityLogStyle(String typeAction) {
       return (
         title: 'Activité récente',
         icon: Icons.history_rounded,
-        color: _HomeCommercialState.primaryBlue,
+        color: _HomeCommercialState.brandPrimary,
         type: _ActivityHistoryType.all,
         status: _ActivityHistoryStatus.completed,
         target: _ActivityHistoryTarget.report,
@@ -12824,7 +13032,7 @@ class _ActivityHistoryHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded, size: 30),
-          color: _HomeCommercialState.primaryBlue,
+          color: _HomeCommercialState.brandPrimary,
           padding: EdgeInsets.zero,
           constraints: BoxConstraints.tightFor(width: 42, height: 42),
         ),
@@ -12885,7 +13093,7 @@ class _HistorySearchField extends StatelessWidget {
         border: _historyInputBorder(),
         enabledBorder: _historyInputBorder(),
         focusedBorder: _historyInputBorder(
-          _HomeCommercialState.primaryBlue,
+          _HomeCommercialState.brandPrimary,
           1.4,
         ),
       ),
@@ -12913,7 +13121,7 @@ class _HistoryCalendarButton extends StatelessWidget {
         ),
         child: Icon(
           Icons.calendar_month_rounded,
-          color: _HomeCommercialState.primaryBlue,
+          color: _HomeCommercialState.brandPrimary,
         ),
       ),
     );
@@ -12933,11 +13141,11 @@ class _HistoryDateFilterChip extends StatelessWidget {
       child: InputChip(
         label: Text(label),
         onDeleted: onClear,
-        backgroundColor: _HomeCommercialState.primaryBlue.withValues(
+        backgroundColor: _HomeCommercialState.brandPrimary.withValues(
           alpha: .08,
         ),
         labelStyle: TextStyle(
-          color: _HomeCommercialState.primaryBlue,
+          color: _HomeCommercialState.brandPrimary,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -12971,7 +13179,7 @@ class _ActivityHistoryGroupView extends StatelessWidget {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                color: _HomeCommercialState.primaryBlue.withValues(alpha: .08),
+                color: _HomeCommercialState.brandPrimary.withValues(alpha: .08),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -13136,7 +13344,7 @@ class _EmptyActivityHistory extends StatelessWidget {
           children: [
             _ReportRoundIcon(
               icon: Icons.history_rounded,
-              color: _HomeCommercialState.primaryBlue,
+              color: _HomeCommercialState.brandPrimary,
               size: 64,
             ),
             SizedBox(height: 16),
@@ -13162,7 +13370,7 @@ class _EmptyActivityHistory extends StatelessWidget {
             ElevatedButton(
               onPressed: onHome,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _HomeCommercialState.primaryBlue,
+                backgroundColor: _HomeCommercialState.brandPrimary,
                 foregroundColor: Colors.white,
               ),
               child: Text('Retour à l’accueil'),
@@ -13215,7 +13423,7 @@ class _HistoryBottomNav extends StatelessWidget {
                       Icon(
                         items[index].$1,
                         color: selected
-                            ? _HomeCommercialState.primaryBlue
+                            ? _HomeCommercialState.brandPrimary
                             : _HomeCommercialState.textMuted,
                         size: 27,
                       ),
@@ -13226,7 +13434,7 @@ class _HistoryBottomNav extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: selected
-                              ? _HomeCommercialState.primaryBlue
+                              ? _HomeCommercialState.brandPrimary
                               : _HomeCommercialState.textMuted,
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
@@ -13312,12 +13520,12 @@ class _HistoryFilterGroup<T> extends StatelessWidget {
                 ChoiceChip(
                   selected: item == value,
                   label: Text(label(item)),
-                  selectedColor: _HomeCommercialState.primaryBlue.withValues(
+                  selectedColor: _HomeCommercialState.brandPrimary.withValues(
                     alpha: .14,
                   ),
                   labelStyle: TextStyle(
                     color: item == value
-                        ? _HomeCommercialState.primaryBlue
+                        ? _HomeCommercialState.brandPrimary
                         : _HomeCommercialState.textMuted,
                     fontWeight: FontWeight.w800,
                   ),
@@ -13368,7 +13576,7 @@ List<_ActivityHistoryItem> _buildActivityHistoryItems({
         icon: Icons.storefront_rounded,
         color: visit.status == TourVisitStatus.visited
             ? Color(0xFF22C55E)
-            : _HomeCommercialState.primaryBlue,
+            : _HomeCommercialState.brandPrimary,
         type: _ActivityHistoryType.visits,
         status: visit.status == TourVisitStatus.visited
             ? _ActivityHistoryStatus.completed
@@ -13448,7 +13656,7 @@ _historyOrderStyle(OrderStatus status) {
     OrderStatus.synced => (
       title: 'Commande envoyée au manager',
       icon: Icons.send_rounded,
-      color: _HomeCommercialState.primaryBlue,
+      color: _HomeCommercialState.brandPrimary,
       status: _ActivityHistoryStatus.completed,
     ),
     OrderStatus.pending => (
@@ -13616,12 +13824,18 @@ class _DailyReportPageState extends State<_DailyReportPage> {
   void initState() {
     super.initState();
     _reportDate = DateUtils.dateOnly(DateTime.now());
+    _activityDataRevision.addListener(_handleActivityRevision);
   }
 
   @override
   void dispose() {
+    _activityDataRevision.removeListener(_handleActivityRevision);
     _commentController.dispose();
     super.dispose();
+  }
+
+  void _handleActivityRevision() {
+    if (mounted) setState(() {});
   }
 
   List<CommercialOrder> get _reportOrders {
@@ -13928,7 +14142,7 @@ class _DailyReportHeader extends StatelessWidget {
         IconButton(
           onPressed: onBack,
           icon: Icon(Icons.arrow_back_rounded, size: 30),
-          color: _HomeCommercialState.primaryBlue,
+          color: _HomeCommercialState.brandPrimary,
           padding: EdgeInsets.zero,
           constraints: BoxConstraints.tightFor(width: 42, height: 42),
         ),
@@ -13991,12 +14205,12 @@ class _ReportInfoCard extends StatelessWidget {
             width: 88,
             height: 88,
             decoration: BoxDecoration(
-              color: _HomeCommercialState.primaryBlue.withValues(alpha: .08),
+              color: _HomeCommercialState.brandPrimary.withValues(alpha: .08),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
               Icons.request_quote_outlined,
-              color: _HomeCommercialState.primaryBlue,
+              color: _HomeCommercialState.brandPrimary,
               size: 50,
             ),
           ),
@@ -14018,57 +14232,59 @@ class _ReportInfoCard extends StatelessWidget {
           SizedBox(width: 10),
           Flexible(
             child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                decoration: BoxDecoration(
-                  color: hasReportData ? Color(0xFFEAFBF1) : Color(0xFFFFF7ED),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      hasReportData
-                          ? Icons.check_rounded
-                          : Icons.schedule_rounded,
-                      color: hasReportData
-                          ? Color(0xFF22C55E)
-                          : Color(0xFFF59E0B),
-                      size: 18,
-                    ),
-                    SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: hasReportData
+                        ? Color(0xFFEAFBF1)
+                        : Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
                         hasReportData
-                            ? "Journée terminée"
-                            : "Aucune activité aujourd'hui",
-                        style: TextStyle(
-                          color: hasReportData
-                              ? Color(0xFF16A34A)
-                              : Color(0xFFD97706),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
+                            ? Icons.check_rounded
+                            : Icons.schedule_rounded,
+                        color: hasReportData
+                            ? Color(0xFF22C55E)
+                            : Color(0xFFF59E0B),
+                        size: 18,
+                      ),
+                      SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          hasReportData
+                              ? "Journée terminée"
+                              : "Aucune activité aujourd'hui",
+                          style: TextStyle(
+                            color: hasReportData
+                                ? Color(0xFF16A34A)
+                                : Color(0xFFD97706),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              if (generatedAt != null) ...[
-                SizedBox(height: 16),
-                Text(
-                  "Rapport généré à $generatedAt",
-                  textAlign: TextAlign.end,
-                  style: TextStyle(
-                    color: _HomeCommercialState.textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    ],
                   ),
                 ),
+                if (generatedAt != null) ...[
+                  SizedBox(height: 16),
+                  Text(
+                    "Rapport généré à $generatedAt",
+                    textAlign: TextAlign.end,
+                    style: TextStyle(
+                      color: _HomeCommercialState.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ],
-            ],
             ),
           ),
         ],
@@ -14104,7 +14320,7 @@ class _ReportKpiCard extends StatelessWidget {
       ),
       _ReportKpiData(
         Icons.shopping_cart_rounded,
-        _HomeCommercialState.primaryBlue,
+        _HomeCommercialState.brandPrimary,
         '$ordersCount',
         "Commandes créées",
         "",
@@ -14342,7 +14558,7 @@ class _ReportCommentCardState extends State<_ReportCommentCard> {
                   padding: EdgeInsets.fromLTRB(14, 12, 10, 0),
                   child: Icon(
                     Icons.format_quote_rounded,
-                    color: _HomeCommercialState.primaryBlue,
+                    color: _HomeCommercialState.brandPrimary,
                   ),
                 ),
                 prefixIconConstraints: BoxConstraints(minWidth: 46),
@@ -14352,7 +14568,7 @@ class _ReportCommentCardState extends State<_ReportCommentCard> {
                 border: _reportInputBorder(),
                 enabledBorder: _reportInputBorder(),
                 focusedBorder: _reportInputBorder(
-                  _HomeCommercialState.primaryBlue,
+                  _HomeCommercialState.brandPrimary,
                   1.4,
                 ),
                 counterText: '${widget.controller.text.length}/300',
@@ -14378,7 +14594,7 @@ class _ReportEmptyActionMessage extends StatelessWidget {
         children: [
           Icon(
             Icons.info_outline_rounded,
-            color: _HomeCommercialState.primaryBlue,
+            color: _HomeCommercialState.brandPrimary,
             size: 22,
           ),
           SizedBox(width: 10),
@@ -14434,8 +14650,8 @@ class _ReportActionsBar extends StatelessWidget {
               icon: Icon(Icons.download_rounded),
               label: Text("Télécharger PDF"),
               style: OutlinedButton.styleFrom(
-                foregroundColor: _HomeCommercialState.primaryBlue,
-                side: BorderSide(color: _HomeCommercialState.primaryBlue),
+                foregroundColor: _HomeCommercialState.brandPrimary,
+                side: BorderSide(color: _HomeCommercialState.brandPrimary),
                 minimumSize: Size.fromHeight(56),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -14450,7 +14666,7 @@ class _ReportActionsBar extends StatelessWidget {
               icon: Icon(Icons.send_rounded),
               label: Text(reportSent ? "Rapport envoyé" : "Envoyer au manager"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _HomeCommercialState.primaryBlue,
+                backgroundColor: _HomeCommercialState.brandPrimary,
                 foregroundColor: Colors.white,
                 minimumSize: Size.fromHeight(56),
                 shape: RoundedRectangleBorder(
@@ -14690,7 +14906,7 @@ class _ReportSectionHeader extends StatelessWidget {
           Text(
             action!,
             style: TextStyle(
-              color: _HomeCommercialState.primaryBlue,
+              color: _HomeCommercialState.brandPrimary,
               fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
@@ -14710,7 +14926,7 @@ class _ReportMetaLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: _HomeCommercialState.primaryBlue, size: 20),
+        Icon(icon, color: _HomeCommercialState.brandPrimary, size: 20),
         SizedBox(width: 10),
         Expanded(
           child: Text(
@@ -14744,10 +14960,10 @@ class _ReportIconButton extends StatelessWidget {
         width: 54,
         height: 54,
         decoration: BoxDecoration(
-          color: _HomeCommercialState.primaryBlue.withValues(alpha: .08),
+          color: _HomeCommercialState.brandPrimary.withValues(alpha: .08),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(icon, color: _HomeCommercialState.primaryBlue),
+        child: Icon(icon, color: _HomeCommercialState.brandPrimary),
       ),
     );
   }
@@ -15090,7 +15306,7 @@ String _reportMoney(num value) {
 Color _reportOrderStatusColor(OrderStatus status) {
   return switch (status) {
     OrderStatus.delivered => Color(0xFF22C55E),
-    OrderStatus.synced => _HomeCommercialState.primaryBlue,
+    OrderStatus.synced => _HomeCommercialState.brandPrimary,
     OrderStatus.pending => Color(0xFFF59E0B),
     OrderStatus.cancelled => Color(0xFFEF4444),
   };
@@ -15449,11 +15665,11 @@ class _DailyObjectiveCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_DashboardTab._navy, _DashboardTab._blue],
+          colors: [_DashboardTab._navy, _DashboardTab._brand],
         ),
         boxShadow: [
           BoxShadow(
-            color: _DashboardTab._blue.withValues(alpha: .24),
+            color: _DashboardTab._brand.withValues(alpha: .24),
             blurRadius: 26,
             offset: Offset(0, 14),
           ),
@@ -15645,7 +15861,7 @@ class _DailyObjectiveCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Color(0xFFD9E6FF),
+                          color: Color(0xFFCDE9DA),
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -15691,7 +15907,7 @@ class _DailyObjectiveCard extends StatelessWidget {
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Color(0xFFD9E6FF),
+                          color: Color(0xFFCDE9DA),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -15763,7 +15979,7 @@ class _ObjectiveMiniProgress extends StatelessWidget {
               value,
               maxLines: 1,
               style: TextStyle(
-                color: Color(0xFFD9E6FF),
+                color: Color(0xFFCDE9DA),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -15824,7 +16040,7 @@ class _PerformanceTrendBox extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Color(0xFFD9E6FF),
+                    color: Color(0xFFCDE9DA),
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                   ),
@@ -15850,7 +16066,7 @@ class _QuickStatsGrid extends StatelessWidget {
         Icons.business_center_rounded,
         '${metrics.ordersToday}',
         "Commandes\naujourd'hui",
-        _DashboardTab._blue,
+        _DashboardTab._brand,
       ),
       _QuickStatData(
         Icons.schedule_rounded,
@@ -16001,7 +16217,7 @@ class _SalesEvolutionCard extends StatelessWidget {
                     ),
                     child: Icon(
                       Icons.show_chart_rounded,
-                      color: _DashboardTab._blue,
+                      color: _DashboardTab._brand,
                       size: 30,
                     ),
                   ),
@@ -16239,8 +16455,8 @@ class _SalesChartPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            _DashboardTab._blue.withValues(alpha: .20),
-            _DashboardTab._blue.withValues(alpha: .02),
+            _DashboardTab._brand.withValues(alpha: .20),
+            _DashboardTab._brand.withValues(alpha: .02),
           ],
         ).createShader(chart),
     );
@@ -16255,7 +16471,7 @@ class _SalesChartPainter extends CustomPainter {
     canvas.drawPath(
       line,
       Paint()
-        ..color = _DashboardTab._blue
+        ..color = _DashboardTab._brand
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round,
@@ -16267,7 +16483,7 @@ class _SalesChartPainter extends CustomPainter {
         point,
         5,
         Paint()
-          ..color = _DashboardTab._blue
+          ..color = _DashboardTab._brand
           ..style = PaintingStyle.stroke
           ..strokeWidth = 3,
       );
@@ -16282,7 +16498,7 @@ class _SalesChartPainter extends CustomPainter {
       ),
       Radius.circular(6),
     );
-    canvas.drawRRect(bubble, Paint()..color = _DashboardTab._blue);
+    canvas.drawRRect(bubble, Paint()..color = _DashboardTab._brand);
     _drawText(
       canvas,
       label,
@@ -16342,7 +16558,7 @@ class _QuickActionsGrid extends StatelessWidget {
           title: AppLocalizations.globalText('Nouvelle\ncommande'),
           subtitle: AppLocalizations.globalText('Cr\u00E9er une commande'),
           icon: Icons.add_rounded,
-          color: _DashboardTab._blue,
+          color: _DashboardTab._brand,
           inverted: true,
           onTap: onNewOrder,
         ),
@@ -16350,7 +16566,7 @@ class _QuickActionsGrid extends StatelessWidget {
           title: AppLocalizations.globalText('Nouveau\nclient'),
           subtitle: AppLocalizations.globalText('Ajouter un client'),
           icon: Icons.person_add_alt_rounded,
-          color: _DashboardTab._blue,
+          color: _DashboardTab._brand,
           onTap: onNewClient,
         ),
         _QuickActionCard(
@@ -16496,7 +16712,7 @@ class _SectionTitle extends StatelessWidget {
           TextButton(
             onPressed: onActionTap,
             style: TextButton.styleFrom(
-              foregroundColor: _DashboardTab._blue,
+              foregroundColor: _DashboardTab._brand,
               padding: EdgeInsets.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
@@ -16639,10 +16855,10 @@ class _DashboardEmptyCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: _DashboardTab._blue.withValues(alpha: .10),
+              color: _DashboardTab._brand.withValues(alpha: .10),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: _DashboardTab._blue),
+            child: Icon(icon, color: _DashboardTab._brand),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -16739,12 +16955,12 @@ class _RecentActivityCard extends StatelessWidget {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: _DashboardTab._blue.withValues(alpha: .10),
+                    color: _DashboardTab._brand.withValues(alpha: .10),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     Icons.history_rounded,
-                    color: _DashboardTab._blue,
+                    color: _DashboardTab._brand,
                   ),
                 ),
                 SizedBox(width: 12),
@@ -17193,7 +17409,7 @@ class _NotificationsHeader extends StatelessWidget {
         TextButton(
           onPressed: unreadCount == 0 ? null : onMarkAllRead,
           style: TextButton.styleFrom(
-            foregroundColor: Color(0xFF2563EB),
+            foregroundColor: Color(0xFF1B7F4B),
             disabledForegroundColor: _HomeCommercialState.textMuted,
             padding: EdgeInsets.symmetric(horizontal: 8),
           ),
@@ -17237,16 +17453,16 @@ class _NotificationFilterTabs extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 17),
               decoration: BoxDecoration(
                 color: selected
-                    ? Color(0xFF2563EB)
+                    ? Color(0xFF1B7F4B)
                     : _HomeCommercialState.cardBg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: selected ? Color(0xFF2563EB) : _activityBorderColor(),
+                  color: selected ? Color(0xFF1B7F4B) : _activityBorderColor(),
                 ),
                 boxShadow: [
                   if (selected)
                     BoxShadow(
-                      color: Color(0xFF2563EB).withValues(alpha: .18),
+                      color: Color(0xFF1B7F4B).withValues(alpha: .18),
                       blurRadius: 16,
                       offset: Offset(0, 8),
                     ),
@@ -17322,7 +17538,7 @@ class _NotificationRow extends StatelessWidget {
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: Color(0xFF2563EB),
+                          color: Color(0xFF1B7F4B),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -17414,12 +17630,12 @@ class _EmptyNotifications extends StatelessWidget {
             width: 84,
             height: 84,
             decoration: BoxDecoration(
-              color: Color(0xFF2563EB).withValues(alpha: .08),
+              color: Color(0xFF1B7F4B).withValues(alpha: .08),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.notifications_none_rounded,
-              color: Color(0xFF2563EB),
+              color: Color(0xFF1B7F4B),
               size: 42,
             ),
           ),
@@ -17614,7 +17830,7 @@ void _notifyActivityPlanned(String email, _CommercialActivityItem activity) {
       isRead: false,
       style: _NotificationStyle(
         icon: Icons.event_available_rounded,
-        color: Color(0xFF2563EB),
+        color: Color(0xFF1B7F4B),
       ),
     ),
   );
@@ -17642,7 +17858,7 @@ void _notifyOrderAction(String email, CommercialOrder order) {
       title: 'Commande envoyée',
       message: 'La commande ${order.orderNumber} a été envoyée au manager.',
       icon: Icons.send_rounded,
-      color: Color(0xFF2563EB),
+      color: Color(0xFF1B7F4B),
     ),
     OrderStatus.pending => (
       id: 'pending',
@@ -17947,7 +18163,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected
-        ? _HomeCommercialState.primaryBlue
+        ? _HomeCommercialState.brandPrimary
         : _HomeCommercialState.textMuted;
 
     return InkWell(
@@ -18001,12 +18217,12 @@ class _TemporaryTab extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: _HomeCommercialState.primaryBlue.withValues(alpha: .10),
+                color: _HomeCommercialState.brandPrimary.withValues(alpha: .10),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
                 icon,
-                color: _HomeCommercialState.primaryBlue,
+                color: _HomeCommercialState.brandPrimary,
                 size: 34,
               ),
             ),
@@ -18353,7 +18569,7 @@ class _NouveauClientScreenState extends State<NouveauClientScreen> {
       revenue: 0,
       rank: id,
       icon: Icons.storefront_rounded,
-      color: _DashboardTab._blue,
+      color: _DashboardTab._brand,
     );
 
     var savedClient = client;
@@ -18935,7 +19151,7 @@ class _NewClientSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: _DashboardTab._blue, size: 22),
+              Icon(icon, color: _DashboardTab._brand, size: 22),
               SizedBox(width: 10),
               Text(
                 title,
@@ -19397,7 +19613,7 @@ class _NewClientOptionSheet extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: selected
-                              ? _DashboardTab._blue.withValues(alpha: .12)
+                              ? _DashboardTab._brand.withValues(alpha: .12)
                               : _HomeCommercialState.cardBg,
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -19408,14 +19624,16 @@ class _NewClientOptionSheet extends StatelessWidget {
                               height: 34,
                               decoration: BoxDecoration(
                                 color: selected
-                                    ? _DashboardTab._blue.withValues(alpha: .12)
+                                    ? _DashboardTab._brand.withValues(
+                                        alpha: .12,
+                                      )
                                     : _activitySoftSurface(),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 _newClientOptionIcon(title),
                                 color: selected
-                                    ? _DashboardTab._blue
+                                    ? _DashboardTab._brand
                                     : _HomeCommercialState.textMuted,
                                 size: 18,
                               ),
@@ -19436,7 +19654,7 @@ class _NewClientOptionSheet extends StatelessWidget {
                             if (selected)
                               Icon(
                                 Icons.check_circle_rounded,
-                                color: _DashboardTab._blue,
+                                color: _DashboardTab._brand,
                                 size: 21,
                               ),
                           ],
@@ -19538,8 +19756,8 @@ class _NewClientActionButton extends StatelessWidget {
           icon: Icon(icon),
           label: Text(label),
           style: OutlinedButton.styleFrom(
-            foregroundColor: _DashboardTab._blue,
-            side: BorderSide(color: _DashboardTab._blue),
+            foregroundColor: _DashboardTab._brand,
+            side: BorderSide(color: _DashboardTab._brand),
             shape: shape,
             textStyle: TextStyle(fontWeight: FontWeight.w700),
           ),
@@ -19553,10 +19771,10 @@ class _NewClientActionButton extends StatelessWidget {
         icon: Icon(icon),
         label: Text(label),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _DashboardTab._blue,
+          backgroundColor: _DashboardTab._brand,
           foregroundColor: Colors.white,
           elevation: 10,
-          shadowColor: _DashboardTab._blue.withValues(alpha: .24),
+          shadowColor: _DashboardTab._brand.withValues(alpha: .24),
           shape: shape,
           textStyle: TextStyle(fontWeight: FontWeight.w700),
         ),
@@ -19592,7 +19810,7 @@ InputDecoration _newClientDecoration(
     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     enabledBorder: _searchBorder(color: _activityBorderColor()),
     disabledBorder: _searchBorder(color: _activityBorderColor()),
-    focusedBorder: _searchBorder(color: _DashboardTab._blue),
+    focusedBorder: _searchBorder(color: _DashboardTab._brand),
     errorBorder: _searchBorder(color: _HomeCommercialState.error),
     focusedErrorBorder: _searchBorder(color: _HomeCommercialState.error),
     errorMaxLines: 2,

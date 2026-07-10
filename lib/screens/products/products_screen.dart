@@ -220,21 +220,21 @@ class _LegacyProductPhoto extends StatelessWidget {
       child: Container(
         width: 48,
         height: 48,
-        color: Color(0xFFEAF3FF),
+        color: Color(0xFFE6F4EC),
         child: image.isEmpty
-            ? Icon(Icons.inventory_2_outlined, color: Color(0xFF164260))
+            ? Icon(Icons.inventory_2_outlined, color: Color(0xFF14603A))
             : image.startsWith('http')
             ? Image.network(
                 image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.inventory_2_outlined, color: Color(0xFF164260)),
+                    Icon(Icons.inventory_2_outlined, color: Color(0xFF14603A)),
               )
             : Image.asset(
                 image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.inventory_2_outlined, color: Color(0xFF164260)),
+                    Icon(Icons.inventory_2_outlined, color: Color(0xFF14603A)),
               ),
       ),
     );

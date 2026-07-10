@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/app_palette.dart';
 import '../../data/mock_presales_data.dart';
 import '../../database/database_helper.dart';
 import '../../services/pdf_services.dart';
@@ -65,11 +66,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
       orElse: () => orders.first,
     );
     setState(() {
-      facture = {
-        'id': order.id,
-        'date': order.date,
-        'total': order.total,
-      };
+      facture = {'id': order.id, 'date': order.date, 'total': order.total};
       details = [
         for (final item in order.items)
           {
@@ -111,7 +108,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
             margin: EdgeInsets.all(10),
             padding: EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: AppPalette.brandSoft,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(

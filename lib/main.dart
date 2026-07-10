@@ -12,12 +12,13 @@ import 'screens/admin/home_admin.dart';
 import 'l10n/app_locale_controller.dart';
 import 'l10n/app_localizations.dart';
 import 'settings/app_appearance_controller.dart';
+import 'theme/app_palette.dart';
 
 const String _appFontFamily = 'Roboto';
-const Color _primaryBlue = Color(0xFF2563EB);
-const Color _textDark = Color(0xFF0F172A);
-const Color _textMuted = Color(0xFF64748B);
-const Color _surfaceBg = Color(0xFFF8FAFC);
+const Color _brandPrimary = AppPalette.brand;
+const Color _textDark = AppPalette.ink;
+const Color _textMuted = AppPalette.muted;
+const Color _surfaceBg = AppPalette.surface;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,7 +81,7 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
             useMaterial3: false,
             fontFamily: _appFontFamily,
-            primaryColor: _primaryBlue,
+            primaryColor: _brandPrimary,
             scaffoldBackgroundColor: _surfaceBg,
             appBarTheme: const AppBarTheme(
               backgroundColor: Colors.white,
@@ -260,7 +261,7 @@ class MyApp extends StatelessWidget {
             brightness: Brightness.dark,
             useMaterial3: false,
             fontFamily: _appFontFamily,
-            primaryColor: _primaryBlue,
+            primaryColor: _brandPrimary,
             scaffoldBackgroundColor: Colors.black,
             appBarTheme: const AppBarTheme(
               backgroundColor: Color(0xFF111111),
@@ -275,7 +276,7 @@ class MyApp extends StatelessWidget {
               ),
             ),
             colorScheme: const ColorScheme.dark(
-              primary: _primaryBlue,
+              primary: _brandPrimary,
               surface: Color(0xFF111111),
             ),
           ),

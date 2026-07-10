@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../auth/current_user_session.dart';
 import '../../l10n/app_localizations.dart';
 
-Color _primaryBlue = Color(0xFF2563EB);
+Color _brandPrimary = Color(0xFF1B7F4B);
 Color _textDark = Color(0xFF0F172A);
 Color _textMuted = Color(0xFF64748B);
 Color _surfaceBg = Color(0xFFF8FAFC);
@@ -127,7 +127,7 @@ class _NotificationPreferencesScreenState
                           child: _isLoading
                               ? Center(
                                   child: CircularProgressIndicator(
-                                    color: _primaryBlue,
+                                    color: _brandPrimary,
                                   ),
                                 )
                               : CustomScrollView(
@@ -155,10 +155,10 @@ class _NotificationPreferencesScreenState
                                             _PreferenceRow(
                                               icon:
                                                   Icons.shopping_cart_outlined,
-                                              iconColor: _primaryBlue,
+                                              iconColor: _brandPrimary,
                                               iconBg: _notificationIconBg(
-                                                _primaryBlue,
-                                                Color(0xFFEFF6FF),
+                                                _brandPrimary,
+                                                Color(0xFFE6F4EC),
                                               ),
                                               title: l10n.orderNotifications,
                                               subtitle: l10n
@@ -264,10 +264,10 @@ class _NotificationPreferencesScreenState
                                           _buildSettingsCard([
                                             _ActionRow(
                                               icon: Icons.schedule_rounded,
-                                              iconColor: _primaryBlue,
+                                              iconColor: _brandPrimary,
                                               iconBg: _notificationIconBg(
-                                                _primaryBlue,
-                                                Color(0xFFEFF6FF),
+                                                _brandPrimary,
+                                                Color(0xFFE6F4EC),
                                               ),
                                               title: l10n.quietHours,
                                               subtitle: l10n.quietHoursSubtitle,
@@ -376,8 +376,8 @@ class _NotificationPreferencesScreenState
         children: [
           _circleIcon(
             Icons.notifications_none_rounded,
-            _primaryBlue,
-            _notificationIconBg(_primaryBlue, Color(0xFFEFF6FF)),
+            _brandPrimary,
+            _notificationIconBg(_brandPrimary, Color(0xFFE6F4EC)),
             size: 62,
             iconSize: 31,
           ),
@@ -419,7 +419,7 @@ class _NotificationPreferencesScreenState
                   height: 54,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _primaryBlue.withValues(alpha: 0.65),
+                      color: _brandPrimary.withValues(alpha: 0.65),
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(10),
@@ -430,7 +430,7 @@ class _NotificationPreferencesScreenState
                   bottom: 12,
                   child: Icon(
                     Icons.notifications_active_rounded,
-                    color: _primaryBlue.withValues(alpha: 0.9),
+                    color: _brandPrimary.withValues(alpha: 0.9),
                     size: 30,
                   ),
                 ),
@@ -462,7 +462,7 @@ class _NotificationPreferencesScreenState
   Widget _buildSectionTitle(IconData icon, String title) {
     return Row(
       children: [
-        Icon(icon, color: _primaryBlue, size: 23),
+        Icon(icon, color: _brandPrimary, size: 23),
         SizedBox(width: 12),
         Expanded(
           child: Text(
@@ -515,7 +515,7 @@ class _NotificationPreferencesScreenState
             value: row.value,
             onChanged: row.onChanged,
             activeThumbColor: Colors.white,
-            activeTrackColor: _primaryBlue,
+            activeTrackColor: _brandPrimary,
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: Color(0xFFCBD5E1),
           ),
@@ -540,7 +540,7 @@ class _NotificationPreferencesScreenState
             Text(
               row.value,
               style: TextStyle(
-                color: _primaryBlue,
+                color: _brandPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
               ),
@@ -653,8 +653,8 @@ class _NotificationPreferencesScreenState
           children: [
             _circleIcon(
               channel.icon,
-              _primaryBlue,
-              _notificationIconBg(_primaryBlue, Color(0xFFEFF6FF)),
+              _brandPrimary,
+              _notificationIconBg(_brandPrimary, Color(0xFFE6F4EC)),
               size: 42,
               iconSize: 22,
             ),
@@ -764,7 +764,7 @@ class _NotificationPreferencesScreenState
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _primaryBlue,
+                          backgroundColor: _brandPrimary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -799,7 +799,7 @@ class _NotificationPreferencesScreenState
         ),
         child: Row(
           children: [
-            Icon(Icons.schedule_rounded, color: _primaryBlue),
+            Icon(Icons.schedule_rounded, color: _brandPrimary),
             SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -814,7 +814,7 @@ class _NotificationPreferencesScreenState
             Text(
               value,
               style: TextStyle(
-                color: _primaryBlue,
+                color: _brandPrimary,
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
               ),
@@ -862,7 +862,7 @@ class _NotificationPreferencesScreenState
                       onChanged: (value) =>
                           setModalState(() => selected = value),
                       activeThumbColor: Colors.white,
-                      activeTrackColor: _primaryBlue,
+                      activeTrackColor: _brandPrimary,
                       title: Text(
                         selected ? context.l10n.enabled : context.l10n.disabled,
                         style: TextStyle(
@@ -891,7 +891,7 @@ class _NotificationPreferencesScreenState
                           onChanged(selected);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _primaryBlue,
+                          backgroundColor: _brandPrimary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -1213,7 +1213,7 @@ class _NotificationsBottomNav extends StatelessWidget {
                         children: [
                           Icon(
                             _icons[i],
-                            color: i == 4 ? _primaryBlue : _textMuted,
+                            color: i == 4 ? _brandPrimary : _textMuted,
                             size: 24,
                           ),
                           SizedBox(height: 4),
@@ -1222,7 +1222,7 @@ class _NotificationsBottomNav extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: i == 4 ? _primaryBlue : _textMuted,
+                              color: i == 4 ? _brandPrimary : _textMuted,
                               fontSize: 11,
                               fontWeight: i == 4
                                   ? FontWeight.w900

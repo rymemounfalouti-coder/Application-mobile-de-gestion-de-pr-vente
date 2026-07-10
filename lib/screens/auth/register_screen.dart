@@ -27,8 +27,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _acceptedTerms = false;
   bool _isLoading = false;
 
-  static const _primaryBlue = Color(0xFF1B73F8);
-  static const _textDark = Color(0xFF111B3D);
+  static const _brandPrimary = Color(0xFF1B7F4B);
+  static const _textDark = Color(0xFF0F172A);
   static const _textMuted = Color(0xFF74809A);
 
   @override
@@ -165,7 +165,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3F7FF),
+      backgroundColor: Color(0xFFF1F8F4),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -178,7 +178,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0xFF193A70).withValues(alpha: .13),
+                      color: Color(0xFF0E4531).withValues(alpha: .13),
                       blurRadius: 28,
                       offset: Offset(0, 18),
                     ),
@@ -336,7 +336,7 @@ class _RegisterCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF193A70).withValues(alpha: .08),
+            color: Color(0xFF0E4531).withValues(alpha: .08),
             blurRadius: 18,
             offset: Offset(0, 12),
           ),
@@ -465,9 +465,9 @@ class _RegisterCard extends StatelessWidget {
                 label: Text(isLoading ? 'Création...' : 'Créer mon compte'),
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
-                  backgroundColor: _RegisterScreenState._primaryBlue,
+                  backgroundColor: _RegisterScreenState._brandPrimary,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: _RegisterScreenState._primaryBlue
+                  disabledBackgroundColor: _RegisterScreenState._brandPrimary
                       .withValues(alpha: .7),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(9),
@@ -494,7 +494,7 @@ class _RegisterCard extends StatelessWidget {
                     TextSpan(
                       text: 'Se connecter',
                       style: TextStyle(
-                        color: _RegisterScreenState._primaryBlue,
+                        color: _RegisterScreenState._brandPrimary,
                         fontWeight: FontWeight.w800,
                       ),
                       recognizer: TapGestureRecognizer()..onTap = onLoginTap,
@@ -528,12 +528,12 @@ class _RegisterCard extends StatelessWidget {
       contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(9),
-        borderSide: BorderSide(color: Color(0xFFD8DEE9), width: 1.4),
+        borderSide: BorderSide(color: Color(0xFFD7E2DA), width: 1.4),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(9),
         borderSide: BorderSide(
-          color: _RegisterScreenState._primaryBlue,
+          color: _RegisterScreenState._brandPrimary,
           width: 1.5,
         ),
       ),
@@ -611,12 +611,12 @@ InputDecoration _registerInputDecoration({
     contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 20),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(9),
-      borderSide: BorderSide(color: Color(0xFFD8DEE9), width: 1.4),
+      borderSide: BorderSide(color: Color(0xFFD7E2DA), width: 1.4),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(9),
       borderSide: BorderSide(
-        color: _RegisterScreenState._primaryBlue,
+        color: _RegisterScreenState._brandPrimary,
         width: 1.5,
       ),
     ),
@@ -648,7 +648,7 @@ class _TermsRow extends StatelessWidget {
             value: acceptedTerms,
             onChanged: onChanged,
             side: BorderSide(color: Color(0xFFB8C2D4), width: 1.6),
-            activeColor: _RegisterScreenState._primaryBlue,
+            activeColor: _RegisterScreenState._brandPrimary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
@@ -670,7 +670,7 @@ class _TermsRow extends StatelessWidget {
                 TextSpan(
                   text: "conditions d'utilisation",
                   style: TextStyle(
-                    color: _RegisterScreenState._primaryBlue,
+                    color: _RegisterScreenState._brandPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                   recognizer: TapGestureRecognizer()..onTap = onConditionsTap,
@@ -679,7 +679,7 @@ class _TermsRow extends StatelessWidget {
                 TextSpan(
                   text: 'politique de confidentialité',
                   style: TextStyle(
-                    color: _RegisterScreenState._primaryBlue,
+                    color: _RegisterScreenState._brandPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                   recognizer: TapGestureRecognizer()..onTap = onPrivacyTap,
@@ -710,7 +710,7 @@ class _AvatarHeader extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Color(0xFF193A70).withValues(alpha: .12),
+                  color: Color(0xFF0E4531).withValues(alpha: .12),
                   blurRadius: 18,
                   offset: Offset(0, 8),
                 ),
@@ -719,7 +719,7 @@ class _AvatarHeader extends StatelessWidget {
             child: Center(
               child: Icon(
                 Icons.person,
-                color: _RegisterScreenState._primaryBlue,
+                color: _RegisterScreenState._brandPrimary,
                 size: 48,
               ),
             ),
@@ -731,7 +731,7 @@ class _AvatarHeader extends StatelessWidget {
               width: 30,
               height: 30,
               decoration: BoxDecoration(
-                color: _RegisterScreenState._primaryBlue,
+                color: _RegisterScreenState._brandPrimary,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 3),
               ),
@@ -757,7 +757,7 @@ class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFB7C7DE).withValues(alpha: .38)
+      ..color = const Color(0xFFB9CFC1).withValues(alpha: .38)
       ..isAntiAlias = true;
 
     for (var row = 0; row < 9; row++) {

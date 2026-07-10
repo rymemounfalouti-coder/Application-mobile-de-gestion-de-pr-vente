@@ -14,7 +14,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
   final AppAppearanceController _appearanceController =
       AppAppearanceController.instance;
 
-  static const Color primaryBlue = Color(0xFF2563EB);
+  static const Color brandPrimary = Color(0xFF1B7F4B);
   static const Color textDark = Color(0xFF0F172A);
   static const Color textMuted = Color(0xFF64748B);
   static const Color surfaceBg = Color(0xFFF8FAFC);
@@ -114,7 +114,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
         IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_rounded, size: 30),
-          color: primaryBlue,
+          color: brandPrimary,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints.tightFor(width: 42, height: 42),
         ),
@@ -209,7 +209,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
             trailing: Text(
               _textSizeLabel,
               style: const TextStyle(
-                color: primaryBlue,
+                color: brandPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -232,7 +232,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                   min: 0,
                   max: 2,
                   divisions: 2,
-                  activeColor: primaryBlue,
+                  activeColor: brandPrimary,
                   inactiveColor: const Color(0xFFE2E8F0),
                   onChanged: (value) {
                     _updateTextSize(
@@ -301,13 +301,13 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _isDark(context)
-            ? const Color(0xFF172554)
-            : const Color(0xFFEFF6FF),
+            ? const Color(0xFF0F3A2A)
+            : const Color(0xFFE6F4EC),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded, color: primaryBlue),
+          const Icon(Icons.info_outline_rounded, color: brandPrimary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -358,9 +358,9 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
         CircleAvatar(
           radius: 24,
           backgroundColor: _isDark(context)
-              ? const Color(0xFF1E3A8A)
-              : const Color(0xFFEFF6FF),
-          child: Icon(icon, color: primaryBlue),
+              ? const Color(0xFF0E4531)
+              : const Color(0xFFE6F4EC),
+          child: Icon(icon, color: brandPrimary),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -409,14 +409,14 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
           color: _cardBg(context),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: selected ? primaryBlue : _borderColor(context),
+            color: selected ? brandPrimary : _borderColor(context),
             width: selected ? 2 : 1,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 34, color: primaryBlue),
+            Icon(icon, size: 34, color: brandPrimary),
             const SizedBox(height: 22),
             Text(
               title,
@@ -429,7 +429,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
             const SizedBox(height: 12),
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected ? primaryBlue : _mutedText(context),
+              color: selected ? brandPrimary : _mutedText(context),
               size: 28,
             ),
           ],
@@ -482,7 +482,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
         ),
         Switch(
           value: value,
-          activeThumbColor: primaryBlue,
+          activeThumbColor: brandPrimary,
           onChanged: onChanged,
         ),
       ],
@@ -588,7 +588,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                       Icon(
                         items[index][0] as IconData,
                         color: isActive
-                            ? primaryBlue
+                            ? brandPrimary
                             : _bottomNavInactive(context),
                         size: 27,
                       ),
@@ -599,7 +599,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: isActive
-                              ? primaryBlue
+                              ? brandPrimary
                               : _bottomNavInactive(context),
                           fontSize: 11,
                           fontWeight: FontWeight.w700,

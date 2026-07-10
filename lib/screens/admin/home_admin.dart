@@ -293,6 +293,7 @@ class _HomeAdminState extends State<HomeAdmin> {
       AccueilPage(onMenu: _menu, onBell: _bell, name: name),
       UtilisateursPage(onMenu: _menu, onBell: _bell),
       ProduitsPage(onMenu: _menu, onBell: _bell),
+      ClientsPage(onMenu: _menu, onBell: _bell),
       CommandesPage(onMenu: _menu, onBell: _bell),
       ProfilPage(
         onMenu: _menu,
@@ -301,7 +302,6 @@ class _HomeAdminState extends State<HomeAdmin> {
         email: email,
         phone: phone,
       ),
-      ClientsPage(onMenu: _menu, onBell: _bell),
     ];
 
     // Phone frame wraps the Scaffold itself, so the drawer + sheets stay
@@ -329,10 +329,7 @@ class _HomeAdminState extends State<HomeAdmin> {
                 Expanded(
                   child: IndexedStack(index: _index, children: pages),
                 ),
-                AdminBottomNav(
-                  selectedIndex: _index <= 4 ? _index : -1,
-                  onChanged: (i) => setState(() => _index = i),
-                ),
+                AdminBottomNav(selectedIndex: _index, onChanged: _go),
               ],
             ),
           ),
@@ -441,14 +438,14 @@ class AdminDrawer extends StatelessWidget {
             _DrawerItem(
               Icons.storefront_rounded,
               'Clients',
-              selectedIndex == 5,
-              () => onSelect(5),
+              selectedIndex == 3,
+              () => onSelect(3),
             ),
             _DrawerItem(
               Icons.receipt_long_rounded,
               'Commandes',
-              selectedIndex == 3,
-              () => onSelect(3),
+              selectedIndex == 4,
+              () => onSelect(4),
             ),
             _DrawerItem(
               Icons.history_rounded,
@@ -573,6 +570,7 @@ class AdminBottomNav extends StatelessWidget {
     (Icons.home_rounded, 'Accueil'),
     (Icons.groups_rounded, 'Utilisateurs'),
     (Icons.inventory_2_rounded, 'Produits'),
+    (Icons.storefront_rounded, 'Clients'),
     (Icons.receipt_long_rounded, 'Commandes'),
     (Icons.person_rounded, 'Profil'),
   ];
@@ -724,7 +722,7 @@ class _AccueilPageState extends State<AccueilPage> {
                         'Managers',
                         '${data.managers}',
                         Icons.shield_rounded,
-                        kBlue,
+                        kAccent,
                       ),
                       _Kpi(
                         'Clients',
@@ -745,7 +743,7 @@ class _AccueilPageState extends State<AccueilPage> {
                         'Commandes',
                         '${data.orders.length}',
                         Icons.receipt_long_rounded,
-                        kBlue,
+                        kAccent,
                       ),
                       _Kpi(
                         'En attente',
@@ -4493,7 +4491,7 @@ class ParametresPage extends StatelessWidget {
     final items = <(IconData, Color, String, String, Widget)>[
       (
         Icons.business_rounded,
-        kBlue,
+        kAccent,
         'Informations entreprise',
         'Gérez les informations générales',
         const CompanyInfoDbScreen(),
@@ -4520,7 +4518,7 @@ class ParametresPage extends StatelessWidget {
       ),
       (
         Icons.notifications_rounded,
-        kBlue,
+        kAccent,
         'Notifications',
         'Paramétrez les notifications',
         const NotificationsSettingsScreen(),
@@ -5278,12 +5276,12 @@ class _JournalPageState extends State<JournalPage> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: kBlue.withValues(alpha: .12),
+                                  color: kAccent.withValues(alpha: .12),
                                   borderRadius: BorderRadius.circular(11),
                                 ),
                                 child: const Icon(
                                   Icons.history_rounded,
-                                  color: kBlue,
+                                  color: kAccent,
                                   size: 20,
                                 ),
                               ),
@@ -5396,12 +5394,12 @@ class NotificationsPage extends StatelessWidget {
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: kBlue.withValues(alpha: .12),
+                                  color: kAccent.withValues(alpha: .12),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
                                   Icons.notifications_none_rounded,
-                                  color: kBlue,
+                                  color: kAccent,
                                 ),
                               ),
                               const SizedBox(width: 12),

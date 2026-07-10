@@ -17,6 +17,7 @@ import '../../mockData/manager_orders.dart';
 import '../../mockData/manager_reports.dart';
 import '../../services/commercial_objectives_service.dart';
 import '../../settings/app_appearance_controller.dart';
+import '../../theme/app_palette.dart';
 
 class DashboardManager extends StatefulWidget {
   DashboardManager({super.key});
@@ -126,8 +127,9 @@ extension _ManagerDashboardPeriodUi on _ManagerDashboardPeriod {
         end: DateTime(now.year + 1, 1, 1).subtract(Duration(milliseconds: 1)),
       ),
       _ManagerDashboardPeriod.custom =>
-        customRange ??
-            DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
+        customRange == null
+            ? DateTimeRange(start: DateTime(now.year, now.month, 1), end: now)
+            : _wholeDayRange(customRange),
     };
   }
 }
@@ -549,6 +551,20 @@ bool _dateInRange(DateTime date, DateTimeRange range) {
   return !date.isBefore(range.start) && !date.isAfter(range.end);
 }
 
+/// showDateRangePicker returns both bounds at midnight. Passed through as-is, a
+/// single-day selection only matches records stamped exactly 00:00:00.000, so
+/// the range has to be widened to cover the whole end day.
+DateTimeRange _wholeDayRange(DateTimeRange range) {
+  return DateTimeRange(
+    start: DateTime(range.start.year, range.start.month, range.start.day),
+    end: DateTime(
+      range.end.year,
+      range.end.month,
+      range.end.day,
+    ).add(Duration(days: 1)).subtract(Duration(milliseconds: 1)),
+  );
+}
+
 bool _isActiveStatus(String status) {
   final value = status.toLowerCase().trim();
   return value.isEmpty ||
@@ -708,6 +724,7 @@ class _ManagerOrderView {
     this.deliveryDate,
     this.referenceClient = '',
     this.notes = '',
+    this.refusalReason = '',
     this.discount = 0,
     this.tax = 0,
     this.managerComments = const [],
@@ -737,6 +754,7 @@ class _ManagerOrderView {
   final DateTime? deliveryDate;
   final String referenceClient;
   final String notes;
+  final String refusalReason;
   final double discount;
   final double tax;
   final List<Map<String, dynamic>> managerComments;
@@ -885,6 +903,11 @@ class _ManagerOrderView {
         'ref_client',
       ]),
       notes: _readString(json, ['notes', 'commentaire', 'comments']),
+      refusalReason: _readString(json, [
+        'refusal_reason',
+        'motif_refus',
+        'refusalReason',
+      ]),
       discount: _readDouble(json, ['discount', 'remise']),
       tax: _readDouble(json, ['tax', 'tva', 'vat']),
       managerComments:
@@ -1035,7 +1058,7 @@ class _ManagerHomeHeader extends StatelessWidget {
                   'Espace manager',
                   style: TextStyle(
                     fontFamily: 'Roboto',
-                    color: Color(0xFFD8E2F3),
+                    color: Color(0xFFD6E7DC),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1097,7 +1120,7 @@ class _ManagerHomeHeader extends StatelessWidget {
                 initials.isEmpty ? 'MB' : initials,
                 style: TextStyle(
                   fontFamily: 'Roboto',
-                  color: _DashboardManagerState.managerBlue,
+                  color: _DashboardManagerState.managerBrand,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1186,7 +1209,7 @@ class _ManagerDashboardLoading extends StatelessWidget {
       height: 260,
       alignment: Alignment.center,
       child: CircularProgressIndicator(
-        color: _DashboardManagerState._primaryBlue,
+        color: _DashboardManagerState._brandPrimary,
       ),
     );
   }
@@ -1281,8 +1304,8 @@ class _ManagerKpiGrid extends StatelessWidget {
         title: "Chiffre d'affaires",
         value: '${_formatNumber(data.revenue.round())} DH',
         icon: Icons.attach_money,
-        color: _DashboardManagerState.managerBlue,
-        iconBackground: _DashboardManagerState.iconBlueBg,
+        color: _DashboardManagerState.managerBrand,
+        iconBackground: _DashboardManagerState.iconBrandBg,
         onTap: () => onOpenCommands('validee'),
       ),
       _ManagerKpiData(
@@ -1439,7 +1462,7 @@ class _ManagerKpiCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Roboto',
-                  color: _DashboardManagerState.managerBlue,
+                  color: _DashboardManagerState.managerBrand,
                   fontSize: 8.8,
                   fontWeight: FontWeight.w500,
                 ),
@@ -1763,7 +1786,7 @@ class _TopCommercialRow extends StatelessWidget {
             SizedBox(width: 10),
             CircleAvatar(
               radius: 16,
-              backgroundColor: _DashboardManagerState._primaryBlue.withValues(
+              backgroundColor: _DashboardManagerState._brandPrimary.withValues(
                 alpha: .12,
               ),
               child: Text(
@@ -1771,7 +1794,7 @@ class _TopCommercialRow extends StatelessWidget {
                     ? 'C'
                     : commercial.name[0].toUpperCase(),
                 style: TextStyle(
-                  color: _DashboardManagerState._primaryBlue,
+                  color: _DashboardManagerState._brandPrimary,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -1797,7 +1820,7 @@ class _TopCommercialRow extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 5,
-                      backgroundColor: Color(0xFFE9EEF8),
+                      backgroundColor: Color(0xFFE5EDE8),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         _DashboardManagerState._success,
                       ),
@@ -1813,7 +1836,7 @@ class _TopCommercialRow extends StatelessWidget {
                 Text(
                   '${_formatNumber(commercial.revenue.round())} DH',
                   style: TextStyle(
-                    color: _DashboardManagerState._primaryBlue,
+                    color: _DashboardManagerState._brandPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1995,8 +2018,8 @@ class _QuickActionsGrid extends StatelessWidget {
                       children: [
                         _ManagerSoftIcon(
                           icon: action.$3,
-                          color: _DashboardManagerState.managerBlue,
-                          backgroundColor: _DashboardManagerState.iconBlueBg,
+                          color: _DashboardManagerState.managerBrand,
+                          backgroundColor: _DashboardManagerState.iconBrandBg,
                           size: 40,
                         ),
                         SizedBox(width: 9),
@@ -2090,7 +2113,7 @@ class _ManagerEmptyInline extends StatelessWidget {
         children: [
           _ManagerSoftIcon(
             icon: icon,
-            color: _DashboardManagerState._primaryBlue,
+            color: _DashboardManagerState._brandPrimary,
           ),
           SizedBox(width: 12),
           Expanded(
@@ -2133,7 +2156,7 @@ class _ManagerEmptyCard extends StatelessWidget {
         children: [
           _ManagerSoftIcon(
             icon: icon,
-            color: _DashboardManagerState._primaryBlue,
+            color: _DashboardManagerState._brandPrimary,
             size: 58,
           ),
           SizedBox(height: 12),
@@ -2196,7 +2219,7 @@ Color _activityColor(_ManagerRecentActivityType type) {
     _ManagerRecentActivityType.report => _DashboardManagerState._purple,
     _ManagerRecentActivityType.objective => _DashboardManagerState._warning,
     _ManagerRecentActivityType.activity => _DashboardManagerState._danger,
-    _ManagerRecentActivityType.claim => _DashboardManagerState._primaryBlue,
+    _ManagerRecentActivityType.claim => _DashboardManagerState._brandPrimary,
   };
 }
 
@@ -2311,8 +2334,8 @@ class _ManagerRevenueLinePainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            _DashboardManagerState._primaryBlue.withValues(alpha: .26),
-            _DashboardManagerState._primaryBlue.withValues(alpha: .02),
+            _DashboardManagerState._brandPrimary.withValues(alpha: .26),
+            _DashboardManagerState._brandPrimary.withValues(alpha: .02),
           ],
         ).createShader(chart),
     );
@@ -2320,7 +2343,7 @@ class _ManagerRevenueLinePainter extends CustomPainter {
     canvas.drawPath(
       linePath,
       Paint()
-        ..color = _DashboardManagerState._primaryBlue
+        ..color = _DashboardManagerState._brandPrimary
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
@@ -2337,12 +2360,12 @@ class _ManagerRevenueLinePainter extends CustomPainter {
       peakPoint,
       6,
       Paint()
-        ..color = _DashboardManagerState._primaryBlue.withValues(alpha: .16),
+        ..color = _DashboardManagerState._brandPrimary.withValues(alpha: .16),
     );
     canvas.drawCircle(
       peakPoint,
       4.5,
-      Paint()..color = _DashboardManagerState._primaryBlue,
+      Paint()..color = _DashboardManagerState._brandPrimary,
     );
     canvas.drawCircle(peakPoint, 2, Paint()..color = Colors.white);
 
@@ -2350,7 +2373,7 @@ class _ManagerRevenueLinePainter extends CustomPainter {
       text: TextSpan(
         text: '${_compactManager(points[peak].amount)} MAD',
         style: TextStyle(
-          color: _DashboardManagerState._primaryBlue,
+          color: _DashboardManagerState._brandPrimary,
           fontSize: 10,
           fontWeight: FontWeight.w800,
         ),
@@ -2376,7 +2399,7 @@ class _ManagerRevenueLinePainter extends CustomPainter {
     canvas.drawRRect(
       bubbleRect,
       Paint()
-        ..color = _DashboardManagerState._primaryBlue.withValues(alpha: .22)
+        ..color = _DashboardManagerState._brandPrimary.withValues(alpha: .22)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
@@ -2623,11 +2646,12 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
 
     return Scaffold(
       key: _scaffoldKey,
+      drawer: _ManagerDrawer(),
       backgroundColor: _DashboardManagerState.managerSurface,
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commerciaux,
         child: RefreshIndicator(
-          color: _DashboardManagerState.managerBlue,
+          color: _DashboardManagerState.managerBrand,
           onRefresh: () async => _refresh(),
           child: FutureBuilder<_ManagerCommercialsData>(
             future: _future,
@@ -3074,7 +3098,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor:
-                                    _DashboardManagerState.managerBlue,
+                                    _DashboardManagerState.managerBrand,
                                 foregroundColor: Colors.white,
                               ),
                               child: Text('Appliquer'),
@@ -3164,6 +3188,7 @@ class _CommerciauxManagerState extends State<CommerciauxManager> {
 
     return Scaffold(
       key: _scaffoldKey,
+      drawer: _ManagerDrawer(),
       backgroundColor: _DashboardManagerState._surface,
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commerciaux,
@@ -3425,11 +3450,12 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
+      drawer: _ManagerDrawer(),
       backgroundColor: _DashboardManagerState.managerSurface,
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commandes,
         child: RefreshIndicator(
-          color: _DashboardManagerState.managerBlue,
+          color: _DashboardManagerState.managerBrand,
           onRefresh: () async => _refreshOrders(),
           child: FutureBuilder<List<_ManagerOrderView>>(
             future: _ordersFuture,
@@ -3727,7 +3753,7 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
                             ? Icons.check_circle
                             : Icons.circle_outlined,
                         color: selected == reason
-                            ? _DashboardManagerState.managerBlue
+                            ? _DashboardManagerState.managerBrand
                             : _DashboardManagerState.managerMuted,
                       ),
                       title: Text(reason),
@@ -3912,7 +3938,7 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor:
-                                    _DashboardManagerState.managerBlue,
+                                    _DashboardManagerState.managerBrand,
                                 foregroundColor: Colors.white,
                               ),
                               child: Text('Appliquer'),
@@ -4016,6 +4042,7 @@ class _OrdersManagerScreenState extends State<OrdersManagerScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
+      drawer: _ManagerDrawer(),
       backgroundColor: _DashboardManagerState._surface,
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commandes,
@@ -4311,11 +4338,12 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
+      drawer: _ManagerDrawer(),
       backgroundColor: _DashboardManagerState.managerSurface,
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.rapports,
         child: RefreshIndicator(
-          color: _DashboardManagerState.managerBlue,
+          color: _DashboardManagerState.managerBrand,
           onRefresh: () async => _refresh(),
           child: FutureBuilder<_ManagerReportsData>(
             future: _future,
@@ -4737,7 +4765,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
-                                  _DashboardManagerState.managerBlue,
+                                  _DashboardManagerState.managerBrand,
                               foregroundColor: Colors.white,
                             ),
                             child: Text('Appliquer'),
@@ -4755,43 +4783,8 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
     );
   }
 
-  void _openExportSheet(_ManagerReportsData data) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.description),
-                title: Text('Export PDF'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _exportPdf(data.items);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.table_chart),
-                title: Text('Export Excel'),
-                onTap: () => Navigator.pop(context),
-              ),
-              ListTile(
-                leading: Icon(Icons.file_download),
-                title: Text('Export CSV'),
-                onTap: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // ponytail: PDF is the only export, so no format picker sheet.
+  void _openExportSheet(_ManagerReportsData data) => _exportPdf(data.items);
 
   void _openReportDetail(_ManagerReportView report) {
     Navigator.push(
@@ -4867,6 +4860,7 @@ class _ReportsManagerScreenState extends State<ReportsManagerScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
+      drawer: _ManagerDrawer(),
       backgroundColor: _DashboardManagerState._surface,
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.rapports,
@@ -4951,29 +4945,29 @@ class _DashboardManagerState extends State<DashboardManager> {
   DateTimeRange? _customRange;
   Future<_ManagerHomeData>? _dashboardFuture;
 
-  static const _primaryBlue = Color(0xFF2674F8);
-  static const _deepBlue = Color(0xFF155EE8);
+  static const _brandPrimary = AppPalette.brand;
+  static const _brandDeep = AppPalette.brandDark;
   static const _success = Color(0xFF28C77B);
   static const _warning = Color(0xFFFF941A);
   static const _danger = Color(0xFFFF3B30);
-  static const _purple = Color(0xFF7C3AED);
-  static const _textDark = Color(0xFF14204A);
+  static const _purple = AppPalette.violet;
+  static const _textDark = AppPalette.ink;
   static const _textMuted = Color(0xFF6D7790);
-  static const _surface = Color(0xFFF7F9FD);
-  static const _border = Color(0xFFE7ECF5);
+  static const _surface = Color(0xFFF4F8F5);
+  static const _border = Color(0xFFE4EBE6);
 
-  static const managerHeader = Color(0xFF061B4F);
-  static const managerText = Color(0xFF0B1748);
+  static const managerHeader = AppPalette.brandDeep;
+  static const managerText = AppPalette.ink;
   static const managerMuted = Color(0xFF6F7890);
-  static const managerSurface = Color(0xFFF4F7FB);
-  static const managerBorder = Color(0xFFE4EAF3);
-  static const managerBlue = Color(0xFF2F73FF);
+  static const managerSurface = Color(0xFFF1F6F3);
+  static const managerBorder = Color(0xFFE2EAE5);
+  static const managerBrand = AppPalette.brand;
   static const managerGreen = Color(0xFF27C76F);
   static const managerOrange = Color(0xFFFF9800);
   static const managerRed = Color(0xFFFF3B30);
   static const managerPurple = Color(0xFF7C4DFF);
-  static const managerCyan = Color(0xFF12A8C8);
-  static const iconBlueBg = Color(0xFFEAF2FF);
+  static const managerCyan = AppPalette.info;
+  static const iconBrandBg = AppPalette.brandSoft;
   static const iconGreenBg = Color(0xFFE8F8EF);
   static const iconOrangeBg = Color(0xFFFFF3E3);
   static const iconRedBg = Color(0xFFFFE8E8);
@@ -5017,11 +5011,12 @@ class _DashboardManagerState extends State<DashboardManager> {
 
     return Scaffold(
       key: _scaffoldKey,
+      drawer: _ManagerDrawer(),
       backgroundColor: managerSurface,
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.dashboard,
         child: RefreshIndicator(
-          color: managerBlue,
+          color: managerBrand,
           onRefresh: () async => _refreshDashboard(),
           child: FutureBuilder<_ManagerHomeData>(
             future: _dashboardFuture,
@@ -5352,7 +5347,7 @@ class _Header extends StatelessWidget {
                       constraints: BoxConstraints(minWidth: 18, minHeight: 18),
                       padding: EdgeInsets.symmetric(horizontal: 5),
                       decoration: BoxDecoration(
-                        color: _DashboardManagerState._primaryBlue,
+                        color: _DashboardManagerState._brandPrimary,
                         borderRadius: BorderRadius.circular(99),
                         border: Border.all(color: Colors.white, width: 1.4),
                       ),
@@ -5592,7 +5587,7 @@ class _ManagerObjectivesTitleRow extends StatelessWidget {
                   icon: Icon(Icons.add, size: 18),
                   label: FittedBox(child: Text('Définir objectifs')),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _DashboardManagerState.managerBlue,
+                    backgroundColor: _DashboardManagerState.managerBrand,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -5661,8 +5656,10 @@ class _ManagerReportsTitleRow extends StatelessWidget {
                   icon: Icon(Icons.download, size: 17),
                   label: Text('Exporter'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: _DashboardManagerState.managerBlue,
-                    side: BorderSide(color: _DashboardManagerState.managerBlue),
+                    foregroundColor: _DashboardManagerState.managerBrand,
+                    side: BorderSide(
+                      color: _DashboardManagerState.managerBrand,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -5703,7 +5700,7 @@ class _ReportPeriodSelector extends StatelessWidget {
                         : Icons.calendar_today_outlined,
                     size: 18,
                     color: p == period
-                        ? _DashboardManagerState.managerBlue
+                        ? _DashboardManagerState.managerBrand
                         : _DashboardManagerState.managerMuted,
                   ),
                   SizedBox(width: 10),
@@ -5731,10 +5728,10 @@ class _ReportPeriodSelector extends StatelessWidget {
         height: 48,
         padding: EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: _DashboardManagerState.managerBlue.withValues(alpha: .08),
+          color: _DashboardManagerState.managerBrand.withValues(alpha: .08),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: _DashboardManagerState.managerBlue.withValues(alpha: .24),
+            color: _DashboardManagerState.managerBrand.withValues(alpha: .24),
           ),
         ),
         child: Row(
@@ -5742,7 +5739,7 @@ class _ReportPeriodSelector extends StatelessWidget {
             Icon(
               Icons.calendar_today_outlined,
               size: 18,
-              color: _DashboardManagerState.managerBlue,
+              color: _DashboardManagerState.managerBrand,
             ),
             SizedBox(width: 9),
             Expanded(
@@ -5756,7 +5753,7 @@ class _ReportPeriodSelector extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontFamily: 'Roboto',
-                      color: _DashboardManagerState.managerBlue,
+                      color: _DashboardManagerState.managerBrand,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
                     ),
@@ -5779,7 +5776,7 @@ class _ReportPeriodSelector extends StatelessWidget {
             SizedBox(width: 6),
             Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: _DashboardManagerState.managerBlue,
+              color: _DashboardManagerState.managerBrand,
               size: 19,
             ),
           ],
@@ -5802,7 +5799,7 @@ class _ManagerReportsKpis extends StatelessWidget {
         'Sur $expected commerciaux attendus',
         data.sent / math.max(1, expected),
         Icons.description,
-        _DashboardManagerState.managerBlue,
+        _DashboardManagerState.managerBrand,
       ),
       (
         'Rapports lus',
@@ -6052,11 +6049,11 @@ class _ReportChip extends StatelessWidget {
       height: 48,
       padding: EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: selected ? _DashboardManagerState.managerBlue : Colors.white,
+        color: selected ? _DashboardManagerState.managerBrand : Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
           color: selected
-              ? _DashboardManagerState.managerBlue
+              ? _DashboardManagerState.managerBrand
               : _DashboardManagerState.managerBorder,
         ),
       ),
@@ -6095,7 +6092,7 @@ class _ReportChip extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: 'Roboto',
                   color: selected
-                      ? _DashboardManagerState.managerBlue
+                      ? _DashboardManagerState.managerBrand
                       : _DashboardManagerState.managerGreen,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -6168,12 +6165,12 @@ class _ManagerReportTabButton extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 13),
       decoration: BoxDecoration(
         color: selected
-            ? _DashboardManagerState.managerBlue.withValues(alpha: .08)
+            ? _DashboardManagerState.managerBrand.withValues(alpha: .08)
             : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: selected
-              ? _DashboardManagerState.managerBlue
+              ? _DashboardManagerState.managerBrand
               : _DashboardManagerState.managerBorder,
         ),
       ),
@@ -6187,7 +6184,7 @@ class _ManagerReportTabButton extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Roboto',
               color: selected
-                  ? _DashboardManagerState.managerBlue
+                  ? _DashboardManagerState.managerBrand
                   : _DashboardManagerState.managerText,
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -6200,7 +6197,7 @@ class _ManagerReportTabButton extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: selected
-                  ? _DashboardManagerState.managerBlue
+                  ? _DashboardManagerState.managerBrand
                   : _DashboardManagerState.managerBorder,
               shape: BoxShape.circle,
             ),
@@ -6282,12 +6279,12 @@ class _ManagerDailyReportCard extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: _DashboardManagerState.iconBlueBg,
+              backgroundColor: _DashboardManagerState.iconBrandBg,
               child: Text(
                 _initials(report.commercialName),
                 style: TextStyle(
                   fontFamily: 'Roboto',
-                  color: _DashboardManagerState.managerBlue,
+                  color: _DashboardManagerState.managerBrand,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -6398,16 +6395,16 @@ class _ManagerDailyReportCard extends StatelessWidget {
                 onPressed: onPdf,
                 icon: Icon(
                   Icons.download,
-                  color: _DashboardManagerState.managerBlue,
+                  color: _DashboardManagerState.managerBrand,
                   size: 20,
                 ),
               ),
             CircleAvatar(
               radius: 17,
-              backgroundColor: _DashboardManagerState.iconBlueBg,
+              backgroundColor: _DashboardManagerState.iconBrandBg,
               child: Icon(
                 Icons.chevron_right,
-                color: _DashboardManagerState.managerBlue,
+                color: _DashboardManagerState.managerBrand,
                 size: 18,
               ),
             ),
@@ -6434,8 +6431,8 @@ class _ManagerReportsEmptyState extends StatelessWidget {
       children: [
         _ManagerSoftIcon(
           icon: Icons.description,
-          color: _DashboardManagerState.managerBlue,
-          backgroundColor: _DashboardManagerState.iconBlueBg,
+          color: _DashboardManagerState.managerBrand,
+          backgroundColor: _DashboardManagerState.iconBrandBg,
           size: 76,
         ),
         SizedBox(height: 16),
@@ -6480,15 +6477,15 @@ class _ManagerReportHint extends StatelessWidget {
     margin: EdgeInsets.only(top: 4),
     padding: EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: _DashboardManagerState.iconBlueBg,
+      color: _DashboardManagerState.iconBrandBg,
       borderRadius: BorderRadius.circular(16),
       border: Border.all(
-        color: _DashboardManagerState.managerBlue.withValues(alpha: .35),
+        color: _DashboardManagerState.managerBrand.withValues(alpha: .35),
       ),
     ),
     child: Row(
       children: [
-        Icon(Icons.info_outline, color: _DashboardManagerState.managerBlue),
+        Icon(Icons.info_outline, color: _DashboardManagerState.managerBrand),
         SizedBox(width: 10),
         Expanded(
           child: Text(
@@ -6673,8 +6670,9 @@ DateTimeRange _reportRange(_ReportPeriod period, DateTimeRange? custom) {
       end: now,
     ),
     _ReportPeriod.custom =>
-      custom ??
-          DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
+      custom == null
+          ? DateTimeRange(start: DateTime(now.year, now.month, 1), end: now)
+          : _wholeDayRange(custom),
   };
 }
 
@@ -6710,8 +6708,8 @@ class _ManagerObjectivesKpis extends StatelessWidget {
         '${data.total}',
         'Total de l’équipe',
         Icons.gps_fixed,
-        _DashboardManagerState.managerBlue,
-        _DashboardManagerState.iconBlueBg,
+        _DashboardManagerState.managerBrand,
+        _DashboardManagerState.iconBrandBg,
       ),
       (
         'Objectif CA total',
@@ -6865,12 +6863,12 @@ class _ManagerObjectiveChips extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   color: selected == chip.$1
-                      ? _DashboardManagerState.managerBlue
+                      ? _DashboardManagerState.managerBrand
                       : Colors.white,
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: selected == chip.$1
-                        ? _DashboardManagerState.managerBlue
+                        ? _DashboardManagerState.managerBrand
                         : _DashboardManagerState.managerBorder,
                   ),
                 ),
@@ -6903,7 +6901,7 @@ class _ManagerObjectiveChips extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Roboto',
                           color: selected == chip.$1
-                              ? _DashboardManagerState.managerBlue
+                              ? _DashboardManagerState.managerBrand
                               : _DashboardManagerState.managerOrange,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -6974,13 +6972,13 @@ class _ManagerObjectiveCard extends StatelessWidget {
                           height: 50,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: _DashboardManagerState.iconBlueBg,
+                            color: _DashboardManagerState.iconBrandBg,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
                             _initials(commercial.name).ifEmpty('C'),
                             style: TextStyle(
-                              color: _DashboardManagerState.managerBlue,
+                              color: _DashboardManagerState.managerBrand,
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                             ),
@@ -7139,8 +7137,8 @@ class _ManagerObjectiveEmptyState extends StatelessWidget {
         children: [
           _ManagerSoftIcon(
             icon: Icons.gps_fixed,
-            color: _DashboardManagerState.managerBlue,
-            backgroundColor: _DashboardManagerState.iconBlueBg,
+            color: _DashboardManagerState.managerBrand,
+            backgroundColor: _DashboardManagerState.iconBrandBg,
             size: 76,
           ),
           SizedBox(height: 16),
@@ -7175,7 +7173,7 @@ class _ManagerObjectiveEmptyState extends StatelessWidget {
               hasFilters ? 'Réinitialiser les filtres' : 'Définir un objectif',
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _DashboardManagerState.managerBlue,
+              backgroundColor: _DashboardManagerState.managerBrand,
               foregroundColor: Colors.white,
             ),
           ),
@@ -7194,15 +7192,15 @@ class _ManagerObjectiveHint extends StatelessWidget {
       margin: EdgeInsets.only(top: 4),
       padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _DashboardManagerState.iconBlueBg,
+        color: _DashboardManagerState.iconBrandBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _DashboardManagerState.managerBlue.withValues(alpha: .35),
+          color: _DashboardManagerState.managerBrand.withValues(alpha: .35),
         ),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: _DashboardManagerState.managerBlue),
+          Icon(Icons.info_outline, color: _DashboardManagerState.managerBrand),
           SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -7224,7 +7222,7 @@ class _ManagerObjectiveHint extends StatelessWidget {
 
 Color _objectiveRateColor(int rate) {
   if (rate >= 100) return _DashboardManagerState.managerGreen;
-  if (rate >= 90) return _DashboardManagerState.managerBlue;
+  if (rate >= 90) return _DashboardManagerState.managerBrand;
   if (rate >= 70) return _DashboardManagerState.managerOrange;
   return _DashboardManagerState.managerRed;
 }
@@ -7245,8 +7243,8 @@ class _ManagerCommercialsKpis extends StatelessWidget {
         data.total.toString(),
         'Tous les commerciaux',
         Icons.people,
-        _DashboardManagerState.managerBlue,
-        _DashboardManagerState.iconBlueBg,
+        _DashboardManagerState.managerBrand,
+        _DashboardManagerState.iconBrandBg,
       ),
       (
         "Actifs aujourd'hui",
@@ -7395,12 +7393,12 @@ class _ManagerCommercialChips extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   color: selected == chip.$1
-                      ? _DashboardManagerState.managerBlue
+                      ? _DashboardManagerState.managerBrand
                       : Colors.white,
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: selected == chip.$1
-                        ? _DashboardManagerState.managerBlue
+                        ? _DashboardManagerState.managerBrand
                         : _DashboardManagerState.managerBorder,
                   ),
                 ),
@@ -7433,7 +7431,7 @@ class _ManagerCommercialChips extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Roboto',
                           color: selected == chip.$1
-                              ? _DashboardManagerState.managerBlue
+                              ? _DashboardManagerState.managerBrand
                               : _commercialStatusStyle(chip.$1).fg,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -7519,12 +7517,12 @@ class _ManagerCommercialTop3 extends StatelessWidget {
                             CircleAvatar(
                               radius: i == 0 ? 25 : 22,
                               backgroundColor:
-                                  _DashboardManagerState.iconBlueBg,
+                                  _DashboardManagerState.iconBrandBg,
                               child: Text(
                                 _initials(items[i].name),
                                 style: TextStyle(
                                   fontFamily: 'Roboto',
-                                  color: _DashboardManagerState.managerBlue,
+                                  color: _DashboardManagerState.managerBrand,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -7548,7 +7546,7 @@ class _ManagerCommercialTop3 extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontFamily: 'Roboto',
-                                color: _DashboardManagerState.managerBlue,
+                                color: _DashboardManagerState.managerBrand,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -7559,7 +7557,7 @@ class _ManagerCommercialTop3 extends StatelessWidget {
                               minHeight: 4,
                               color: items[i].objectiveRate >= 100
                                   ? _DashboardManagerState.managerGreen
-                                  : _DashboardManagerState.managerBlue,
+                                  : _DashboardManagerState.managerBrand,
                               backgroundColor:
                                   _DashboardManagerState.managerBorder,
                             ),
@@ -7612,12 +7610,12 @@ class _ManagerCommercialModernCard extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: _DashboardManagerState.iconBlueBg,
+                      backgroundColor: _DashboardManagerState.iconBrandBg,
                       child: Text(
                         _initials(commercial.name),
                         style: TextStyle(
                           fontFamily: 'Roboto',
-                          color: _DashboardManagerState.managerBlue,
+                          color: _DashboardManagerState.managerBrand,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -7687,7 +7685,7 @@ class _ManagerCommercialModernCard extends StatelessWidget {
                   child: _MiniCommercialMetric(
                     label: 'CA du mois',
                     value: '${_formatNumber(commercial.revenue.round())} DH',
-                    color: _DashboardManagerState.managerBlue,
+                    color: _DashboardManagerState.managerBrand,
                   ),
                 ),
                 Expanded(
@@ -7720,7 +7718,7 @@ class _ManagerCommercialModernCard extends StatelessWidget {
                 minHeight: 5,
                 color: commercial.objectiveRate >= 100
                     ? _DashboardManagerState.managerGreen
-                    : _DashboardManagerState.managerBlue,
+                    : _DashboardManagerState.managerBrand,
                 backgroundColor: _DashboardManagerState.managerBorder,
               ),
             ),
@@ -7764,8 +7762,8 @@ class _ManagerOrdersKpiGrid extends StatelessWidget {
       (
         'Total commandes',
         total,
-        _DashboardManagerState.managerBlue,
-        _DashboardManagerState.iconBlueBg,
+        _DashboardManagerState.managerBrand,
+        _DashboardManagerState.iconBrandBg,
         Icons.shopping_cart,
       ),
     ];
@@ -7889,7 +7887,7 @@ class _ManagerOrdersSearchAndFilter extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 enabledBorder: _managerInputBorder(),
                 focusedBorder: _managerInputBorder(
-                  color: _DashboardManagerState.managerBlue,
+                  color: _DashboardManagerState.managerBrand,
                 ),
               ),
             ),
@@ -7933,7 +7931,7 @@ class _ManagerOrdersSearchAndFilter extends StatelessWidget {
                     constraints: BoxConstraints(minWidth: 18, minHeight: 18),
                     padding: EdgeInsets.symmetric(horizontal: 5),
                     decoration: BoxDecoration(
-                      color: _DashboardManagerState.managerBlue,
+                      color: _DashboardManagerState.managerBrand,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
@@ -7990,12 +7988,12 @@ class _ManagerOrdersStatusChips extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   color: selectedStatus == status
-                      ? _DashboardManagerState.managerBlue
+                      ? _DashboardManagerState.managerBrand
                       : Colors.white,
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
                     color: selectedStatus == status
-                        ? _DashboardManagerState.managerBlue
+                        ? _DashboardManagerState.managerBrand
                         : _DashboardManagerState.managerBorder,
                   ),
                 ),
@@ -8029,7 +8027,7 @@ class _ManagerOrdersStatusChips extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Roboto',
                           color: selectedStatus == status
-                              ? _DashboardManagerState.managerBlue
+                              ? _DashboardManagerState.managerBrand
                               : _apiStatusStyle(status).fg,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -8100,12 +8098,12 @@ class _ManagerOrdersEmptyState extends StatelessWidget {
             width: 78,
             height: 78,
             decoration: BoxDecoration(
-              color: _DashboardManagerState.iconBlueBg,
+              color: _DashboardManagerState.iconBrandBg,
               borderRadius: BorderRadius.circular(24),
             ),
             child: Icon(
               Icons.receipt_long,
-              color: _DashboardManagerState.managerBlue,
+              color: _DashboardManagerState.managerBrand,
               size: 38,
             ),
           ),
@@ -8140,8 +8138,8 @@ class _ManagerOrdersEmptyState extends StatelessWidget {
               icon: Icon(Icons.refresh, size: 17),
               label: Text('Réinitialiser les filtres'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: _DashboardManagerState.managerBlue,
-                side: BorderSide(color: _DashboardManagerState.managerBlue),
+                foregroundColor: _DashboardManagerState.managerBrand,
+                side: BorderSide(color: _DashboardManagerState.managerBrand),
               ),
             ),
           ],
@@ -8284,10 +8282,10 @@ class _ManagerOrderModernCard extends StatelessWidget {
                 SizedBox(height: 10),
                 CircleAvatar(
                   radius: 17,
-                  backgroundColor: _DashboardManagerState.iconBlueBg,
+                  backgroundColor: _DashboardManagerState.iconBrandBg,
                   child: Icon(
                     Icons.chevron_right,
-                    color: _DashboardManagerState.managerBlue,
+                    color: _DashboardManagerState.managerBrand,
                     size: 18,
                   ),
                 ),
@@ -8438,7 +8436,7 @@ class _ManagerOrdersBottomStatus extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: selected == status
-                            ? _DashboardManagerState.managerBlue
+                            ? _DashboardManagerState.managerBrand
                             : Color(0xFFE2E8F0),
                         width: 2,
                       ),
@@ -8450,7 +8448,7 @@ class _ManagerOrdersBottomStatus extends StatelessWidget {
                               height: 10,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: _DashboardManagerState.managerBlue,
+                                color: _DashboardManagerState.managerBrand,
                               ),
                             ),
                           )
@@ -8500,7 +8498,7 @@ class _ManagerFilterField extends StatelessWidget {
           border: _managerInputBorder(),
           enabledBorder: _managerInputBorder(),
           focusedBorder: _managerInputBorder(
-            color: _DashboardManagerState.managerBlue,
+            color: _DashboardManagerState.managerBrand,
           ),
         ),
       ),
@@ -8535,7 +8533,7 @@ class _ManagerFilterRadioOption extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: selected
-                      ? _DashboardManagerState.managerBlue
+                      ? _DashboardManagerState.managerBrand
                       : Color(0xFFE2E8F0),
                   width: 2,
                 ),
@@ -8547,7 +8545,7 @@ class _ManagerFilterRadioOption extends StatelessWidget {
                         height: 10,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _DashboardManagerState.managerBlue,
+                          color: _DashboardManagerState.managerBrand,
                         ),
                       ),
                     )
@@ -8595,8 +8593,8 @@ _OrderStatusStyle _apiStatusStyle(_ManagerOrderApiStatus status) {
     _ManagerOrderApiStatus.all => _OrderStatusStyle(
       label: 'Toutes',
       icon: Icons.shopping_cart,
-      fg: _DashboardManagerState.managerBlue,
-      bg: _DashboardManagerState.iconBlueBg,
+      fg: _DashboardManagerState.managerBrand,
+      bg: _DashboardManagerState.iconBrandBg,
     ),
   };
 }
@@ -8616,14 +8614,14 @@ class _SmallPill extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color: _DashboardManagerState.iconBlueBg,
+        color: _DashboardManagerState.iconBrandBg,
         borderRadius: BorderRadius.circular(99),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 12, color: _DashboardManagerState.managerBlue),
+            Icon(icon, size: 12, color: _DashboardManagerState.managerBrand),
             SizedBox(width: 3),
           ],
           Text(
@@ -8632,7 +8630,7 @@ class _SmallPill extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: 'Roboto',
-              color: _DashboardManagerState.managerBlue,
+              color: _DashboardManagerState.managerBrand,
               fontSize: 10,
               fontWeight: FontWeight.w500,
             ),
@@ -8733,8 +8731,8 @@ class _ManagerCommercialEmptyState extends StatelessWidget {
         children: [
           _ManagerSoftIcon(
             icon: Icons.people,
-            color: _DashboardManagerState.managerBlue,
-            backgroundColor: _DashboardManagerState.iconBlueBg,
+            color: _DashboardManagerState.managerBrand,
+            backgroundColor: _DashboardManagerState.iconBrandBg,
             size: 76,
           ),
           SizedBox(height: 16),
@@ -8821,7 +8819,7 @@ class _ManagerCommercialStatusPicker extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: selected == status
-                            ? _DashboardManagerState.managerBlue
+                            ? _DashboardManagerState.managerBrand
                             : Color(0xFFE2E8F0),
                         width: 2,
                       ),
@@ -8833,7 +8831,7 @@ class _ManagerCommercialStatusPicker extends StatelessWidget {
                               height: 10,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: _DashboardManagerState.managerBlue,
+                                color: _DashboardManagerState.managerBrand,
                               ),
                             ),
                           )
@@ -8883,8 +8881,8 @@ _OrderStatusStyle _commercialStatusStyle(_ManagerCommercialStatus status) {
     _ManagerCommercialStatus.all => _OrderStatusStyle(
       label: 'Tous',
       icon: Icons.people,
-      fg: _DashboardManagerState.managerBlue,
-      bg: _DashboardManagerState.iconBlueBg,
+      fg: _DashboardManagerState.managerBrand,
+      bg: _DashboardManagerState.iconBrandBg,
     ),
   };
 }
@@ -8918,7 +8916,7 @@ class _PeriodSelector extends StatelessWidget {
         border: Border.all(color: _DashboardManagerState._border),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1C4B92).withValues(alpha: .05),
+            color: Color(0xFF12543A).withValues(alpha: .05),
             blurRadius: 12,
             offset: Offset(0, 6),
           ),
@@ -9010,7 +9008,7 @@ class _StatCard extends StatelessWidget {
         border: Border.all(color: _DashboardManagerState._border),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1C4B92).withValues(alpha: .07),
+            color: Color(0xFF12543A).withValues(alpha: .07),
             blurRadius: 14,
             offset: Offset(0, 8),
           ),
@@ -9084,7 +9082,7 @@ class _SalesByCommercialChart extends StatelessWidget {
         border: Border.all(color: _DashboardManagerState._border),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1C4B92).withValues(alpha: .06),
+            color: Color(0xFF12543A).withValues(alpha: .06),
             blurRadius: 16,
             offset: Offset(0, 9),
           ),
@@ -9160,7 +9158,7 @@ class _SalesBar extends StatelessWidget {
                   Container(
                     height: 14,
                     decoration: BoxDecoration(
-                      color: Color(0xFFE9EEF8),
+                      color: Color(0xFFE5EDE8),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -9171,14 +9169,14 @@ class _SalesBar extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            _DashboardManagerState._primaryBlue,
-                            _DashboardManagerState._deepBlue,
+                            _DashboardManagerState._brandPrimary,
+                            _DashboardManagerState._brandDeep,
                           ],
                         ),
                         borderRadius: BorderRadius.circular(4),
                         boxShadow: [
                           BoxShadow(
-                            color: _DashboardManagerState._primaryBlue
+                            color: _DashboardManagerState._brandPrimary
                                 .withValues(alpha: .22),
                             blurRadius: 8,
                             offset: Offset(0, 3),
@@ -9246,7 +9244,9 @@ class _ChartLegend extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         DecoratedBox(
-          decoration: BoxDecoration(color: _DashboardManagerState._primaryBlue),
+          decoration: BoxDecoration(
+            color: _DashboardManagerState._brandPrimary,
+          ),
           child: SizedBox(width: 10, height: 10),
         ),
         SizedBox(width: 8),
@@ -9315,7 +9315,7 @@ class _OrdersHeader extends StatelessWidget {
                       constraints: BoxConstraints(minWidth: 18, minHeight: 18),
                       padding: EdgeInsets.symmetric(horizontal: 5),
                       decoration: BoxDecoration(
-                        color: _DashboardManagerState._primaryBlue,
+                        color: _DashboardManagerState._brandPrimary,
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Center(
@@ -9375,7 +9375,7 @@ class _OrdersSearchRow extends StatelessWidget {
               contentPadding: EdgeInsets.symmetric(vertical: 16),
               enabledBorder: _managerInputBorder(),
               focusedBorder: _managerInputBorder(
-                color: _DashboardManagerState._primaryBlue,
+                color: _DashboardManagerState._brandPrimary,
               ),
             ),
           ),
@@ -9416,7 +9416,7 @@ class _OrdersStatsGrid extends StatelessWidget {
         value: summary.totalOrders,
         evolution: 12,
         icon: Icons.inventory_2_outlined,
-        color: _DashboardManagerState._primaryBlue,
+        color: _DashboardManagerState._brandPrimary,
       ),
       _OrderStatData(
         title: AppLocalizations.globalText('Validées'),
@@ -9476,7 +9476,7 @@ class _OrderStatCard extends StatelessWidget {
         border: Border.all(color: _DashboardManagerState._border),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1C4B92).withValues(alpha: .055),
+            color: Color(0xFF12543A).withValues(alpha: .055),
             blurRadius: 16,
             offset: Offset(0, 8),
           ),
@@ -9552,7 +9552,7 @@ class _OrdersStatusTabs extends StatelessWidget {
         border: Border.all(color: _DashboardManagerState._border),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1C4B92).withValues(alpha: .045),
+            color: Color(0xFF12543A).withValues(alpha: .045),
             blurRadius: 14,
             offset: Offset(0, 7),
           ),
@@ -9576,7 +9576,7 @@ class _OrdersStatusTabs extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: selectedStatus == status
-                              ? _DashboardManagerState._primaryBlue
+                              ? _DashboardManagerState._brandPrimary
                               : _DashboardManagerState._textMuted,
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
@@ -9588,7 +9588,7 @@ class _OrdersStatusTabs extends StatelessWidget {
                         width: selectedStatus == status ? 42 : 0,
                         height: 3,
                         decoration: BoxDecoration(
-                          color: _DashboardManagerState._primaryBlue,
+                          color: _DashboardManagerState._brandPrimary,
                           borderRadius: BorderRadius.circular(99),
                         ),
                       ),
@@ -9618,7 +9618,7 @@ class _OrdersListCard extends StatelessWidget {
         border: Border.all(color: _DashboardManagerState._border),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1C4B92).withValues(alpha: .05),
+            color: Color(0xFF12543A).withValues(alpha: .05),
             blurRadius: 18,
             offset: Offset(0, 9),
           ),
@@ -9691,12 +9691,12 @@ class _OrderRow extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 13,
-                        backgroundColor: _DashboardManagerState._primaryBlue
+                        backgroundColor: _DashboardManagerState._brandPrimary
                             .withValues(alpha: .10),
                         child: Text(
                           _initials(order.commercialName),
                           style: TextStyle(
-                            color: _DashboardManagerState._primaryBlue,
+                            color: _DashboardManagerState._brandPrimary,
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
                           ),
@@ -9926,11 +9926,11 @@ class _PageNumberButton extends StatelessWidget {
         height: 34,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? _DashboardManagerState._primaryBlue : Colors.white,
+          color: selected ? _DashboardManagerState._brandPrimary : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: selected
-                ? _DashboardManagerState._primaryBlue
+                ? _DashboardManagerState._brandPrimary
                 : _DashboardManagerState._border,
           ),
         ),
@@ -9987,7 +9987,7 @@ class _ReportsHeader extends StatelessWidget {
             border: Border.all(color: _DashboardManagerState._border),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF1C4B92).withValues(alpha: .04),
+                color: Color(0xFF12543A).withValues(alpha: .04),
                 blurRadius: 12,
                 offset: Offset(0, 5),
               ),
@@ -10164,7 +10164,7 @@ class _ReportCard extends StatelessWidget {
             border: Border.all(color: _DashboardManagerState._border),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF1C4B92).withValues(alpha: .055),
+                color: Color(0xFF12543A).withValues(alpha: .055),
                 blurRadius: 18,
                 offset: Offset(0, 9),
               ),
@@ -10249,7 +10249,7 @@ class _RevenueLinePainter extends CustomPainter {
         .fold<int>(1, (max, value) => value > max ? value : max);
 
     final gridPaint = Paint()
-      ..color = const Color(0xFFE9EEF8)
+      ..color = const Color(0xFFE5EDE8)
       ..strokeWidth = 1;
     final labelPainter = TextPainter(
       textDirection: TextDirection.ltr,
@@ -10316,21 +10316,21 @@ class _RevenueLinePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          _DashboardManagerState._primaryBlue.withValues(alpha: .16),
-          _DashboardManagerState._primaryBlue.withValues(alpha: .02),
+          _DashboardManagerState._brandPrimary.withValues(alpha: .16),
+          _DashboardManagerState._brandPrimary.withValues(alpha: .02),
         ],
       ).createShader(chart);
     canvas.drawPath(fillPath, fillPaint);
 
     final linePaint = Paint()
-      ..color = _DashboardManagerState._primaryBlue
+      ..color = _DashboardManagerState._brandPrimary
       ..strokeWidth = 2.4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(path, linePaint);
 
-    final dotPaint = Paint()..color = _DashboardManagerState._primaryBlue;
+    final dotPaint = Paint()..color = _DashboardManagerState._brandPrimary;
     for (var i = 0; i < visibleCount; i++) {
       canvas.drawCircle(offsets[i], 3.2, Paint()..color = Colors.white);
       canvas.drawCircle(offsets[i], 2.2, dotPaint);
@@ -10430,7 +10430,7 @@ class _CommercialSearchBar extends StatelessWidget {
               ),
               enabledBorder: _managerInputBorder(),
               focusedBorder: _managerInputBorder(
-                color: _DashboardManagerState._primaryBlue,
+                color: _DashboardManagerState._brandPrimary,
               ),
             ),
           ),
@@ -10468,7 +10468,7 @@ class _CommercialSummaryCards extends StatelessWidget {
     final cards = [
       _MiniSummaryData(
         icon: Icons.groups_rounded,
-        iconColor: _DashboardManagerState._primaryBlue,
+        iconColor: _DashboardManagerState._brandPrimary,
         value: summary.activeCommercials.toString(),
         label: AppLocalizations.globalText('Commerciaux actifs'),
       ),
@@ -10523,7 +10523,7 @@ class _MiniSummaryCard extends StatelessWidget {
         border: Border.all(color: _DashboardManagerState._border),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1C4B92).withValues(alpha: .05),
+            color: Color(0xFF12543A).withValues(alpha: .05),
             blurRadius: 14,
             offset: Offset(0, 7),
           ),
@@ -10596,7 +10596,7 @@ class _CommercialCard extends StatelessWidget {
             border: Border.all(color: _DashboardManagerState._border),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFF1C4B92).withValues(alpha: .055),
+                color: Color(0xFF12543A).withValues(alpha: .055),
                 blurRadius: 16,
                 offset: Offset(0, 8),
               ),
@@ -10635,7 +10635,7 @@ class _CommercialCard extends StatelessWidget {
                         Expanded(
                           child: _CommercialMetric(
                             icon: Icons.trending_up_rounded,
-                            iconColor: _DashboardManagerState._primaryBlue,
+                            iconColor: _DashboardManagerState._brandPrimary,
                             value: '${_formatNumber(commercial.sales)} MAD',
                             label: AppLocalizations.globalText('CA'),
                           ),
@@ -10723,13 +10723,13 @@ class _CommercialAvatar extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 25,
-          backgroundColor: _DashboardManagerState._primaryBlue.withValues(
+          backgroundColor: _DashboardManagerState._brandPrimary.withValues(
             alpha: .10,
           ),
           child: Text(
             _initials(commercial.name),
             style: TextStyle(
-              color: _DashboardManagerState._primaryBlue,
+              color: _DashboardManagerState._brandPrimary,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -10815,7 +10815,7 @@ class _CommercialsLoadingState extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 44),
         child: CircularProgressIndicator(
-          color: _DashboardManagerState._primaryBlue,
+          color: _DashboardManagerState._brandPrimary,
         ),
       ),
     );
@@ -10845,7 +10845,7 @@ class _CommercialsEmptyState extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, color: _DashboardManagerState._primaryBlue, size: 36),
+          Icon(icon, color: _DashboardManagerState._brandPrimary, size: 36),
           SizedBox(height: 12),
           Text(
             title,
@@ -10891,7 +10891,7 @@ class _FilterOptionTile extends StatelessWidget {
         label,
         style: TextStyle(
           color: selected
-              ? _DashboardManagerState._primaryBlue
+              ? _DashboardManagerState._brandPrimary
               : _DashboardManagerState._textDark,
           fontWeight: FontWeight.w900,
         ),
@@ -10899,7 +10899,7 @@ class _FilterOptionTile extends StatelessWidget {
       trailing: selected
           ? Icon(
               Icons.check_circle_rounded,
-              color: _DashboardManagerState._primaryBlue,
+              color: _DashboardManagerState._brandPrimary,
             )
           : null,
     );
@@ -11083,11 +11083,12 @@ class _ProfileManagerScreenState extends State<ProfileManagerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
+      drawer: _ManagerDrawer(),
       backgroundColor: _DashboardManagerState.managerSurface,
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.profil,
         child: RefreshIndicator(
-          color: _DashboardManagerState.managerBlue,
+          color: _DashboardManagerState.managerBrand,
           onRefresh: _refresh,
           child: FutureBuilder<_ManagerProfileData>(
             future: _future,
@@ -11375,8 +11376,8 @@ class _ManagerProfileContent extends StatelessWidget {
             children: [
               _ManagerProfileSettingTile(
                 icon: Icons.person,
-                iconColor: _DashboardManagerState.managerBlue,
-                iconBg: _DashboardManagerState.iconBlueBg,
+                iconColor: _DashboardManagerState.managerBrand,
+                iconBg: _DashboardManagerState.iconBrandBg,
                 title: 'Informations personnelles',
                 subtitle: 'Gérez vos informations personnelles.',
                 onTap: onEdit,
@@ -11399,7 +11400,7 @@ class _ManagerProfileContent extends StatelessWidget {
                 subtitle: 'Gérer les préférences de notifications.',
                 trailing: Switch(
                   value: notificationsEnabled,
-                  activeThumbColor: _DashboardManagerState.managerBlue,
+                  activeThumbColor: _DashboardManagerState.managerBrand,
                   onChanged: onNotificationsChanged,
                 ),
               ),
@@ -11418,8 +11419,8 @@ class _ManagerProfileContent extends StatelessWidget {
               _ManagerSettingDivider(),
               _ManagerProfileSettingTile(
                 icon: Icons.dark_mode,
-                iconColor: _DashboardManagerState.managerBlue,
-                iconBg: _DashboardManagerState.iconBlueBg,
+                iconColor: _DashboardManagerState.managerBrand,
+                iconBg: _DashboardManagerState.iconBrandBg,
                 title: 'Thème',
                 subtitle: "Sélectionner le thème de l'application.",
                 trailingText: _themeLabel(
@@ -11482,7 +11483,7 @@ class _ManagerProfileCard extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: _DashboardManagerState.managerBlue,
+                    color: _DashboardManagerState.managerBrand,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 3),
                   ),
@@ -11551,7 +11552,7 @@ class _ManagerProfileAvatar extends StatelessWidget {
     final avatar = data.avatar.trim();
     return CircleAvatar(
       radius: size / 2,
-      backgroundColor: _DashboardManagerState.iconBlueBg,
+      backgroundColor: _DashboardManagerState.iconBrandBg,
       backgroundImage: avatar.startsWith('http') ? NetworkImage(avatar) : null,
       child: avatar.startsWith('http')
           ? null
@@ -11559,7 +11560,7 @@ class _ManagerProfileAvatar extends StatelessWidget {
               data.initials,
               style: TextStyle(
                 fontFamily: 'Roboto',
-                color: _DashboardManagerState.managerBlue,
+                color: _DashboardManagerState.managerBrand,
                 fontSize: size * .28,
                 fontWeight: FontWeight.w700,
               ),
@@ -11576,14 +11577,14 @@ class _ManagerMiniBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: _DashboardManagerState.iconBlueBg,
+      color: _DashboardManagerState.iconBrandBg,
       borderRadius: BorderRadius.circular(999),
     ),
     child: Text(
       label,
       style: TextStyle(
         fontFamily: 'Roboto',
-        color: _DashboardManagerState.managerBlue,
+        color: _DashboardManagerState.managerBrand,
         fontSize: 10,
         fontWeight: FontWeight.w700,
       ),
@@ -11898,7 +11899,7 @@ class _ManagerEditProfilePageState extends State<_ManagerEditProfilePage> {
                 child: ElevatedButton(
                   onPressed: _saving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _DashboardManagerState.managerBlue,
+                    backgroundColor: _DashboardManagerState.managerBrand,
                     foregroundColor: Colors.white,
                   ),
                   child: Text(_saving ? 'Enregistrement...' : 'Enregistrer'),
@@ -12014,7 +12015,7 @@ class _ManagerChangePasswordPageState
             child: ElevatedButton(
               onPressed: _saving ? null : _save,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _DashboardManagerState.managerBlue,
+                backgroundColor: _DashboardManagerState.managerBrand,
                 foregroundColor: Colors.white,
               ),
               child: Text(_saving ? 'Modification...' : 'Modifier'),
@@ -12110,7 +12111,7 @@ class _ManagerSimplePageShell extends StatelessWidget {
             IconButton(
               onPressed: () => Navigator.pop(context),
               icon: Icon(Icons.arrow_back),
-              color: _DashboardManagerState.managerBlue,
+              color: _DashboardManagerState.managerBrand,
               tooltip: 'Retour',
             ),
             SizedBox(height: 8),
@@ -12178,7 +12179,7 @@ class _ManagerProfileField extends StatelessWidget {
         border: _managerInputBorder(),
         enabledBorder: _managerInputBorder(),
         focusedBorder: _managerInputBorder(
-          color: _DashboardManagerState.managerBlue,
+          color: _DashboardManagerState.managerBrand,
         ),
       ),
     ),
@@ -12264,7 +12265,7 @@ class _ManagerChoiceTile extends StatelessWidget {
     onTap: onTap,
     title: Text(label),
     trailing: selected
-        ? Icon(Icons.check_circle, color: _DashboardManagerState.managerBlue)
+        ? Icon(Icons.check_circle, color: _DashboardManagerState.managerBrand)
         : null,
   );
 }
@@ -12447,7 +12448,7 @@ class _ManagerNavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected
-        ? _DashboardManagerState.managerBlue
+        ? _DashboardManagerState.managerBrand
         : _DashboardManagerState.managerMuted;
 
     return Expanded(
@@ -12481,6 +12482,102 @@ class _ManagerNavItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ManagerDrawer extends StatelessWidget {
+  _ManagerDrawer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
+              child: Text(
+                AppLocalizations.globalText('Manager'),
+                style: TextStyle(
+                  color: _DashboardManagerState._textDark,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            _DrawerTile(
+              icon: Icons.dashboard_rounded,
+              label: AppLocalizations.globalText('Dashboard'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/home-manager');
+              },
+            ),
+            _DrawerTile(
+              icon: Icons.groups_rounded,
+              label: AppLocalizations.globalText('Commerciaux'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/manager-commerciaux');
+              },
+            ),
+            _DrawerTile(
+              icon: Icons.receipt_long_rounded,
+              label: AppLocalizations.globalText('Commandes'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/manager-commandes');
+              },
+            ),
+            _DrawerTile(
+              icon: Icons.bar_chart_rounded,
+              label: AppLocalizations.globalText('Rapports'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/manager-rapports');
+              },
+            ),
+            Spacer(),
+            _DrawerTile(
+              icon: Icons.logout_rounded,
+              label: AppLocalizations.globalText('Deconnexion'),
+              onTap: () {
+                CurrentUserSession.signOut();
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerTile extends StatelessWidget {
+  _DrawerTile({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: _DashboardManagerState._brandPrimary),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: _DashboardManagerState._textDark,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      onTap: onTap,
     );
   }
 }
@@ -12644,7 +12741,7 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
                         border: _managerInputBorder(),
                         enabledBorder: _managerInputBorder(),
                         focusedBorder: _managerInputBorder(
-                          color: _DashboardManagerState._primaryBlue,
+                          color: _DashboardManagerState._brandPrimary,
                         ),
                       ),
                     ),
@@ -12659,7 +12756,7 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
                         border: _managerInputBorder(),
                         enabledBorder: _managerInputBorder(),
                         focusedBorder: _managerInputBorder(
-                          color: _DashboardManagerState._primaryBlue,
+                          color: _DashboardManagerState._brandPrimary,
                         ),
                       ),
                     ),
@@ -12681,7 +12778,7 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
                             : Icon(Icons.save_outlined),
                         label: Text(_saving ? 'Sauvegarde...' : 'Sauvegarder'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _DashboardManagerState._primaryBlue,
+                          backgroundColor: _DashboardManagerState._brandPrimary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -12727,12 +12824,12 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 34,
-                    backgroundColor: _DashboardManagerState.iconBlueBg,
+                    backgroundColor: _DashboardManagerState.iconBrandBg,
                     child: Text(
                       _initials(commercial.name),
                       style: TextStyle(
                         fontFamily: 'Roboto',
-                        color: _DashboardManagerState.managerBlue,
+                        color: _DashboardManagerState.managerBrand,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
@@ -12756,7 +12853,7 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
                           commercial.role,
                           style: TextStyle(
                             fontFamily: 'Roboto',
-                            color: _DashboardManagerState.managerBlue,
+                            color: _DashboardManagerState.managerBrand,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -12845,7 +12942,7 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
               icon: Icon(Icons.gps_fixed),
               label: Text('Définir les objectifs'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _DashboardManagerState.managerBlue,
+                backgroundColor: _DashboardManagerState.managerBrand,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -12913,11 +13010,12 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
+      drawer: _ManagerDrawer(),
       backgroundColor: _DashboardManagerState.managerSurface,
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.objectifs,
         child: RefreshIndicator(
-          color: _DashboardManagerState.managerBlue,
+          color: _DashboardManagerState.managerBrand,
           onRefresh: () async => _refresh(),
           child: FutureBuilder<_ManagerCommercialsData>(
             future: _future,
@@ -13377,7 +13475,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor:
-                                    _DashboardManagerState.managerBlue,
+                                    _DashboardManagerState.managerBrand,
                                 foregroundColor: Colors.white,
                               ),
                               child: Text('Appliquer'),
@@ -13425,7 +13523,7 @@ class _DetailKpi extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: _DashboardManagerState.managerBlue, size: 20),
+          Icon(icon, color: _DashboardManagerState.managerBrand, size: 20),
           Spacer(),
           Text(
             value,
@@ -13465,16 +13563,16 @@ class _DetailActionChip extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: _DashboardManagerState.managerBlue.withValues(alpha: .08),
+        color: _DashboardManagerState.managerBrand.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(99),
         border: Border.all(
-          color: _DashboardManagerState.managerBlue.withValues(alpha: .18),
+          color: _DashboardManagerState.managerBrand.withValues(alpha: .18),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: _DashboardManagerState.managerBlue),
+          Icon(icon, size: 16, color: _DashboardManagerState.managerBrand),
           SizedBox(width: 8),
           Text(
             label,
@@ -13518,12 +13616,12 @@ class _ObjectiveDetailScreen extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 34,
-                      backgroundColor: _DashboardManagerState.iconBlueBg,
+                      backgroundColor: _DashboardManagerState.iconBrandBg,
                       child: Text(
                         _initials(commercial.name),
                         style: TextStyle(
                           fontFamily: 'Roboto',
-                          color: _DashboardManagerState.managerBlue,
+                          color: _DashboardManagerState.managerBrand,
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                         ),
@@ -13737,11 +13835,12 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
                                 CircleAvatar(
                                   radius: 16,
                                   backgroundColor:
-                                      _DashboardManagerState.iconBlueBg,
+                                      _DashboardManagerState.iconBrandBg,
                                   child: Text(
                                     _initials(commercial.name).ifEmpty('C'),
                                     style: TextStyle(
-                                      color: _DashboardManagerState.managerBlue,
+                                      color:
+                                          _DashboardManagerState.managerBrand,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w900,
                                     ),
@@ -13860,7 +13959,7 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
-                                  _DashboardManagerState.managerBlue,
+                                  _DashboardManagerState.managerBrand,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
@@ -13937,10 +14036,10 @@ class _ObjectiveCommercialPicker extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: _DashboardManagerState.managerBlue.withValues(alpha: .08),
+        color: _DashboardManagerState.managerBrand.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _DashboardManagerState.managerBlue.withValues(alpha: .28),
+          color: _DashboardManagerState.managerBrand.withValues(alpha: .28),
         ),
       ),
       child: Row(
@@ -13950,7 +14049,7 @@ class _ObjectiveCommercialPicker extends StatelessWidget {
             backgroundColor: Colors.white,
             child: Icon(
               Icons.person_search_rounded,
-              color: _DashboardManagerState.managerBlue,
+              color: _DashboardManagerState.managerBrand,
               size: 21,
             ),
           ),
@@ -13963,7 +14062,7 @@ class _ObjectiveCommercialPicker extends StatelessWidget {
                   'Commercial',
                   style: TextStyle(
                     fontFamily: 'Roboto',
-                    color: _DashboardManagerState.managerBlue,
+                    color: _DashboardManagerState.managerBrand,
                     fontSize: 11,
                     fontWeight: FontWeight.w900,
                   ),
@@ -13998,7 +14097,7 @@ class _ObjectiveCommercialPicker extends StatelessWidget {
           SizedBox(width: 8),
           Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: _DashboardManagerState.managerBlue,
+            color: _DashboardManagerState.managerBrand,
             size: 22,
           ),
         ],
@@ -14045,12 +14144,12 @@ class _ObjectiveLabeledField extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: _DashboardManagerState.iconBlueBg,
+                  color: _DashboardManagerState.iconBrandBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   icon,
-                  color: _DashboardManagerState.managerBlue,
+                  color: _DashboardManagerState.managerBrand,
                   size: 18,
                 ),
               ),
@@ -14098,7 +14197,7 @@ class _ObjectiveLabeledField extends StatelessWidget {
             keyboardType: keyboardType,
             maxLines: maxLines,
             style: _objectiveInputTextStyle().copyWith(fontSize: 15),
-            cursorColor: _DashboardManagerState.managerBlue,
+            cursorColor: _DashboardManagerState.managerBrand,
             decoration: InputDecoration(
               isDense: true,
               hintText: hintText,
@@ -14140,10 +14239,10 @@ class _ObjectiveCommercialSummary extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _DashboardManagerState.iconBlueBg,
+        color: _DashboardManagerState.iconBrandBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _DashboardManagerState.managerBlue.withValues(alpha: .22),
+          color: _DashboardManagerState.managerBrand.withValues(alpha: .22),
         ),
       ),
       child: Column(
@@ -14157,7 +14256,7 @@ class _ObjectiveCommercialSummary extends StatelessWidget {
                 child: Text(
                   _initials(commercial.name).ifEmpty('C'),
                   style: TextStyle(
-                    color: _DashboardManagerState.managerBlue,
+                    color: _DashboardManagerState.managerBrand,
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
                   ),
@@ -14242,7 +14341,7 @@ class _ObjectiveSummaryPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: _DashboardManagerState.managerBlue),
+          Icon(icon, size: 16, color: _DashboardManagerState.managerBrand),
           SizedBox(width: 7),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -14328,7 +14427,7 @@ class _ManagerOrderDetailHeader extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Roboto',
-                  color: Color(0xFFD8E2F3),
+                  color: Color(0xFFD6E7DC),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -14379,12 +14478,12 @@ class _ManagerOrderDetailHeader extends StatelessWidget {
         ),
         CircleAvatar(
           radius: 24,
-          backgroundColor: _DashboardManagerState.iconBlueBg,
+          backgroundColor: _DashboardManagerState.iconBrandBg,
           child: Text(
             'MB',
             style: TextStyle(
               fontFamily: 'Roboto',
-              color: _DashboardManagerState.managerBlue,
+              color: _DashboardManagerState.managerBrand,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
@@ -14421,8 +14520,8 @@ class _ManagerOrderDetailMessage extends StatelessWidget {
           children: [
             _ManagerSoftIcon(
               icon: icon,
-              color: _DashboardManagerState.managerBlue,
-              backgroundColor: _DashboardManagerState.iconBlueBg,
+              color: _DashboardManagerState.managerBrand,
+              backgroundColor: _DashboardManagerState.iconBrandBg,
               size: 72,
             ),
             SizedBox(height: 16),
@@ -14537,7 +14636,7 @@ class _ManagerOrderMainCard extends StatelessWidget {
                   '${_formatMoney(order.total)} DH',
                   style: TextStyle(
                     fontFamily: 'Roboto',
-                    color: _DashboardManagerState.managerBlue,
+                    color: _DashboardManagerState.managerBrand,
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                   ),
@@ -14593,7 +14692,7 @@ class _ManagerOrderPersonCard extends StatelessWidget {
     phone: order.commercialPhone.ifEmpty('-'),
     city: order.commercialCity.ifEmpty('-'),
     icon: Icons.person,
-    color: _DashboardManagerState.managerBlue,
+    color: _DashboardManagerState.managerBrand,
     onTap: onTap,
   );
 
@@ -14749,6 +14848,11 @@ class _ManagerOrderInfoCard extends StatelessWidget {
       ),
       _ManagerDetailLine('Remises', '${_formatMoney(order.discount)} DH'),
       _ManagerDetailLine('Observations', order.notes.ifEmpty('-')),
+      if (order.status == _ManagerOrderApiStatus.refused)
+        _ManagerDetailLine(
+          'Motif de refus',
+          order.refusalReason.ifEmpty('Non renseigné'),
+        ),
     ],
   );
 }
@@ -14767,7 +14871,7 @@ class _ManagerOrderProductsCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.shopping_cart,
-                color: _DashboardManagerState.managerBlue,
+                color: _DashboardManagerState.managerBrand,
               ),
               SizedBox(width: 10),
               Expanded(
@@ -14836,13 +14940,13 @@ class _ManagerOrderProductLine extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: _DashboardManagerState.iconBlueBg,
+            color: _DashboardManagerState.iconBrandBg,
             borderRadius: BorderRadius.circular(12),
           ),
           child: line.image.isEmpty
               ? Icon(
                   Icons.inventory_2,
-                  color: _DashboardManagerState.managerBlue,
+                  color: _DashboardManagerState.managerBrand,
                 )
               : ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -14852,7 +14956,7 @@ class _ManagerOrderProductLine extends StatelessWidget {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => Icon(
                             Icons.inventory_2,
-                            color: _DashboardManagerState.managerBlue,
+                            color: _DashboardManagerState.managerBrand,
                           ),
                         )
                       : Image.asset(
@@ -14860,7 +14964,7 @@ class _ManagerOrderProductLine extends StatelessWidget {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => Icon(
                             Icons.inventory_2,
-                            color: _DashboardManagerState.managerBlue,
+                            color: _DashboardManagerState.managerBrand,
                           ),
                         ),
                 ),
@@ -14947,7 +15051,7 @@ class _TotalLine extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Roboto',
               color: strong
-                  ? _DashboardManagerState.managerBlue
+                  ? _DashboardManagerState.managerBrand
                   : _DashboardManagerState.managerMuted,
               fontSize: strong ? 14 : 12,
               fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
@@ -14959,7 +15063,7 @@ class _TotalLine extends StatelessWidget {
           style: TextStyle(
             fontFamily: 'Roboto',
             color: strong
-                ? _DashboardManagerState.managerBlue
+                ? _DashboardManagerState.managerBrand
                 : _DashboardManagerState.managerText,
             fontSize: strong ? 15 : 12,
             fontWeight: FontWeight.w700,
@@ -15092,7 +15196,7 @@ class _ManagerHistoryRow extends StatelessWidget {
           height: 10,
           margin: EdgeInsets.only(top: 5),
           decoration: BoxDecoration(
-            color: _DashboardManagerState.managerBlue,
+            color: _DashboardManagerState.managerBrand,
             shape: BoxShape.circle,
           ),
         ),
@@ -15167,8 +15271,8 @@ class _ManagerOrderStickyActions extends StatelessWidget {
                 icon: Icon(Icons.download, size: 17),
                 label: Text('PDF'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: _DashboardManagerState.managerBlue,
-                  side: BorderSide(color: _DashboardManagerState.managerBlue),
+                  foregroundColor: _DashboardManagerState.managerBrand,
+                  side: BorderSide(color: _DashboardManagerState.managerBrand),
                 ),
               ),
             ),
@@ -15333,7 +15437,7 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
                 child: Stack(
                   children: [
                     RefreshIndicator(
-                      color: _DashboardManagerState.managerBlue,
+                      color: _DashboardManagerState.managerBrand,
                       onRefresh: _refresh,
                       child: SingleChildScrollView(
                         physics: AlwaysScrollableScrollPhysics(),
@@ -15461,7 +15565,7 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
                           ? Icons.check_circle
                           : Icons.circle_outlined,
                       color: selected == option
-                          ? _DashboardManagerState.managerBlue
+                          ? _DashboardManagerState.managerBrand
                           : _DashboardManagerState.managerMuted,
                     ),
                     title: Text(option),
@@ -16082,7 +16186,7 @@ class _ManagerApiOrderDetailState extends State<_ManagerApiOrderDetail> {
                             ? Icons.check_circle
                             : Icons.circle_outlined,
                         color: selected == reason
-                            ? _DashboardManagerState.managerBlue
+                            ? _DashboardManagerState.managerBrand
                             : _DashboardManagerState.managerMuted,
                       ),
                       title: Text(reason),
@@ -16245,7 +16349,7 @@ class _DetailOrderShell extends StatelessWidget {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF1C4B92).withValues(alpha: .08),
+                        color: Color(0xFF12543A).withValues(alpha: .08),
                         blurRadius: 28,
                         offset: Offset(0, 14),
                       ),
@@ -16421,7 +16525,7 @@ class _DetailActionsCard extends StatelessWidget {
           Expanded(
             child: _ActionButton(
               label: AppLocalizations.globalText('Modifier'),
-              color: _DashboardManagerState._primaryBlue,
+              color: _DashboardManagerState._brandPrimary,
               onTap: onEdit,
             ),
           ),
@@ -16449,7 +16553,7 @@ class _DetailActionsCard extends StatelessWidget {
               width: 150,
               child: _ActionButton(
                 label: AppLocalizations.globalText('Voir facture'),
-                color: _DashboardManagerState._primaryBlue,
+                color: _DashboardManagerState._brandPrimary,
                 filled: true,
                 onTap: onViewInvoice,
               ),
@@ -16476,7 +16580,7 @@ class _DetailActionsCard extends StatelessWidget {
           Expanded(
             child: _ActionButton(
               label: AppLocalizations.globalText('Historique retour'),
-              color: _DashboardManagerState._primaryBlue,
+              color: _DashboardManagerState._brandPrimary,
               onTap: onReturnHistory,
             ),
           ),
@@ -16623,7 +16727,7 @@ class _DetailCard extends StatelessWidget {
         border: Border.all(color: _DashboardManagerState._border),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF1C4B92).withValues(alpha: .045),
+            color: Color(0xFF12543A).withValues(alpha: .045),
             blurRadius: 16,
             offset: Offset(0, 8),
           ),
@@ -16907,14 +17011,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(Icons.arrow_back_rounded),
-                        color: Color(0xFF14204A),
+                        color: Color(0xFF0F172A),
                       ),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Notifications',
                           style: TextStyle(
-                            color: Color(0xFF14204A),
+                            color: Color(0xFF0F172A),
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                           ),
@@ -16941,7 +17045,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         selected: selected,
                         label: Text(filter.label),
                         onSelected: (_) => setState(() => _filter = filter),
-                        selectedColor: Color(0xFF2563EB),
+                        selectedColor: Color(0xFF1B7F4B),
                         labelStyle: TextStyle(
                           color: selected ? Colors.white : Color(0xFF6F7A90),
                           fontWeight: FontWeight.w800,
@@ -17036,7 +17140,7 @@ class _ManagerNotificationTile extends StatelessWidget {
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: Color(0xFF2563EB),
+                          color: Color(0xFF1B7F4B),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -17064,7 +17168,7 @@ class _ManagerNotificationTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Color(0xFF14204A),
+                              color: Color(0xFF0F172A),
                               fontWeight: item.isRead
                                   ? FontWeight.w700
                                   : FontWeight.w900,
@@ -17143,7 +17247,7 @@ class _ManagerNotificationDetails extends StatelessWidget {
             Text(
               item.title,
               style: TextStyle(
-                color: Color(0xFF14204A),
+                color: Color(0xFF0F172A),
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
               ),
@@ -17188,7 +17292,7 @@ class _ManagerNotificationEmpty extends StatelessWidget {
           Icon(
             Icons.notifications_none_rounded,
             size: 52,
-            color: Color(0xFF2563EB),
+            color: Color(0xFF1B7F4B),
           ),
           SizedBox(height: 14),
           Text(
@@ -17210,11 +17314,11 @@ class _ManagerNotificationEmpty extends StatelessWidget {
     'commandes' => (icon: Icons.receipt_long, color: Color(0xFFF59E0B)),
     'rapports' => (icon: Icons.description, color: Color(0xFF7C3AED)),
     'clients' => (icon: Icons.people, color: Color(0xFF22C55E)),
-    'activites' => (icon: Icons.event, color: Color(0xFF2563EB)),
-    'objectifs' => (icon: Icons.gps_fixed, color: Color(0xFF0EA5E9)),
+    'activites' => (icon: Icons.event, color: Color(0xFF1B7F4B)),
+    'objectifs' => (icon: Icons.gps_fixed, color: Color(0xFF10A79B)),
     'utilisateurs' => (icon: Icons.manage_accounts, color: Color(0xFF64748B)),
     'systeme' => (icon: Icons.settings, color: Color(0xFFEF4444)),
-    _ => (icon: Icons.notifications_outlined, color: Color(0xFF2563EB)),
+    _ => (icon: Icons.notifications_outlined, color: Color(0xFF1B7F4B)),
   };
 }
 
@@ -17309,14 +17413,14 @@ class _TemporaryManagerPage extends StatelessWidget {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: _DashboardManagerState._primaryBlue.withValues(
+                  color: _DashboardManagerState._brandPrimary.withValues(
                     alpha: .10,
                   ),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(
                   icon,
-                  color: _DashboardManagerState._primaryBlue,
+                  color: _DashboardManagerState._brandPrimary,
                   size: 36,
                 ),
               ),
@@ -17457,14 +17561,14 @@ _OrderStatusStyle _orderStatusStyle(ManagerOrderStatus status) {
     ManagerOrderStatus.returned => _OrderStatusStyle(
       label: AppLocalizations.globalText('Retour'),
       icon: Icons.keyboard_return_rounded,
-      fg: Color(0xFF2674F8),
-      bg: Color(0xFFE8EEFF),
+      fg: Color(0xFF1B7F4B),
+      bg: Color(0xFFE6F4EC),
     ),
     ManagerOrderStatus.all => _OrderStatusStyle(
       label: AppLocalizations.globalText('Toutes'),
       icon: Icons.shopping_cart_rounded,
-      fg: Color(0xFF2674F8),
-      bg: Color(0xFFE8EEFF),
+      fg: Color(0xFF1B7F4B),
+      bg: Color(0xFFE6F4EC),
     ),
   };
 }
