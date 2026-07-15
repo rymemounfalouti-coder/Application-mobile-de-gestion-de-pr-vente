@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+
+import '../services/local_json_store.dart';
 
 class AppLocaleController extends ChangeNotifier {
   AppLocaleController._();
@@ -17,9 +17,9 @@ class AppLocaleController extends ChangeNotifier {
 
   Future<void> load() async {
     try {
-      final file = await _file();
-      if (!await file.exists()) return;
-      final decoded = jsonDecode(await file.readAsString());
+      final raw = await readLocalJson('app_locale.json');
+      if (raw == null) return;
+      final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) return;
       final code = decoded['languageCode'] as String?;
       if (!_supportedLanguageCodes.contains(code)) return;
@@ -38,18 +38,10 @@ class AppLocaleController extends ChangeNotifier {
   }
 
   Future<void> _save() async {
-    final file = await _file();
-    if (!await file.parent.exists()) {
-      await file.parent.create(recursive: true);
-    }
-    await file.writeAsString(
+    await writeLocalJson(
+      'app_locale.json',
       jsonEncode({'languageCode': _locale.languageCode}),
     );
-  }
-
-  static Future<File> _file() async {
-    final directory = await getApplicationSupportDirectory();
-    return File('${directory.path}${Platform.pathSeparator}app_locale.json');
   }
 }
 

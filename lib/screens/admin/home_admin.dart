@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../api_service.dart';
 import '../../auth/current_user_session.dart';
 import '../../data/mock_presales_data.dart';
+import '../../data/product_image_assets.dart';
 import '../../l10n/app_locale_controller.dart';
 import '../../settings/app_appearance_controller.dart';
 import '../../services/local_json_store.dart';
@@ -313,11 +314,15 @@ class HomeAdmin extends StatefulWidget {
 
 class _HomeAdminState extends State<HomeAdmin> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _accueilKey = GlobalKey<_AccueilPageState>();
   int _index = 0;
 
   void _go(int i) {
     _scaffoldKey.currentState?.closeDrawer();
     setState(() => _index = i);
+    // IndexedStack keeps the dashboard alive, so it never reloads on its own.
+    // Refresh it whenever we return to it (e.g. after adding a user elsewhere).
+    if (i == 0) _accueilKey.currentState?._refresh();
   }
 
   void _redirect(String route) {
@@ -349,7 +354,7 @@ class _HomeAdminState extends State<HomeAdmin> {
     final phone = session.phone;
 
     final pages = [
-      AccueilPage(onMenu: _menu, onBell: _bell, name: name),
+      AccueilPage(key: _accueilKey, onMenu: _menu, onBell: _bell, name: name),
       UtilisateursPage(onMenu: _menu, onBell: _bell),
       ProduitsPage(onMenu: _menu, onBell: _bell),
       ClientsPage(onMenu: _menu, onBell: _bell),
@@ -735,7 +740,11 @@ class _AccueilPageState extends State<AccueilPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _load());
+    // Block body: an arrow `() => _future = _load()` returns the assigned
+    // Future, which setState rejects (and then skips the rebuild).
+    setState(() {
+      _future = _load();
+    });
     await _future;
   }
 
@@ -2525,6 +2534,110 @@ class _AdminProductImage extends StatelessWidget {
   }
 }
 
+class _ProductImagePickerDialog extends StatelessWidget {
+  const _ProductImagePickerDialog({required this.current});
+
+  final String current;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedCurrent = current.isEmpty
+        ? ''
+        : resolveProductImageAsset(image: current);
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440, maxHeight: 560),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Choisir une image',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  if (current.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () => Navigator.pop(context, ''),
+                      icon: const Icon(Icons.clear_rounded, size: 18),
+                      label: const Text('Aucune'),
+                    ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(12),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: .72,
+                    ),
+                itemCount: productImageAssetPaths.length,
+                itemBuilder: (context, index) {
+                  final path = productImageAssetPaths[index];
+                  final selected = path == resolvedCurrent;
+                  return InkWell(
+                    onTap: () => Navigator.pop(context, path),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: selected
+                                    ? kGreen
+                                    : const Color(0xFFE2E8F0),
+                                width: selected ? 2 : 1,
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Image.asset(
+                              path,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => const Center(
+                                child: Icon(
+                                  Icons.image_not_supported_outlined,
+                                  color: Colors.black38,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          productImageLabel(path),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 10, height: 1.1),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class ProductFormScreen extends StatefulWidget {
   const ProductFormScreen({super.key, required this.store, this.product});
   final ProductStore store;
@@ -2559,6 +2672,15 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     if (!_teaProductCategories.contains(_category.text.trim())) {
       _category.text = _teaProductCategories.first;
     }
+  }
+
+  Future<void> _pickProductImage() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (_) => _ProductImagePickerDialog(current: _image.text.trim()),
+    );
+    if (selected == null) return; // dismissed without choosing
+    setState(() => _image.text = selected); // '' clears the image
   }
 
   @override
@@ -2644,39 +2766,59 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: _image,
-                        decoration: const InputDecoration(
-                          labelText: 'Image produit',
-                          hintText:
-                              'assets/images/products/chaara_premium_200g.jpeg',
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                      if (_image.text.trim().isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: _AdminProductImage(
-                            product: widget.store.build(
-                              id: widget.product?.id,
-                              name: _name.text.trim().isEmpty
-                                  ? 'Produit'
-                                  : _name.text.trim(),
-                              reference: _ref.text.trim(),
-                              category: _category.text.trim(),
-                              description: _description.text.trim(),
-                              image: _image.text.trim(),
-                              price:
-                                  double.tryParse(
-                                    _price.text.trim().replaceAll(',', '.'),
-                                  ) ??
-                                  0,
-                              stock: int.tryParse(_stock.text.trim()) ?? 0,
-                            ),
+                      InkWell(
+                        onTap: _pickProductImage,
+                        borderRadius: BorderRadius.circular(8),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Image produit',
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: _image.text.trim().isEmpty
+                                    ? const Icon(
+                                        Icons.image_outlined,
+                                        color: Colors.black38,
+                                      )
+                                    : ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.asset(
+                                          resolveProductImageAsset(
+                                            image: _image.text.trim(),
+                                          ),
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) =>
+                                              const Icon(
+                                                Icons.broken_image_outlined,
+                                                color: Colors.black38,
+                                              ),
+                                        ),
+                                      ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _image.text.trim().isEmpty
+                                      ? 'Choisir une image'
+                                      : productImageLabel(_image.text.trim()),
+                                  style: TextStyle(
+                                    color: _image.text.trim().isEmpty
+                                        ? Colors.black45
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.photo_library_rounded,
+                                color: kGreen,
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
                   FormSection('Tarification & stock', Icons.payments_rounded, [
@@ -3434,7 +3576,11 @@ class _CommandesPageState extends State<CommandesPage> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _load());
+    // Block body: an arrow `() => _future = _load()` returns the assigned
+    // Future, which setState rejects (and then skips the rebuild).
+    setState(() {
+      _future = _load();
+    });
     await _future;
   }
 

@@ -1,11 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../auth/current_user_session.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/local_json_store.dart';
 
 Color _brandPrimary = Color(0xFF1B7F4B);
 Color _textDark = Color(0xFF0F172A);
@@ -1058,9 +1057,9 @@ class _NotificationSettingsStore {
 
   static Future<_NotificationSettings> load(String userKey) async {
     try {
-      final file = await _file();
-      if (!await file.exists()) return _NotificationSettings.defaults();
-      final decoded = jsonDecode(await file.readAsString());
+      final raw = await readLocalJson('notification_settings.json');
+      if (raw == null) return _NotificationSettings.defaults();
+      final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) {
         return _NotificationSettings.defaults();
       }
@@ -1078,15 +1077,11 @@ class _NotificationSettingsStore {
     String userKey,
     _NotificationSettings settings,
   ) async {
-    final file = await _file();
-    if (!await file.parent.exists()) {
-      await file.parent.create(recursive: true);
-    }
-
     var allSettings = <String, dynamic>{};
-    if (await file.exists()) {
+    final raw = await readLocalJson('notification_settings.json');
+    if (raw != null) {
       try {
-        final decoded = jsonDecode(await file.readAsString());
+        final decoded = jsonDecode(raw);
         if (decoded is Map<String, dynamic>) allSettings = decoded;
       } catch (_) {
         allSettings = <String, dynamic>{};
@@ -1094,13 +1089,9 @@ class _NotificationSettingsStore {
     }
 
     allSettings[userKey] = settings.toJson();
-    await file.writeAsString(JsonEncoder.withIndent('  ').convert(allSettings));
-  }
-
-  static Future<File> _file() async {
-    final directory = await getApplicationSupportDirectory();
-    return File(
-      '${directory.path}${Platform.pathSeparator}notification_settings.json',
+    await writeLocalJson(
+      'notification_settings.json',
+      JsonEncoder.withIndent('  ').convert(allSettings),
     );
   }
 }

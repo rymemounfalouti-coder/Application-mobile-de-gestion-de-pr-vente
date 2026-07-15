@@ -4033,7 +4033,7 @@ class _PremiumActivitiesPageState extends State<PremiumActivitiesPage> {
       context,
       MaterialPageRoute(
         builder: (_) => NewActivityPage(
-          clients: widget.clients.where(_isCasablancaClient).toList(),
+          clients: widget.clients,
           selectedDate: _selectedDate,
         ),
       ),

@@ -23,6 +23,25 @@ const Set<String> _productImageFiles = {
   'chaara_premium_500g.jpeg',
 };
 
+/// All bundled product images as full asset paths, alphabetically sorted.
+/// Feeds the product form image picker so users select instead of typing paths.
+final List<String> productImageAssetPaths =
+    (_productImageFiles.toList()..sort())
+        .map((file) => '$productImagesAssetDir/$file')
+        .toList(growable: false);
+
+/// Human-friendly label for a product image, e.g.
+/// ".../allamma_classique_1kg.jpeg" -> "Allamma classique 1kg".
+String productImageLabel(String assetPath) {
+  final file = assetPath.split(RegExp(r'[\\/]')).last;
+  final base = file.replaceAll(RegExp(r'\.[^.]+$'), '');
+  final words = base.split('_').where((word) => word.isNotEmpty).toList();
+  if (words.isEmpty) return file;
+  return words
+      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
+}
+
 String resolveProductImageAsset({
   String image = '',
   String name = '',

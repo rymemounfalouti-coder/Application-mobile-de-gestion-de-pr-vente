@@ -4,6 +4,7 @@ import json
 import os
 import re
 
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import (
@@ -19,6 +20,8 @@ from flask_limiter.util import get_remote_address
 import psycopg2
 import psycopg2.extras
 from werkzeug.security import check_password_hash, generate_password_hash
+
+load_dotenv()
 
 
 def _cors_allowed_origins():

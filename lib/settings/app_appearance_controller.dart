@@ -1,10 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../auth/current_user_session.dart';
+import '../services/local_json_store.dart';
 
 class AppAppearanceController extends ChangeNotifier {
   AppAppearanceController._();
@@ -40,13 +39,13 @@ class AppAppearanceController extends ChangeNotifier {
 
   Future<void> load() async {
     try {
-      final file = await _file();
-      if (!await file.exists()) {
+      final raw = await readLocalJson('app_appearance.json');
+      if (raw == null) {
         _applyToCurrentUser();
         return;
       }
 
-      final decoded = jsonDecode(await file.readAsString());
+      final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) {
         _applyToCurrentUser();
         return;
@@ -131,12 +130,10 @@ class AppAppearanceController extends ChangeNotifier {
   }
 
   Future<void> _save() async {
-    final file = await _file();
-    if (!await file.parent.exists()) {
-      await file.parent.create(recursive: true);
-    }
-
-    await file.writeAsString(jsonEncode({..._toJson(), 'users': _users}));
+    await writeLocalJson(
+      'app_appearance.json',
+      jsonEncode({..._toJson(), 'users': _users}),
+    );
   }
 
   Map<String, dynamic> _toJson() {
@@ -160,12 +157,5 @@ class AppAppearanceController extends ChangeNotifier {
     return AppTextSizePreference.values
         .where((size) => size.name == value)
         .firstOrNull;
-  }
-
-  static Future<File> _file() async {
-    final directory = await getApplicationSupportDirectory();
-    return File(
-      '${directory.path}${Platform.pathSeparator}app_appearance.json',
-    );
   }
 }

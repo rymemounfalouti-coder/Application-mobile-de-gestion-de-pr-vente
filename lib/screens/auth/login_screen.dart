@@ -210,6 +210,8 @@ class _LoginScreenState extends State<LoginScreen> {
             : email,
         email: apiUser['email']?.toString() ?? email,
       );
+    } on InvalidCredentialsException {
+      return null; // Wrong email/password → clean field message, no stack dump.
     } catch (error) {
       debugPrint('Authentification API indisponible/echec: $error');
       if (!ApiService.demoModeEnabled) rethrow;

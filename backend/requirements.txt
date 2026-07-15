@@ -4,3 +4,4 @@ Flask-Cors==6.0.5
 Flask-JWT-Extended==4.7.4
 Flask-Limiter==4.1.1
 psycopg2-binary==2.9.12
+python-dotenv==1.1.0

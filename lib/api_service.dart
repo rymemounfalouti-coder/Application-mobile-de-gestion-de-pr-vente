@@ -1,12 +1,32 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart'
+    show debugPrint, kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 
 import 'data/demo_data_store.dart';
 import 'data/mock_presales_data.dart';
 
+/// Thrown by [ApiService.login] when the server rejects the credentials (401),
+/// as distinct from a network/server failure. Lets the UI show "wrong password"
+/// instead of a generic connection error.
+class InvalidCredentialsException implements Exception {
+  const InvalidCredentialsException();
+}
+
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:5000';
+  // 127.0.0.1 works for web and iOS simulators, but the Android emulator only
+  // reaches the host machine's loopback via 10.0.2.2. For a physical device,
+  // pass --dart-define=API_BASE_URL=http://<your-PC-LAN-IP>:5000.
+  static final String baseUrl = _resolveBaseUrl();
+
+  static String _resolveBaseUrl() {
+    const override = String.fromEnvironment('API_BASE_URL');
+    if (override.isNotEmpty) return override;
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:5000';
+    }
+    return 'http://127.0.0.1:5000';
+  }
   static const bool demoModeEnabled = bool.fromEnvironment(
     'DEMO_MODE',
     defaultValue: false,
@@ -1025,8 +1045,10 @@ class ApiService {
       }
       _accessToken = token;
       return decoded;
+    } else if (response.statusCode == 401) {
+      throw const InvalidCredentialsException();
     } else {
-      throw Exception('Email ou mot de passe incorrect');
+      throw Exception('Connexion au serveur impossible (${response.statusCode})');
     }
   }
 
