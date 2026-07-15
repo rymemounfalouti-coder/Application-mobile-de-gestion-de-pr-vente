@@ -32,7 +32,9 @@ void main() {
     // filters
     expect(store.filter(query: 'test user').length, 1);
     expect(
-      store.filter(role: MockUserRole.admin).every((u) => u.role == MockUserRole.admin),
+      store
+          .filter(role: MockUserRole.admin)
+          .every((u) => u.role == MockUserRole.admin),
       true,
     );
     expect(store.filter(active: false).any((u) => u.id == id), true);

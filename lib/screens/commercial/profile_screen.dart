@@ -84,16 +84,25 @@ class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
   }
 
   String get _name {
-    final value = userProfile?.name ?? widget.fallbackName;
+    final value =
+        CurrentUserSession.currentUser?.fullName ??
+        userProfile?.name ??
+        widget.fallbackName;
     return value.trim().isEmpty ? 'Commercial PreSales' : value;
   }
 
   String get _email {
-    final value = userProfile?.email ?? widget.fallbackEmail;
+    final value =
+        CurrentUserSession.currentUser?.email ??
+        userProfile?.email ??
+        widget.fallbackEmail;
     return value.trim().isEmpty ? 'commercial@presales.ma' : value;
   }
 
-  String get _phone => userProfile?.phone ?? 'Non renseigné';
+  String get _phone =>
+      CurrentUserSession.currentUser?.phone ??
+      userProfile?.phone ??
+      'Non renseigné';
 
   String _languageName(AppLocalizations l10n) {
     return switch (AppLocaleController.instance.languageCode) {
@@ -231,8 +240,8 @@ class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
                     icon: Icons.person_outline_rounded,
                     title: l10n.personalInformation,
                     subtitle: l10n.manageProfileInfo,
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => PremiumPersonalInfoScreen(
@@ -243,6 +252,7 @@ class _ProfileCommercialScreenState extends State<ProfileCommercialScreen> {
                           ),
                         ),
                       );
+                      if (mounted) setState(() {});
                     },
                   ),
                   _MenuItem(
@@ -737,6 +747,7 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
   late String _language;
   late String _company;
   String? _avatarLabel;
+  bool _savingChanges = false;
 
   @override
   void initState() {
@@ -1004,7 +1015,12 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
                                   ],
                                 ),
                                 SizedBox(height: 24),
-                                _PremiumInfoSaveButton(onPressed: _saveChanges),
+                                _PremiumInfoSaveButton(
+                                  onPressed: _savingChanges
+                                      ? null
+                                      : _saveChanges,
+                                  saving: _savingChanges,
+                                ),
                               ],
                             ),
                           ),
@@ -1272,7 +1288,7 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
     );
   }
 
-  void _saveChanges() {
+  Future<void> _saveChanges() async {
     final validators = [
       _requiredValidator(_fullName),
       _emailValidator(_email),
@@ -1285,15 +1301,75 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
       ).showSnackBar(SnackBar(content: Text(validators.first)));
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.globalText(
-            'Informations mises \u00E0 jour avec succ\u00E8s',
+
+    final session = CurrentUserSession.currentUser;
+    final userId = session?.id ?? widget.user?.id ?? 0;
+    if (userId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.globalText(
+              'Impossible d\u2019identifier le compte à mettre à jour.',
+            ),
           ),
         ),
-      ),
-    );
+      );
+      return;
+    }
+
+    final nameParts = _fullName.trim().split(RegExp(r'\s+'));
+    final firstName = nameParts.first;
+    final lastName = nameParts.skip(1).join(' ');
+    setState(() => _savingChanges = true);
+    try {
+      await ApiService.updateUser(userId, {
+        'name': _fullName.trim(),
+        'prenom': firstName,
+        'nom': lastName,
+        'email': _email.trim(),
+        'phone': _phone.trim(),
+      });
+
+      if (session != null) {
+        CurrentUserSession.signIn(
+          AuthenticatedUser(
+            id: session.id,
+            fullName: _fullName.trim(),
+            email: _email.trim(),
+            role: session.role,
+            phone: _phone.trim(),
+            theme: session.theme,
+            textSize: session.textSize,
+            autoBrightness: session.autoBrightness,
+            powerSavingMode: session.powerSavingMode,
+          ),
+        );
+      }
+      if (!mounted) return;
+      setState(() => _savingChanges = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.globalText(
+              'Informations mises \u00E0 jour avec succ\u00E8s',
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _savingChanges = false);
+      final message = error.toString().replaceFirst('Exception: ', '').trim();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message.isEmpty
+                ? 'Impossible de mettre à jour le profil.'
+                : message,
+          ),
+        ),
+      );
+    }
   }
 
   void _handleBottomNav(int index) {
@@ -1589,9 +1665,10 @@ class _PremiumInfoRow extends StatelessWidget {
 }
 
 class _PremiumInfoSaveButton extends StatelessWidget {
-  _PremiumInfoSaveButton({required this.onPressed});
+  _PremiumInfoSaveButton({required this.onPressed, required this.saving});
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool saving;
 
   @override
   Widget build(BuildContext context) {
@@ -1600,9 +1677,20 @@ class _PremiumInfoSaveButton extends StatelessWidget {
       height: 56,
       child: ElevatedButton.icon(
         onPressed: onPressed,
-        icon: Icon(Icons.save_outlined, color: Colors.white),
+        icon: saving
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Icon(Icons.save_outlined, color: Colors.white),
         label: Text(
-          AppLocalizations.globalText('Enregistrer les modifications'),
+          AppLocalizations.globalText(
+            saving ? 'Enregistrement...' : 'Enregistrer les modifications',
+          ),
           style: TextStyle(
             color: Colors.white,
             fontSize: 15,
@@ -1923,6 +2011,7 @@ class _PremiumSecurityScreenState extends State<PremiumSecurityScreen> {
   bool _hideNew = true;
   bool _hideConfirm = true;
   bool _twoFactorEnabled = true;
+  bool _updatingPassword = false;
 
   @override
   void initState() {
@@ -1983,6 +2072,7 @@ class _PremiumSecurityScreenState extends State<PremiumSecurityScreen> {
                     onToggleConfirm: () =>
                         setState(() => _hideConfirm = !_hideConfirm),
                     onSubmit: _updatePassword,
+                    submitting: _updatingPassword,
                   ),
                   SizedBox(height: 24),
                   _PremiumSecurityTitle('S\u00E9curit\u00E9 du compte'),
@@ -2066,18 +2156,14 @@ class _PremiumSecurityScreenState extends State<PremiumSecurityScreen> {
     );
   }
 
-  void _updatePassword() {
+  Future<void> _updatePassword() async {
+    if (_updatingPassword) return;
     final current = _currentPasswordController.text.trim();
     final next = _newPasswordController.text.trim();
     final confirm = _confirmPasswordController.text.trim();
-    final currentPassword = widget.user?.password ?? '123456';
 
     if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
       _showMessage('Tous les champs sont obligatoires');
-      return;
-    }
-    if (current != currentPassword) {
-      _showMessage('Mot de passe actuel incorrect');
       return;
     }
     if (_strength.level < 2) {
@@ -2089,10 +2175,31 @@ class _PremiumSecurityScreenState extends State<PremiumSecurityScreen> {
       return;
     }
 
-    _currentPasswordController.clear();
-    _newPasswordController.clear();
-    _confirmPasswordController.clear();
-    _showMessage('Mot de passe mis \u00E0 jour avec succ\u00E8s');
+    final userId = CurrentUserSession.currentUser?.id ?? widget.user?.id ?? 0;
+    if (userId <= 0) {
+      _showMessage('Impossible d\u2019identifier le compte à mettre à jour');
+      return;
+    }
+
+    setState(() => _updatingPassword = true);
+    try {
+      await ApiService.changePassword(userId, current, next);
+      if (!mounted) return;
+      setState(() => _updatingPassword = false);
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+      _showMessage('Mot de passe mis \u00E0 jour avec succ\u00E8s');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _updatingPassword = false);
+      final message = error.toString().replaceFirst('Exception: ', '').trim();
+      _showMessage(
+        message.isEmpty
+            ? 'Impossible de mettre à jour le mot de passe'
+            : message,
+      );
+    }
   }
 
   void _openDevices() {
@@ -2399,6 +2506,7 @@ class _PremiumPasswordCard extends StatelessWidget {
     required this.onToggleNew,
     required this.onToggleConfirm,
     required this.onSubmit,
+    required this.submitting,
   });
 
   final TextEditingController currentController;
@@ -2412,6 +2520,7 @@ class _PremiumPasswordCard extends StatelessWidget {
   final VoidCallback onToggleNew;
   final VoidCallback onToggleConfirm;
   final VoidCallback onSubmit;
+  final bool submitting;
 
   @override
   Widget build(BuildContext context) {
@@ -2459,11 +2568,22 @@ class _PremiumPasswordCard extends StatelessWidget {
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
-              onPressed: onSubmit,
-              icon: Icon(Icons.lock_outline_rounded, color: Colors.white),
+              onPressed: submitting ? null : onSubmit,
+              icon: submitting
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(Icons.lock_outline_rounded, color: Colors.white),
               label: Text(
                 AppLocalizations.globalText(
-                  'Mettre \u00E0 jour le mot de passe',
+                  submitting
+                      ? 'Mise à jour...'
+                      : 'Mettre \u00E0 jour le mot de passe',
                 ),
                 style: TextStyle(
                   color: Colors.white,

@@ -1,24 +1,103 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import wraps
+import json
+import os
+import re
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_jwt_extended import (
+    JWTManager,
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+    verify_jwt_in_request,
+)
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import psycopg2
 import psycopg2.extras
 from werkzeug.security import check_password_hash, generate_password_hash
 
+
+def _cors_allowed_origins():
+    configured = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+    if configured:
+        return [origin.strip() for origin in configured.split(",") if origin.strip()]
+    # Safe local-development defaults. Production must set exact HTTPS origins.
+    return [
+        re.compile(r"^http://localhost(?::\d+)?$"),
+        re.compile(r"^http://127\.0\.0\.1(?::\d+)?$"),
+    ]
+
+
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 app.json.ensure_ascii = False
-CORS(app)
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+app.config["JWT_HEADER_TYPE"] = "Bearer"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(
+    minutes=int(os.getenv("JWT_ACCESS_TOKEN_MINUTES", "30"))
+)
+app.config["JWT_ERROR_MESSAGE_KEY"] = "message"
+
+_jwt_secret = os.getenv("JWT_SECRET_KEY", "").strip()
+if not _jwt_secret:
+    raise RuntimeError(
+        "JWT_SECRET_KEY is required. Set a long random secret in the environment "
+        "before starting Flask."
+    )
+app.config["JWT_SECRET_KEY"] = _jwt_secret
+
+CORS(app, resources={r"/*": {"origins": _cors_allowed_origins()}})
+jwt = JWTManager(app)
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri=os.getenv("RATELIMIT_STORAGE_URI", "memory://"),
+)
+
+
+@jwt.unauthorized_loader
+def _missing_token(message):
+    return jsonify({"message": "Jeton d'authentification requis"}), 401
+
+
+@jwt.invalid_token_loader
+def _invalid_token(message):
+    return jsonify({"message": "Jeton d'authentification invalide"}), 401
+
+
+@jwt.expired_token_loader
+def _expired_token(jwt_header, jwt_payload):
+    return jsonify({"message": "Session expirée, veuillez vous reconnecter"}), 401
+
+
+@app.errorhandler(429)
+def _rate_limit_exceeded(error):
+    return jsonify({"message": "Trop de tentatives, veuillez réessayer plus tard"}), 429
+
+
+def _login_rate_limit_key():
+    data = request.get_json(silent=True) or {}
+    email = str(data.get("email") or "").strip().lower()
+    return f"{get_remote_address()}:{email}"
 
 
 def get_db_connection():
+    password = os.getenv("DB_PASSWORD")
+    if not password:
+        raise RuntimeError(
+            "DB_PASSWORD is required. Set it in the environment before starting Flask."
+        )
     return psycopg2.connect(
-        host="localhost",
-        database="prevente_db",
-        user="postgres",
-        password="ryme24102005",
-        port=5432,
+        host=os.getenv("DB_HOST", "localhost"),
+        database=os.getenv("DB_NAME", "prevente_db"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=password,
+        port=int(os.getenv("DB_PORT", "5432")),
     )
 
 
@@ -296,6 +375,45 @@ def _normalize_user_role(role):
     return "commercial"
 
 
+def _jwt_role():
+    return _normalize_user_role(get_jwt().get("role"))
+
+
+def _jwt_user_id():
+    try:
+        return int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return None
+
+
+def _jwt_email():
+    return str(get_jwt().get("email") or "").strip().lower()
+
+
+def _role_denied(*allowed_roles):
+    allowed = {_normalize_user_role(role) for role in allowed_roles}
+    if _jwt_role() not in allowed:
+        return jsonify({"message": "Accès non autorisé pour ce rôle"}), 403
+    return None
+
+
+def roles_required(*allowed_roles):
+    """Require a valid JWT and one of the declared server-side roles."""
+
+    def decorator(view):
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            verify_jwt_in_request()
+            denied = _role_denied(*allowed_roles)
+            if denied:
+                return denied
+            return view(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
+
+
 def _commercial_order_count(cur, commercial_id):
     if not commercial_id:
         return 0
@@ -481,7 +599,12 @@ def home():
 
 
 @app.route("/company-info", methods=["GET", "PUT"])
+@jwt_required()
 def company_info():
+    if request.method == "PUT":
+        denied = _role_denied("admin")
+        if denied:
+            return denied
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -535,12 +658,19 @@ def company_info():
 
 
 @app.route("/clients", methods=["GET", "POST"])
+@jwt_required()
 def clients():
+    if request.method == "POST":
+        denied = _role_denied("commercial", "admin")
+        if denied:
+            return denied
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         if request.method == "POST":
             data = request.get_json() or {}
+            if _jwt_role() == "commercial":
+                data["commercial_id"] = _jwt_user_id()
             name = (data.get("name") or data.get("nom") or "").strip()
             if not name:
                 return jsonify({"error": "Le nom du client est obligatoire"}), 400
@@ -629,6 +759,9 @@ def clients():
         params = []
         commercial_id = request.args.get("commercial_id")
         commercial_email = request.args.get("commercial_email")
+        if _jwt_role() == "commercial":
+            commercial_id = _jwt_user_id()
+            commercial_email = _jwt_email()
         commercial_col = _first_existing(
             cols, ["commercial_id", "id_commercial", "user_id", "created_by"], None
         )
@@ -688,12 +821,28 @@ def clients():
 
 
 @app.route("/clients/<int:client_id>", methods=["PATCH", "DELETE"])
+@roles_required("commercial", "admin")
 def update_delete_client(client_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
+        owner_column = None
+        if _jwt_role() == "commercial":
+            owner_column = _first_existing(
+                _columns(cur, "clients"),
+                ["commercial_id", "id_commercial", "user_id", "created_by"],
+                None,
+            )
+            if not owner_column or _jwt_user_id() is None:
+                return jsonify({"message": "Propriétaire du client non vérifiable"}), 403
         if request.method == "DELETE":
-            cur.execute("DELETE FROM clients WHERE id = %s RETURNING *", (client_id,))
+            if owner_column:
+                cur.execute(
+                    f"DELETE FROM clients WHERE id = %s AND {owner_column} = %s RETURNING *",
+                    (client_id, _jwt_user_id()),
+                )
+            else:
+                cur.execute("DELETE FROM clients WHERE id = %s RETURNING *", (client_id,))
             row = cur.fetchone()
             conn.commit()
             if not row:
@@ -701,6 +850,8 @@ def update_delete_client(client_id):
             return jsonify(row)
 
         data = request.get_json() or {}
+        if owner_column:
+            data["commercial_id"] = _jwt_user_id()
         cols = _columns(cur, "clients")
         values = {
             "name": data.get("name") or data.get("nom"),
@@ -737,10 +888,16 @@ def update_delete_client(client_id):
         if not payload:
             return jsonify({"message": "Aucune colonne compatible"}), 400
         assignments = ", ".join([f"{key} = %s" for key in payload])
-        cur.execute(
-            f"UPDATE clients SET {assignments} WHERE id = %s RETURNING *",
-            [*payload.values(), client_id],
-        )
+        if owner_column:
+            cur.execute(
+                f"UPDATE clients SET {assignments} WHERE id = %s AND {owner_column} = %s RETURNING *",
+                [*payload.values(), client_id, _jwt_user_id()],
+            )
+        else:
+            cur.execute(
+                f"UPDATE clients SET {assignments} WHERE id = %s RETURNING *",
+                [*payload.values(), client_id],
+            )
         row = cur.fetchone()
         conn.commit()
         if not row:
@@ -752,7 +909,12 @@ def update_delete_client(client_id):
 
 
 @app.route("/produits", methods=["GET", "POST"])
+@jwt_required()
 def get_produits():
+    if request.method == "POST":
+        denied = _role_denied("admin")
+        if denied:
+            return denied
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -821,6 +983,7 @@ def get_produits():
 
 
 @app.route("/produits/<int:produit_id>", methods=["PATCH", "DELETE"])
+@roles_required("admin")
 def update_delete_produit(produit_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -897,13 +1060,20 @@ def update_delete_produit(produit_id):
 
 @app.route("/commercial/activites-recentes", methods=["GET", "POST"])
 @app.route("/activites-recentes", methods=["GET", "POST"])
+@jwt_required()
 def activites_recentes():
+    if request.method == "POST":
+        denied = _role_denied("commercial", "admin")
+        if denied:
+            return denied
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         _ensure_recent_activity_table(cur)
         if request.method == "POST":
             data = request.get_json() or {}
+            if _jwt_role() == "commercial":
+                data["commercial_id"] = _jwt_user_id()
             row = _log_recent_activity(
                 cur,
                 data.get("type_action") or "action",
@@ -922,6 +1092,9 @@ def activites_recentes():
 
         commercial_id = request.args.get("commercial_id")
         commercial_email = request.args.get("commercial_email")
+        if _jwt_role() == "commercial":
+            commercial_id = _jwt_user_id()
+            commercial_email = _jwt_email()
         if commercial_email and not commercial_id:
             cur.execute(
                 "SELECT id FROM users WHERE email = %s ORDER BY id LIMIT 1",
@@ -957,7 +1130,15 @@ def activites_recentes():
 
 
 @app.route("/users", methods=["GET", "POST"])
+@jwt_required()
 def get_users():
+    denied = _role_denied("manager", "admin")
+    if denied:
+        return denied
+    if request.method == "POST":
+        denied = _role_denied("admin")
+        if denied:
+            return denied
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -1027,7 +1208,14 @@ def get_users():
 
 
 @app.route("/users/<int:user_id>", methods=["PATCH", "DELETE"])
+@jwt_required()
 def update_delete_user(user_id):
+    role = _jwt_role()
+    is_self = _jwt_user_id() == user_id
+    if request.method == "DELETE" and role != "admin":
+        return jsonify({"message": "Suppression réservée à l'administrateur"}), 403
+    if request.method == "PATCH" and role != "admin" and not is_self:
+        return jsonify({"message": "Modification limitée à votre propre profil"}), 403
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -1037,9 +1225,21 @@ def update_delete_user(user_id):
             conn.commit()
             if not row:
                 return jsonify({"message": "Utilisateur introuvable"}), 404
+            row["password"] = None
             return jsonify(row)
 
         data = request.get_json() or {}
+        if role != "admin":
+            protected_fields = {
+                "role",
+                "is_active",
+                "status",
+                "statut",
+                "etat",
+                "password",
+            }
+            if protected_fields.intersection(data):
+                return jsonify({"message": "Modification de privilèges interdite"}), 403
         cols = _columns(cur, "users")
         if data.get("email"):
             email = data.get("email").strip().lower()
@@ -1110,8 +1310,91 @@ def update_delete_user(user_id):
         conn.close()
 
 
+@app.route("/users/<int:user_id>/change-password", methods=["POST"])
+@jwt_required()
+def change_password(user_id):
+    if _jwt_user_id() != user_id:
+        return jsonify({"message": "Modification limitée à votre propre compte"}), 403
+
+    data = request.get_json() or {}
+    current_password = str(data.get("current_password") or "")
+    new_password = str(data.get("new_password") or "")
+    if len(new_password) < 8:
+        return jsonify({"message": "Le nouveau mot de passe doit contenir au moins 8 caractères"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        cur.execute("SELECT id, password FROM users WHERE id = %s LIMIT 1", (user_id,))
+        user = cur.fetchone()
+        if not user or not _password_matches(user.get("password"), current_password):
+            return jsonify({"message": "Mot de passe actuel incorrect"}), 400
+        cur.execute(
+            "UPDATE users SET password = %s, updated_at = %s WHERE id = %s",
+            (_hash_password(new_password), datetime.now(), user_id),
+        )
+        conn.commit()
+        return jsonify({"message": "Mot de passe mis à jour"})
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route("/users/<int:user_id>/preferences", methods=["PATCH"])
+@jwt_required()
+def update_user_preferences(user_id):
+    """Persist profile preferences without requiring columns on ``users``."""
+
+    if _jwt_role() != "admin" and _jwt_user_id() != user_id:
+        return jsonify({"message": "Modification limitée à votre propre compte"}), 403
+
+    preferences = request.get_json(silent=True) or {}
+    allowed = {"notifications_enabled", "language", "theme"}
+    payload = {key: value for key, value in preferences.items() if key in allowed}
+    if not payload:
+        return jsonify({"message": "Aucune préférence compatible"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_preferences (
+                user_id INTEGER PRIMARY KEY,
+                preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        cur.execute(
+            """
+            INSERT INTO user_preferences (user_id, preferences, updated_at)
+            VALUES (%s, %s::jsonb, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id) DO UPDATE SET
+                preferences = user_preferences.preferences || EXCLUDED.preferences,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING user_id, preferences, updated_at
+            """,
+            (user_id, json.dumps(payload)),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return jsonify(row or {"user_id": user_id, "preferences": payload})
+    except Exception as exc:
+        conn.rollback()
+        return jsonify({"message": "Erreur mise à jour préférences", "error": str(exc)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.route("/rapports", methods=["GET", "POST"])
+@jwt_required()
 def rapports():
+    if request.method == "POST":
+        denied = _role_denied("commercial", "admin")
+        if denied:
+            return denied
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -1120,6 +1403,10 @@ def rapports():
         if request.method == "POST":
             data = request.get_json() or {}
             commercial_id = data.get("commercial_id")
+            if _jwt_role() == "commercial":
+                commercial_id = _jwt_user_id()
+                data["commercial_id"] = commercial_id
+                data["email"] = _jwt_email()
             manager_id = data.get("manager_id")
             if not manager_id:
                 cur.execute(
@@ -1183,7 +1470,13 @@ def rapports():
             )
             return jsonify(row), 201
 
-        cur.execute("SELECT * FROM rapports ORDER BY sent_at DESC, id DESC")
+        if _jwt_role() == "commercial":
+            cur.execute(
+                "SELECT * FROM rapports WHERE commercial_id = %s ORDER BY sent_at DESC, id DESC",
+                (_jwt_user_id(),),
+            )
+        else:
+            cur.execute("SELECT * FROM rapports ORDER BY sent_at DESC, id DESC")
         rows = cur.fetchall()
         print(f"[RAPPORTS][GET] count={len(rows)}")
         return jsonify(rows)
@@ -1193,15 +1486,22 @@ def rapports():
 
 
 @app.route("/rapports/<int:rapport_id>/read", methods=["PATCH"])
+@roles_required("manager", "admin")
 def mark_rapport_read(rapport_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         _ensure_rapports_table(cur)
-        cur.execute(
-            "UPDATE rapports SET is_read = true WHERE id = %s RETURNING *",
-            (rapport_id,),
-        )
+        if _jwt_role() == "manager":
+            cur.execute(
+                "UPDATE rapports SET is_read = true WHERE id = %s AND (manager_id = %s OR manager_id IS NULL) RETURNING *",
+                (rapport_id, _jwt_user_id()),
+            )
+        else:
+            cur.execute(
+                "UPDATE rapports SET is_read = true WHERE id = %s RETURNING *",
+                (rapport_id,),
+            )
         row = cur.fetchone()
         conn.commit()
         if not row:
@@ -1213,16 +1513,24 @@ def mark_rapport_read(rapport_id):
 
 
 @app.route("/rapports/<int:rapport_id>/comments", methods=["POST"])
+@roles_required("manager", "admin")
 def add_rapport_comment(rapport_id):
     data = request.get_json() or {}
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         _ensure_rapports_table(cur)
-        cur.execute(
-            "UPDATE rapports SET manager_comment = %s WHERE id = %s RETURNING *",
-            (data.get("comment") or data.get("comments") or "", rapport_id),
-        )
+        comment = data.get("comment") or data.get("comments") or ""
+        if _jwt_role() == "manager":
+            cur.execute(
+                "UPDATE rapports SET manager_comment = %s WHERE id = %s AND (manager_id = %s OR manager_id IS NULL) RETURNING *",
+                (comment, rapport_id, _jwt_user_id()),
+            )
+        else:
+            cur.execute(
+                "UPDATE rapports SET manager_comment = %s WHERE id = %s RETURNING *",
+                (comment, rapport_id),
+            )
         row = cur.fetchone()
         conn.commit()
         if not row:
@@ -1234,6 +1542,7 @@ def add_rapport_comment(rapport_id):
 
 
 @app.route("/login", methods=["POST"])
+@limiter.limit("5 per minute", key_func=_login_rate_limit_key)
 def login():
     data = request.json or {}
     email = (data.get("email") or "").strip().lower()
@@ -1267,17 +1576,33 @@ def login():
     user["name"] = " ".join(
         part for part in [user.get("prenom"), user.get("nom")] if part
     ).strip()
+    role = _normalize_user_role(user.get("role"))
+    user["role"] = role
+    user["access_token"] = create_access_token(
+        identity=str(user["id"]),
+        additional_claims={
+            "role": role,
+            "email": str(user.get("email") or email).strip().lower(),
+        },
+    )
+    user["token_type"] = "Bearer"
+    user["expires_in"] = int(app.config["JWT_ACCESS_TOKEN_EXPIRES"].total_seconds())
     user["password"] = None
     return jsonify(user)
 
 
 @app.route("/factures", methods=["GET"])
 @app.route("/commandes", methods=["GET"])
+@jwt_required()
 def get_factures():
     manager_id = request.args.get("manager_id")
     status = request.args.get("status")
     commercial_id = request.args.get("commercial_id")
     commercial_email = request.args.get("commercial_email")
+    if _jwt_role() == "commercial":
+        manager_id = None
+        commercial_id = _jwt_user_id()
+        commercial_email = _jwt_email()
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     rows = _fetch_orders(
@@ -1298,8 +1623,11 @@ def get_factures():
 
 @app.route("/manager/commandes", methods=["GET"])
 @app.route("/commandes/manager", methods=["GET"])
+@roles_required("manager", "admin")
 def get_manager_commandes():
     manager_id = request.args.get("manager_id")
+    if _jwt_role() == "manager":
+        manager_id = _jwt_user_id()
     status = request.args.get("status")
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -1314,6 +1642,7 @@ def get_manager_commandes():
 
 @app.route("/factures/<int:order_id>", methods=["GET"])
 @app.route("/commandes/<int:order_id>", methods=["GET"])
+@jwt_required()
 def get_commande(order_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -1322,11 +1651,21 @@ def get_commande(order_id):
     conn.close()
     if not order:
         return jsonify({"message": "Commande introuvable"}), 404
+    if _jwt_role() == "commercial":
+        owner_id = (
+            order.get("commercial_id")
+            or order.get("id_commercial")
+            or order.get("user_id")
+            or order.get("created_by")
+        )
+        if str(owner_id or "") != str(_jwt_user_id() or ""):
+            return jsonify({"message": "Accès interdit à cette commande"}), 403
     return jsonify(order)
 
 
 @app.route("/commandes", methods=["POST"])
 @app.route("/factures", methods=["POST"])
+@roles_required("commercial", "admin")
 def create_commande():
     data = request.json or {}
     lines = data.get("lines") or data.get("details") or []
@@ -1336,6 +1675,10 @@ def create_commande():
     client_name = data.get("client_name")
     commercial_id = data.get("commercial_id") or data.get("user_id") or data.get("created_by")
     commercial_email = data.get("commercial_email") or data.get("email")
+    if _jwt_role() == "commercial":
+        commercial_id = _jwt_user_id()
+        commercial_email = _jwt_email()
+        status = "en_attente"
 
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -1500,6 +1843,7 @@ def create_commande():
 
 @app.route("/commandes/<int:order_id>", methods=["PATCH"])
 @app.route("/factures/<int:order_id>/status", methods=["PATCH"])
+@roles_required("manager", "admin")
 def update_commande_status(order_id):
     data = request.json or {}
     status = _normalize_status(data.get("status"))
@@ -1517,16 +1861,21 @@ def update_commande_status(order_id):
         if "refusal_reason" in cols and data.get("refusal_reason"):
             assignments.append("refusal_reason = %s")
             values.append(data.get("refusal_reason"))
-        if "manager_id" in cols and data.get("manager_id"):
+        manager_id = _jwt_user_id() if _jwt_role() == "manager" else data.get("manager_id")
+        if "manager_id" in cols and manager_id:
             assignments.append("manager_id = %s")
-            values.append(data.get("manager_id"))
+            values.append(manager_id)
         if "updated_at" in cols:
             assignments.append("updated_at = CURRENT_TIMESTAMP")
         if not assignments:
             return jsonify({"message": "Aucune colonne statut trouvée"}), 500
         values.append(order_id)
+        where_sql = "id = %s"
+        if _jwt_role() == "manager" and "manager_id" in cols:
+            where_sql += " AND (manager_id = %s OR manager_id IS NULL)"
+            values.append(_jwt_user_id())
         cur.execute(
-            f"UPDATE factures SET {', '.join(assignments)} WHERE id = %s RETURNING *",
+            f"UPDATE factures SET {', '.join(assignments)} WHERE {where_sql} RETURNING *",
             values,
         )
         order = cur.fetchone()
@@ -1579,9 +1928,120 @@ def update_commande_status(order_id):
         conn.close()
 
 
+@app.route("/commandes/<int:order_id>/comments", methods=["POST"])
+@roles_required("manager", "admin")
+def add_commande_comment(order_id):
+    data = request.get_json(silent=True) or {}
+    comment = str(data.get("comment") or data.get("comments") or "").strip()
+    if not comment:
+        return jsonify({"message": "Le commentaire est obligatoire"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        # Keep this schema-flexible backend compatible with older databases.
+        cur.execute(
+            "ALTER TABLE factures ADD COLUMN IF NOT EXISTS manager_comment TEXT"
+        )
+        values = [comment, order_id]
+        where_sql = "id = %s"
+        if _jwt_role() == "manager":
+            where_sql += " AND (manager_id = %s OR manager_id IS NULL)"
+            values.append(_jwt_user_id())
+        cur.execute(
+            f"UPDATE factures SET manager_comment = %s WHERE {where_sql} RETURNING *",
+            values,
+        )
+        order = cur.fetchone()
+        if not order:
+            conn.rollback()
+            return jsonify({"message": "Commande introuvable"}), 404
+        conn.commit()
+        return jsonify(order)
+    except Exception as exc:
+        conn.rollback()
+        return jsonify({"message": "Erreur commentaire commande", "error": str(exc)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route("/commandes/<int:order_id>/cancel-request", methods=["POST"])
+@roles_required("commercial", "admin")
+def request_commande_cancellation(order_id):
+    """Notify the manager without letting a commercial alter order status."""
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        cols = _columns(cur, "factures")
+        owner_col = _first_existing(
+            cols,
+            ["commercial_id", "id_commercial", "user_id", "created_by"],
+            None,
+        )
+        where_sql = "id = %s"
+        params = [order_id]
+        if _jwt_role() == "commercial":
+            if not owner_col or _jwt_user_id() is None:
+                return jsonify({"message": "Propriétaire de la commande non vérifiable"}), 403
+            where_sql += f" AND {owner_col} = %s"
+            params.append(_jwt_user_id())
+        cur.execute(f"SELECT * FROM factures WHERE {where_sql} LIMIT 1", params)
+        order = cur.fetchone()
+        if not order:
+            return jsonify({"message": "Commande introuvable"}), 404
+
+        status = order.get("status") or order.get("statut")
+        if _normalize_status(status) != "en_attente":
+            return jsonify({"message": "Seule une commande en attente peut être annulée"}), 409
+
+        commercial_id = order.get(owner_col) if owner_col else None
+        manager_id = order.get("manager_id")
+        reference = (
+            order.get("order_number")
+            or order.get("numero_facture")
+            or order.get("numero")
+            or f"CMD-{order_id}"
+        )
+        _ensure_notifications_table(cur)
+        cur.execute(
+            """
+            INSERT INTO notifications
+                (manager_id, commercial_id, commande_id, type, titre, message, is_read, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, false, CURRENT_TIMESTAMP)
+            """,
+            (
+                manager_id,
+                commercial_id,
+                order_id,
+                "demande_annulation",
+                "Demande d'annulation de commande",
+                f"Le commercial demande l'annulation de {reference}",
+            ),
+        )
+        conn.commit()
+        return jsonify(
+            {
+                "message": "Demande d'annulation envoyée",
+                "order_id": order_id,
+                "status": status,
+            }
+        )
+    except Exception as exc:
+        conn.rollback()
+        return jsonify({"message": "Erreur demande d'annulation", "error": str(exc)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.route("/notifications", methods=["GET"])
+@roles_required("manager", "admin")
 def get_notifications():
     manager_id = request.args.get("manager_id")
+    if _jwt_role() == "manager":
+        manager_id = _jwt_user_id()
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     _ensure_notifications_table(cur)
@@ -1606,15 +2066,22 @@ def get_notifications():
 
 
 @app.route("/notifications/<int:notification_id>/read", methods=["PATCH"])
+@roles_required("manager", "admin")
 def mark_notification_read(notification_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         _ensure_notifications_table(cur)
-        cur.execute(
-            "UPDATE notifications SET is_read = true WHERE id = %s RETURNING *",
-            (notification_id,),
-        )
+        if _jwt_role() == "manager":
+            cur.execute(
+                "UPDATE notifications SET is_read = true WHERE id = %s AND (manager_id = %s OR manager_id IS NULL) RETURNING *",
+                (notification_id, _jwt_user_id()),
+            )
+        else:
+            cur.execute(
+                "UPDATE notifications SET is_read = true WHERE id = %s RETURNING *",
+                (notification_id,),
+            )
         row = cur.fetchone()
         conn.commit()
         if not row:
@@ -1626,8 +2093,11 @@ def mark_notification_read(notification_id):
 
 
 @app.route("/notifications/read-all", methods=["PATCH"])
+@roles_required("manager", "admin")
 def mark_all_notifications_read():
     manager_id = request.args.get("manager_id")
+    if _jwt_role() == "manager":
+        manager_id = _jwt_user_id()
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -1648,15 +2118,22 @@ def mark_all_notifications_read():
 
 
 @app.route("/notifications/<int:notification_id>", methods=["DELETE"])
+@roles_required("manager", "admin")
 def delete_notification(notification_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         _ensure_notifications_table(cur)
-        cur.execute(
-            "DELETE FROM notifications WHERE id = %s RETURNING *",
-            (notification_id,),
-        )
+        if _jwt_role() == "manager":
+            cur.execute(
+                "DELETE FROM notifications WHERE id = %s AND (manager_id = %s OR manager_id IS NULL) RETURNING *",
+                (notification_id, _jwt_user_id()),
+            )
+        else:
+            cur.execute(
+                "DELETE FROM notifications WHERE id = %s RETURNING *",
+                (notification_id,),
+            )
         row = cur.fetchone()
         conn.commit()
         if not row:
@@ -1668,4 +2145,8 @@ def delete_notification(notification_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(
+        host=os.getenv("FLASK_HOST", "127.0.0.1"),
+        port=int(os.getenv("FLASK_PORT", "5000")),
+        debug=os.getenv("FLASK_DEBUG", "0") == "1",
+    )

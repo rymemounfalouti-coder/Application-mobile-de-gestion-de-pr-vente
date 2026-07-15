@@ -1,3 +1,4 @@
+import '../api_service.dart';
 import '../data/mock_presales_data.dart';
 
 enum AppThemePreference { light, dark, system }
@@ -49,9 +50,14 @@ class CurrentUserSession {
 
   static void signIn(AuthenticatedUser user) {
     currentUser = user;
+    ApiService.setUnauthorizedHandler(() {
+      currentUser = null;
+    });
   }
 
   static void signOut() {
     currentUser = null;
+    ApiService.clearAccessToken();
+    ApiService.setUnauthorizedHandler(null);
   }
 }

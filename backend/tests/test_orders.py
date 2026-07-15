@@ -76,3 +76,104 @@ class TestCreate:
         assert resp.status_code == 500
         assert "error" in resp.get_json()
         assert conn.rolled_back >= 1
+
+
+class TestComments:
+    def test_manager_can_comment_assigned_order(self, client, fake_db, auth_headers):
+        conn = fake_db(
+            FakeCursor(fetchone=[{"id": 4, "manager_comment": "Bon suivi"}])
+        )
+
+        resp = client.post(
+            "/commandes/4/comments",
+            json={"comment": "Bon suivi"},
+            headers=auth_headers("manager", user_id=2),
+        )
+
+        assert resp.status_code == 200
+        assert resp.get_json()["manager_comment"] == "Bon suivi"
+        assert "ALTER TABLE factures" in conn._cursor.sql
+        assert "manager_id = %s OR manager_id IS NULL" in conn._cursor.sql
+
+    def test_commercial_cannot_comment_order(self, client, fake_db, auth_headers):
+        fake_db(FakeCursor())
+
+        resp = client.post(
+            "/commandes/4/comments",
+            json={"comment": "Nope"},
+            headers=auth_headers("commercial", user_id=3),
+        )
+
+        assert resp.status_code == 403
+
+    def test_empty_comment_is_rejected(self, client, fake_db):
+        fake_db(FakeCursor())
+
+        resp = client.post("/commandes/4/comments", json={"comment": "  "})
+
+        assert resp.status_code == 400
+
+
+class TestCancellationRequest:
+    def test_commercial_can_request_cancellation_for_own_pending_order(
+        self, client, fake_db, auth_headers
+    ):
+        order = {
+            "id": 4,
+            "commercial_id": 3,
+            "manager_id": 2,
+            "status": "en_attente",
+            "order_number": "CMD-2026-004",
+        }
+        conn = fake_db(
+            FakeCursor(
+                columns={"factures": ["id", "commercial_id", "status"]},
+                fetchone=[order],
+            )
+        )
+
+        resp = client.post(
+            "/commandes/4/cancel-request",
+            headers=auth_headers("commercial", user_id=3),
+        )
+
+        assert resp.status_code == 200
+        assert resp.get_json()["order_id"] == 4
+        assert "demande_annulation" in str(conn._cursor.executed)
+        assert conn.committed == 1
+
+    def test_commercial_cannot_request_cancellation_for_another_order(
+        self, client, fake_db, auth_headers
+    ):
+        fake_db(
+            FakeCursor(
+                columns={"factures": ["id", "commercial_id", "status"]},
+                fetchone=[None],
+            )
+        )
+
+        resp = client.post(
+            "/commandes/4/cancel-request",
+            headers=auth_headers("commercial", user_id=3),
+        )
+
+        assert resp.status_code == 404
+
+    def test_validated_order_cancellation_is_rejected(
+        self, client, fake_db, auth_headers
+    ):
+        fake_db(
+            FakeCursor(
+                columns={"factures": ["id", "commercial_id", "status"]},
+                fetchone=[
+                    {"id": 4, "commercial_id": 3, "status": "validee"}
+                ],
+            )
+        )
+
+        resp = client.post(
+            "/commandes/4/cancel-request",
+            headers=auth_headers("commercial", user_id=3),
+        )
+
+        assert resp.status_code == 409

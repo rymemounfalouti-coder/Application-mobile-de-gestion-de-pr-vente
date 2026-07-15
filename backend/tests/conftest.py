@@ -11,12 +11,21 @@ import sys
 
 import pytest
 
+os.environ.setdefault(
+    "JWT_SECRET_KEY",
+    "test-only-jwt-secret-change-me-at-least-32-bytes-long",
+)
+os.environ.setdefault("DB_PASSWORD", "test-only-db-password")
+os.environ.setdefault("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+os.environ.setdefault("RATELIMIT_STORAGE_URI", "memory://")
+
 _THIS_DIR = os.path.dirname(__file__)
 sys.path.insert(0, _THIS_DIR)  # so `from conftest import FakeCursor` works
 sys.path.insert(0, os.path.abspath(os.path.join(_THIS_DIR, "..")))  # -> app.py
 
 import app as appmod  # noqa: E402
 from app import app as flask_app  # noqa: E402
+from flask_jwt_extended import create_access_token  # noqa: E402
 
 
 class FakeCursor:
@@ -104,7 +113,41 @@ class FakeConn:
 @pytest.fixture
 def client():
     flask_app.config.update(TESTING=True)
+    test_client = flask_app.test_client()
+    with flask_app.app_context():
+        token = create_access_token(
+            identity="1",
+            additional_claims={"role": "admin", "email": "admin@presales.ma"},
+        )
+    test_client.environ_base["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+    return test_client
+
+
+@pytest.fixture
+def anonymous_client():
+    flask_app.config.update(TESTING=True)
     return flask_app.test_client()
+
+
+@pytest.fixture
+def auth_headers():
+    def _make(role="commercial", user_id=1, email=None):
+        with flask_app.app_context():
+            token = create_access_token(
+                identity=str(user_id),
+                additional_claims={
+                    "role": role,
+                    "email": email or f"{role}@presales.ma",
+                },
+            )
+        return {"Authorization": f"Bearer {token}"}
+
+    return _make
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    appmod.limiter.reset()
 
 
 @pytest.fixture

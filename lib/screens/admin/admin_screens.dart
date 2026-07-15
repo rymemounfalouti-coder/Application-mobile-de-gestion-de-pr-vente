@@ -230,7 +230,7 @@ class _BellButton extends StatelessWidget {
   }
 }
 
-/// Search field + green filter button row.
+/// Search field with an optional green filter button.
 class AdminSearchRow extends StatelessWidget {
   const AdminSearchRow({
     super.key,
@@ -274,35 +274,37 @@ class AdminSearchRow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 10),
-        Material(
-          color: kGreen,
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            onTap: onFilter,
+        if (onFilter != null) ...[
+          const SizedBox(width: 10),
+          Material(
+            color: kGreen,
             borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              width: 50,
-              height: 50,
-              child: Stack(
-                children: [
-                  const Center(
-                    child: Icon(Icons.tune_rounded, color: Colors.white),
-                  ),
-                  if (filterActive)
-                    const Positioned(
-                      right: 8,
-                      top: 8,
-                      child: CircleAvatar(
-                        radius: 4,
-                        backgroundColor: Colors.white,
-                      ),
+            child: InkWell(
+              onTap: onFilter,
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: 50,
+                height: 50,
+                child: Stack(
+                  children: [
+                    const Center(
+                      child: Icon(Icons.tune_rounded, color: Colors.white),
                     ),
-                ],
+                    if (filterActive)
+                      const Positioned(
+                        right: 8,
+                        top: 8,
+                        child: CircleAvatar(
+                          radius: 4,
+                          backgroundColor: Colors.white,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }

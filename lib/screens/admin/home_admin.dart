@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import '../../auth/current_user_session.dart';
 import '../../data/mock_presales_data.dart';
 import '../../l10n/app_locale_controller.dart';
 import '../../settings/app_appearance_controller.dart';
+import '../../services/local_json_store.dart';
 import 'admin_screens.dart';
 
 String _money(num v) {
@@ -53,6 +55,63 @@ const List<String> _teaProductCategories = [
   'Thé Vert Premium',
   'Thé Vert Classique',
 ];
+
+const String _adminTemporaryPassword = 'Temp@1234';
+
+Future<bool> _confirmDestructiveAction(
+  BuildContext context, {
+  required String title,
+  required String message,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: kRed),
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('Supprimer'),
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
+}
+
+Future<void> _showTemporaryPassword(BuildContext context, String password) =>
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Mot de passe réinitialisé'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Communiquez ce mot de passe temporaire à l’utilisateur :',
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              password,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Compris'),
+          ),
+        ],
+      ),
+    );
 
 void _snack(BuildContext c, String msg, {bool success = true}) {
   final color = success ? kGreen : kRed;
@@ -298,6 +357,7 @@ class _HomeAdminState extends State<HomeAdmin> {
       ProfilPage(
         onMenu: _menu,
         onBell: _bell,
+        onProfileChanged: () => setState(() {}),
         name: name,
         email: email,
         phone: phone,
@@ -1456,30 +1516,85 @@ class _UtilisateursPageState extends State<UtilisateursPage> {
         );
         if (result == null || !mounted) return;
         try {
-          await dbUpdateUser(u.id, result);
+          final payload = userToApi(result);
+          if (result.password.isEmpty) payload.remove('password');
+          await ApiService.updateUser(u.id, payload);
+          await _store.load();
+          if (!mounted) return;
+          setState(() {});
+          _snack(context, 'Utilisateur modifié.');
+        } catch (e) {
+          if (!mounted) return;
+          _snack(
+            context,
+            e
+                .toString()
+                .replaceFirst('Exception: ', '')
+                .ifEmpty("Impossible de modifier l'utilisateur."),
+            success: false,
+          );
+        }
+      case 'reset':
+        try {
+          await dbSetUserPassword(u.id, _adminTemporaryPassword);
+          await _store.load();
+          if (!mounted) return;
+          setState(() {});
+          _snack(context, u.isActive ? 'Compte désactivé.' : 'Compte activé.');
+          await _showTemporaryPassword(context, _adminTemporaryPassword);
+        } catch (e) {
+          if (!mounted) return;
+          _snack(
+            context,
+            e
+                .toString()
+                .replaceFirst('Exception: ', '')
+                .ifEmpty('Impossible de réinitialiser le mot de passe.'),
+            success: false,
+          );
+        }
+      case 'toggle':
+        try {
+          await ApiService.updateUser(u.id, {'is_active': !u.isActive});
           await _store.load();
           if (!mounted) return;
           setState(() {});
         } catch (e) {
           if (!mounted) return;
-          _snack(context, e.toString().replaceFirst('Exception: ', ''));
+          _snack(
+            context,
+            e
+                .toString()
+                .replaceFirst('Exception: ', '')
+                .ifEmpty('Impossible de modifier le statut du compte.'),
+            success: false,
+          );
         }
-      case 'reset':
-        await dbSetUserPassword(u.id, '123456');
-        await _store.load();
-        if (!mounted) return;
-        setState(() {});
-        _snack(context, 'Mot de passe réinitialisé (123456)');
-      case 'toggle':
-        await ApiService.updateUser(u.id, {'is_active': !u.isActive});
-        await _store.load();
-        if (!mounted) return;
-        setState(() {});
       case 'delete':
-        await dbDeleteUser(u.id);
-        if (!mounted) return;
-        _store.remove(u.id);
-        setState(() {});
+        final confirmed = await _confirmDestructiveAction(
+          context,
+          title: "Supprimer l'utilisateur ?",
+          message:
+              'Cette action supprimera définitivement ${u.name} et ne peut pas être annulée.',
+        );
+        if (!confirmed || !mounted) return;
+        try {
+          await dbDeleteUser(u.id);
+          if (!mounted) return;
+          _store.remove(u.id);
+          setState(() {});
+          _snack(context, 'Utilisateur supprimé.');
+        } catch (e) {
+          if (!mounted) return;
+          _snack(
+            context,
+            e
+                .toString()
+                .replaceFirst('Exception: ', '')
+                .ifEmpty("Impossible de supprimer l'utilisateur."),
+            success: false,
+          );
+        }
     }
   }
 }
@@ -1979,6 +2094,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
   void _submit() {
     final name = '${_prenom.text.trim()} ${_nom.text.trim()}'.trim();
     final email = _email.text.trim();
+    final password = _password.text.trim();
     if (name.isEmpty || email.isEmpty) {
       setState(() {
         _error = 'Nom, prénom et email sont obligatoires.';
@@ -1993,8 +2109,14 @@ class _UserFormScreenState extends State<UserFormScreen> {
       });
       return;
     }
-    if (widget.user == null && _password.text.trim().isEmpty) {
+    if (widget.user == null && password.isEmpty) {
       setState(() => _error = 'Le mot de passe est obligatoire.');
+      return;
+    }
+    if (password.isNotEmpty && password.length < 8) {
+      setState(
+        () => _error = 'Le mot de passe doit contenir au moins 8 caractères.',
+      );
       return;
     }
     Navigator.pop(
@@ -2004,9 +2126,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
         name: name,
         email: email,
         phone: _phone.text.trim(),
-        password: _password.text.trim().isEmpty
-            ? (widget.user?.password ?? '123456')
-            : _password.text.trim(),
+        password: password,
         role: _role,
         isActive: _active,
       ),
@@ -2264,6 +2384,15 @@ class _ProduitsPageState extends State<ProduitsPage> {
       ),
     );
     if (result == null || !mounted) return;
+    if (result.deleted) {
+      final confirmed = await _confirmDestructiveAction(
+        context,
+        title: 'Supprimer le produit ?',
+        message:
+            'Cette action supprimera définitivement ${product.name} et ne peut pas être annulée.',
+      );
+      if (!confirmed || !mounted) return;
+    }
     try {
       if (result.deleted) {
         await _store.remove(product.id);
@@ -2273,11 +2402,19 @@ class _ProduitsPageState extends State<ProduitsPage> {
       await _store.load();
       if (!mounted) return;
       setState(() {});
+      if (result.deleted) _snack(context, 'Produit supprimé.');
     } catch (e) {
       if (!mounted) return;
       _snack(
         context,
-        e.toString().replaceFirst('Exception: ', ''),
+        e
+            .toString()
+            .replaceFirst('Exception: ', '')
+            .ifEmpty(
+              result.deleted
+                  ? 'Impossible de supprimer le produit.'
+                  : 'Impossible de modifier le produit.',
+            ),
         success: false,
       );
     }
@@ -2618,6 +2755,14 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       );
       return;
     }
+    if (price <= 0) {
+      setState(() => _error = 'Le prix doit être strictement positif.');
+      return;
+    }
+    if (stock < 0) {
+      setState(() => _error = 'Le stock ne peut pas être négatif.');
+      return;
+    }
     final built = widget.store.build(
       id: widget.product?.id,
       name: name,
@@ -2802,6 +2947,15 @@ class _ClientsPageState extends State<ClientsPage> {
       ),
     );
     if (result == null || !mounted) return;
+    if (result.deleted) {
+      final confirmed = await _confirmDestructiveAction(
+        context,
+        title: 'Supprimer le client ?',
+        message:
+            'Cette action supprimera définitivement ${client.name} et ne peut pas être annulée.',
+      );
+      if (!confirmed || !mounted) return;
+    }
     try {
       if (result.deleted) {
         await _store.remove(client.id);
@@ -2811,11 +2965,19 @@ class _ClientsPageState extends State<ClientsPage> {
       await _store.load();
       if (!mounted) return;
       setState(() {});
+      if (result.deleted) _snack(context, 'Client supprimé.');
     } catch (e) {
       if (!mounted) return;
       _snack(
         context,
-        e.toString().replaceFirst('Exception: ', ''),
+        e
+            .toString()
+            .replaceFirst('Exception: ', '')
+            .ifEmpty(
+              result.deleted
+                  ? 'Impossible de supprimer le client.'
+                  : 'Impossible de modifier le client.',
+            ),
         success: false,
       );
     }
@@ -3728,12 +3890,14 @@ class ProfilPage extends StatelessWidget {
     super.key,
     required this.onMenu,
     required this.onBell,
+    required this.onProfileChanged,
     required this.name,
     required this.email,
     required this.phone,
   });
   final VoidCallback onMenu;
   final VoidCallback onBell;
+  final VoidCallback onProfileChanged;
   final String name;
   final String email;
   final String phone;
@@ -3840,12 +4004,15 @@ class ProfilPage extends StatelessWidget {
                           context,
                           Icons.edit_outlined,
                           'Modifier profil',
-                          onTap: () => Navigator.push(
-                            context,
-                            phoneRoute(
-                              EditProfileScreen(name: name, phone: phone),
-                            ),
-                          ),
+                          onTap: () async {
+                            final changed = await Navigator.push<bool>(
+                              context,
+                              phoneRoute(
+                                EditProfileScreen(name: name, phone: phone),
+                              ),
+                            );
+                            if (changed == true) onProfileChanged();
+                          },
                         ),
                         _row(
                           context,
@@ -4088,6 +4255,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late final _name = TextEditingController(text: widget.name);
   late final _phone = TextEditingController(text: widget.phone);
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -4126,11 +4294,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ]),
                   FormButtons(
-                    submitLabel: 'Enregistrer',
-                    onSubmit: () {
-                      Navigator.pop(context);
-                      _snack(context, 'Profil mis à jour');
-                    },
+                    submitLabel: _saving ? 'Enregistrement...' : 'Enregistrer',
+                    onSubmit: _saving ? () {} : _save,
                   ),
                 ],
               ),
@@ -4139,6 +4304,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _save() async {
+    final name = _name.text.trim();
+    final phone = _phone.text.trim();
+    if (name.isEmpty) {
+      _snack(context, 'Le nom complet est obligatoire.', success: false);
+      return;
+    }
+
+    final session = CurrentUserSession.currentUser;
+    if (session == null || session.id <= 0) {
+      _snack(
+        context,
+        'Impossible d\u2019identifier le compte à mettre à jour.',
+        success: false,
+      );
+      return;
+    }
+
+    final (firstName, lastName) = splitName(name);
+    setState(() => _saving = true);
+    try {
+      await ApiService.updateUser(session.id, {
+        'name': name,
+        'prenom': firstName,
+        'nom': lastName,
+        'phone': phone,
+      });
+      CurrentUserSession.signIn(
+        AuthenticatedUser(
+          id: session.id,
+          fullName: name,
+          email: session.email,
+          role: session.role,
+          phone: phone,
+          theme: session.theme,
+          textSize: session.textSize,
+          autoBrightness: session.autoBrightness,
+          powerSavingMode: session.powerSavingMode,
+        ),
+      );
+      if (!mounted) return;
+      _snack(context, 'Profil mis à jour');
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      final message = error.toString().replaceFirst('Exception: ', '').trim();
+      _snack(
+        context,
+        message.isEmpty ? 'Impossible de mettre à jour le profil.' : message,
+        success: false,
+      );
+    }
   }
 }
 
@@ -4153,6 +4373,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
   final _new = TextEditingController();
   final _confirm = TextEditingController();
   String? _error;
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -4223,31 +4444,71 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              onPressed: () {
-                if (_new.text.length < 4) {
-                  setState(
-                    () => _error = 'Le nouveau mot de passe est trop court.',
-                  );
-                  return;
-                }
-                if (_new.text != _confirm.text) {
-                  setState(
-                    () => _error = 'Les mots de passe ne correspondent pas.',
-                  );
-                  return;
-                }
-                Navigator.pop(context);
-                _snack(context, 'Mot de passe changé');
-              },
-              child: const Text(
-                'Enregistrer',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Enregistrer',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _save() async {
+    final current = _current.text.trim();
+    final next = _new.text.trim();
+    if (current.isEmpty) {
+      setState(() => _error = 'Le mot de passe actuel est obligatoire.');
+      return;
+    }
+    if (next.length < 8) {
+      setState(() => _error = 'Le nouveau mot de passe est trop court.');
+      return;
+    }
+    if (next != _confirm.text.trim()) {
+      setState(() => _error = 'Les mots de passe ne correspondent pas.');
+      return;
+    }
+
+    final userId = CurrentUserSession.currentUser?.id ?? 0;
+    if (userId <= 0) {
+      setState(
+        () =>
+            _error = 'Impossible d\u2019identifier le compte à mettre à jour.',
+      );
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await ApiService.changePassword(userId, current, next);
+      if (!mounted) return;
+      _snack(context, 'Mot de passe changé');
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      final message = error.toString().replaceFirst('Exception: ', '').trim();
+      setState(() {
+        _saving = false;
+        _error = message.isEmpty
+            ? 'Impossible de changer le mot de passe.'
+            : message;
+      });
+    }
   }
 }
 
@@ -4897,20 +5158,37 @@ String _companyString(Map<String, dynamic> data, List<String> keys) {
   return '';
 }
 
+typedef AdminCategoryRowsLoader = Future<List<dynamic>> Function();
+typedef AdminCategoryStoreReader = Future<String?> Function(String name);
+typedef AdminCategoryStoreWriter =
+    Future<void> Function(String name, String contents);
+
 class CategoryManagerScreen extends StatefulWidget {
   const CategoryManagerScreen({
     super.key,
     required this.title,
     required this.kind,
-  });
+    this.loadRows,
+    this.readStore,
+    this.writeStore,
+  }) : assert(kind == 'client' || kind == 'product');
   final String title;
   final String kind; // 'client' | 'product'
+  final AdminCategoryRowsLoader? loadRows;
+  final AdminCategoryStoreReader? readStore;
+  final AdminCategoryStoreWriter? writeStore;
+
   @override
   State<CategoryManagerScreen> createState() => _CategoryManagerScreenState();
 }
 
 class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
   final List<String> _cats = [];
+  bool _loading = true;
+  bool _saving = false;
+  String? _loadError;
+
+  String get _storeName => 'admin_categories_${widget.kind}_v1.json';
 
   @override
   void initState() {
@@ -4919,25 +5197,109 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
   }
 
   Future<void> _load() async {
-    final rows = widget.kind == 'product'
-        ? await ApiService.getProduits()
-        : await ApiService.getClients();
-    final categories = rows
-        .whereType<Map>()
-        .map(
-          (row) => widget.kind == 'product'
-              ? _adminString(row, ['categorie', 'category', 'nom_cat'])
-              : _adminString(row, ['category', 'business_type', 'categorie']),
-        )
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList();
-    if (!mounted) return;
     setState(() {
-      _cats
-        ..clear()
-        ..addAll(categories);
+      _loading = true;
+      _loadError = null;
     });
+    try {
+      final stored = await (widget.readStore ?? readLocalJson)(_storeName);
+      late final List<String> categories;
+      if (stored != null) {
+        categories = _decodeCategories(stored);
+      } else {
+        final rows = await (widget.loadRows ?? _loadSeedRows)();
+        categories = _categoriesFromRows(rows);
+        await _writeCategories(categories);
+      }
+      if (!mounted) return;
+      setState(() {
+        _cats
+          ..clear()
+          ..addAll(categories);
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = _adminSettingsError(
+          error,
+          'Impossible de charger les catégories.',
+        );
+      });
+    }
+  }
+
+  Future<List<dynamic>> _loadSeedRows() => widget.kind == 'product'
+      ? ApiService.getProduits()
+      : ApiService.getClients();
+
+  List<String> _categoriesFromRows(List<dynamic> rows) => _normalizeCategories(
+    rows.whereType<Map>().map(
+      (row) => widget.kind == 'product'
+          ? _adminString(row, ['categorie', 'category', 'nom_cat'])
+          : _adminString(row, ['category', 'business_type', 'categorie']),
+    ),
+  );
+
+  List<String> _decodeCategories(String stored) {
+    final decoded = jsonDecode(stored);
+    final rawCategories = decoded is Map ? decoded['categories'] : decoded;
+    if (rawCategories is! List) {
+      throw const FormatException('Le fichier des catégories est invalide.');
+    }
+    return _normalizeCategories(rawCategories.map((value) => value.toString()));
+  }
+
+  List<String> _normalizeCategories(Iterable<String> values) {
+    final result = <String>[];
+    final seen = <String>{};
+    for (final value in values) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty || !seen.add(trimmed.toLowerCase())) continue;
+      result.add(trimmed);
+    }
+    result.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return result;
+  }
+
+  Future<void> _writeCategories(List<String> values) =>
+      (widget.writeStore ?? writeLocalJson)(
+        _storeName,
+        jsonEncode({'version': 1, 'kind': widget.kind, 'categories': values}),
+      );
+
+  Future<void> _delete(String category) async {
+    if (_saving) return;
+    final confirmed = await _confirmDestructiveAction(
+      context,
+      title: 'Supprimer la catégorie ?',
+      message:
+          'La catégorie « $category » sera retirée de cette liste de configuration.',
+    );
+    if (!confirmed || !mounted) return;
+
+    final next = _cats.where((value) => value != category).toList();
+    setState(() => _saving = true);
+    try {
+      await _writeCategories(next);
+      if (!mounted) return;
+      setState(() {
+        _cats
+          ..clear()
+          ..addAll(next);
+        _saving = false;
+      });
+      _snack(context, 'Catégorie supprimée.');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _snack(
+        context,
+        _adminSettingsError(error, 'Impossible de sauvegarder les catégories.'),
+        success: false,
+      );
+    }
   }
 
   @override
@@ -4951,39 +5313,73 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
             onBack: () => Navigator.pop(context),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                GreenButton(label: 'Ajouter une catégorie', onPressed: _add),
-                const SizedBox(height: 14),
-                for (final c in _cats)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-                    decoration: cardBox(),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            c,
-                            style: const TextStyle(
-                              color: kInk,
-                              fontWeight: FontWeight.w700,
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: kGreen))
+                : ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (_loadError != null) ...[
+                        _AdminSettingsErrorCard(
+                          message: _loadError!,
+                          onRetry: _load,
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+                      if (_loadError == null) ...[
+                        GreenButton(
+                          label: _saving
+                              ? 'Enregistrement...'
+                              : 'Ajouter une catégorie',
+                          onPressed: _saving ? () {} : _add,
+                        ),
+                        if (_saving) ...[
+                          const SizedBox(height: 8),
+                          const LinearProgressIndicator(color: kGreen),
+                        ],
+                        const SizedBox(height: 14),
+                        if (_cats.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 24),
+                            child: Center(
+                              child: Text(
+                                'Aucune catégorie configurée.',
+                                style: TextStyle(
+                                  color: kMuted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        IconButton(
-                          onPressed: () => setState(() => _cats.remove(c)),
-                          icon: const Icon(
-                            Icons.delete_outline_rounded,
-                            color: kRed,
+                        for (final c in _cats)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+                            decoration: cardBox(),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    c,
+                                    style: const TextStyle(
+                                      color: kInk,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Supprimer $c',
+                                  onPressed: _saving ? null : () => _delete(c),
+                                  icon: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: kRed,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                       ],
-                    ),
+                    ],
                   ),
-              ],
-            ),
           ),
         ],
       ),
@@ -5016,12 +5412,119 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
         ),
       ),
     );
-    if (v != null && v.isNotEmpty) setState(() => _cats.add(v));
+    if (v == null || !mounted) return;
+    final category = v.trim();
+    if (category.isEmpty) {
+      _snack(
+        context,
+        'Le nom de la catégorie est obligatoire.',
+        success: false,
+      );
+      return;
+    }
+    if (_cats.any(
+      (existing) => existing.toLowerCase() == category.toLowerCase(),
+    )) {
+      _snack(context, 'Cette catégorie existe déjà.', success: false);
+      return;
+    }
+
+    final next = _normalizeCategories([..._cats, category]);
+    setState(() => _saving = true);
+    try {
+      await _writeCategories(next);
+      if (!mounted) return;
+      setState(() {
+        _cats
+          ..clear()
+          ..addAll(next);
+        _saving = false;
+      });
+      _snack(context, 'Catégorie ajoutée.');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _snack(
+        context,
+        _adminSettingsError(error, 'Impossible de sauvegarder les catégories.'),
+        success: false,
+      );
+    }
   }
 }
 
+String _adminSettingsError(Object error, String fallback) {
+  final message = error.toString().replaceFirst('Exception: ', '').trim();
+  return message.isEmpty ? fallback : message;
+}
+
+class _AdminSettingsErrorCard extends StatelessWidget {
+  const _AdminSettingsErrorCard({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: kRed.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kRed.withValues(alpha: .25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: kRed),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: kRed, fontWeight: FontWeight.w700),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Réessayer')),
+        ],
+      ),
+    );
+  }
+}
+
+typedef AdminNotificationPreferencesLoader =
+    Future<Map<String, bool>> Function(int userId);
+typedef AdminNotificationPreferencesSaver =
+    Future<void> Function(int userId, Map<String, bool> values);
+
+const Map<String, bool> _adminNotificationDefaults = {
+  'new_orders': true,
+  'new_clients': true,
+  'sent_reports': true,
+  'system_errors': false,
+  'sounds': true,
+};
+
+const Map<String, String> _adminNotificationLabels = {
+  'new_orders': 'Nouvelles commandes',
+  'new_clients': 'Nouveaux clients',
+  'sent_reports': 'Rapports envoyés',
+  'system_errors': 'Erreurs système',
+  'sounds': 'Sons',
+};
+
+final Map<int, Map<String, bool>> _adminNotificationPreferenceCache = {};
+
 class NotificationsSettingsScreen extends StatefulWidget {
-  const NotificationsSettingsScreen({super.key});
+  const NotificationsSettingsScreen({
+    super.key,
+    this.userId,
+    this.loadPreferences,
+    this.savePreferences,
+  });
+
+  final int? userId;
+  final AdminNotificationPreferencesLoader? loadPreferences;
+  final AdminNotificationPreferencesSaver? savePreferences;
+
   @override
   State<NotificationsSettingsScreen> createState() =>
       _NotificationsSettingsScreenState();
@@ -5029,13 +5532,88 @@ class NotificationsSettingsScreen extends StatefulWidget {
 
 class _NotificationsSettingsScreenState
     extends State<NotificationsSettingsScreen> {
-  final _values = {
-    'Nouvelles commandes': true,
-    'Nouveaux clients': true,
-    'Rapports envoyés': true,
-    'Erreurs système': false,
-    'Sons': true,
-  };
+  late final int _userId;
+  Map<String, bool> _values = {..._adminNotificationDefaults};
+  bool _loading = true;
+  bool _saving = false;
+  String? _loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    _userId = widget.userId ?? CurrentUserSession.currentUser?.id ?? 0;
+    _load();
+  }
+
+  Future<void> _load() async {
+    if (_userId <= 0) {
+      setState(() {
+        _loading = false;
+        _loadError = 'Impossible d’identifier le compte administrateur.';
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    try {
+      final loaded =
+          await (widget.loadPreferences ?? _loadAdminNotificationPreferences)(
+            _userId,
+          );
+      if (!mounted) return;
+      setState(() {
+        _values = {
+          for (final entry in _adminNotificationDefaults.entries)
+            entry.key: loaded[entry.key] ?? entry.value,
+        };
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      final message = error.toString().replaceFirst('Exception: ', '').trim();
+      setState(() {
+        _loading = false;
+        _loadError = message.isEmpty
+            ? 'Impossible de charger les préférences.'
+            : message;
+      });
+    }
+  }
+
+  Future<void> _update(String key, bool value) async {
+    if (_saving || _loading || _userId <= 0) return;
+    final previous = _values[key] ?? false;
+    final next = {..._values, key: value};
+    setState(() {
+      _values = next;
+      _saving = true;
+    });
+
+    try {
+      await (widget.savePreferences ?? _saveAdminNotificationPreferences)(
+        _userId,
+        Map<String, bool>.unmodifiable(next),
+      );
+      _adminNotificationPreferenceCache[_userId] = {...next};
+      if (!mounted) return;
+      setState(() => _saving = false);
+    } catch (error) {
+      if (!mounted) return;
+      final message = error.toString().replaceFirst('Exception: ', '').trim();
+      setState(() {
+        _values = {..._values, key: previous};
+        _saving = false;
+      });
+      _snack(
+        context,
+        message.isEmpty ? 'Impossible de sauvegarder la préférence.' : message,
+        success: false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -5048,35 +5626,79 @@ class _NotificationsSettingsScreenState
             onBack: () => Navigator.pop(context),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: cardBox(),
-                  child: Column(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: kGreen))
+                : ListView(
+                    padding: const EdgeInsets.all(16),
                     children: [
-                      for (final k in _values.keys)
-                        Material(
-                          type: MaterialType.transparency,
-                          child: SwitchListTile(
-                            title: Text(
-                              k,
-                              style: const TextStyle(
-                                color: kInk,
-                                fontWeight: FontWeight.w700,
-                              ),
+                      if (_loadError != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: kRed.withValues(alpha: .08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: kRed.withValues(alpha: .25),
                             ),
-                            value: _values[k]!,
-                            activeThumbColor: kGreen,
-                            onChanged: (v) => setState(() => _values[k] = v),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: kRed),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _loadError!,
+                                  style: const TextStyle(
+                                    color: kRed,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _load,
+                                child: const Text('Réessayer'),
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_saving)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: LinearProgressIndicator(color: kGreen),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: cardBox(),
+                        child: Column(
+                          children: [
+                            for (final entry
+                                in _adminNotificationLabels.entries)
+                              Material(
+                                type: MaterialType.transparency,
+                                child: SwitchListTile(
+                                  title: Text(
+                                    entry.value,
+                                    style: const TextStyle(
+                                      color: kInk,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  value:
+                                      _values[entry.key] ??
+                                      _adminNotificationDefaults[entry.key]!,
+                                  activeThumbColor: kGreen,
+                                  onChanged: _saving
+                                      ? null
+                                      : (value) => _update(entry.key, value),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -5084,14 +5706,85 @@ class _NotificationsSettingsScreenState
   }
 }
 
-class SecurityScreen extends StatefulWidget {
-  const SecurityScreen({super.key});
-  @override
-  State<SecurityScreen> createState() => _SecurityScreenState();
+Future<Map<String, bool>> _loadAdminNotificationPreferences(int userId) async {
+  final cached = _adminNotificationPreferenceCache[userId];
+  try {
+    final rows = await ApiService.getUsers();
+    Map<dynamic, dynamic>? user;
+    for (final row in rows.whereType<Map>()) {
+      if (_adminInt(row, ['id', 'user_id']) == userId) {
+        user = row;
+        break;
+      }
+    }
+
+    final rawPreferences = user?['preferences'];
+    final preferences = rawPreferences is Map
+        ? rawPreferences
+        : const <String, dynamic>{};
+    final rawNotificationPreferences =
+        preferences['notification_preferences'] ??
+        user?['notification_preferences'];
+    final notificationPreferences = rawNotificationPreferences is Map
+        ? rawNotificationPreferences
+        : const <String, dynamic>{};
+
+    final loaded = {..._adminNotificationDefaults};
+    var hasGranularPreference = false;
+    for (final key in _adminNotificationDefaults.keys) {
+      final value = _adminPreferenceBool(notificationPreferences[key]);
+      if (value == null) continue;
+      loaded[key] = value;
+      hasGranularPreference = true;
+    }
+
+    if (!hasGranularPreference) {
+      final master = _adminPreferenceBool(
+        preferences['notifications_enabled'] ?? user?['notifications_enabled'],
+      );
+      if (master != null) {
+        for (final key in loaded.keys) {
+          loaded[key] = master;
+        }
+      } else if (cached != null) {
+        loaded.addAll(cached);
+      }
+    }
+
+    _adminNotificationPreferenceCache[userId] = {...loaded};
+    return loaded;
+  } catch (_) {
+    if (cached != null) return {...cached};
+    rethrow;
+  }
 }
 
-class _SecurityScreenState extends State<SecurityScreen> {
-  bool _biometric = false;
+Future<void> _saveAdminNotificationPreferences(
+  int userId,
+  Map<String, bool> values,
+) async {
+  final notificationsEnabled = values.entries
+      .where((entry) => entry.key != 'sounds')
+      .any((entry) => entry.value);
+  await ApiService.updateUserPreferences(userId, {
+    'notifications_enabled': notificationsEnabled,
+    // The demo store retains the granular map. The live API currently accepts
+    // the master flag and safely ignores this forward-compatible field.
+    'notification_preferences': values,
+  });
+}
+
+bool? _adminPreferenceBool(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().trim().toLowerCase();
+  if (normalized == 'true' || normalized == '1') return true;
+  if (normalized == 'false' || normalized == '0') return false;
+  return null;
+}
+
+class SecurityScreen extends StatelessWidget {
+  const SecurityScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -5129,9 +5822,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
                             horizontal: 16,
                             vertical: 16,
                           ),
-                          decoration: const BoxDecoration(
-                            border: Border(bottom: BorderSide(color: kBorder)),
-                          ),
                           child: Row(
                             children: const [
                               Icon(Icons.lock_outline_rounded, color: kInk),
@@ -5149,21 +5839,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
                               Icon(Icons.chevron_right_rounded, color: kMuted),
                             ],
                           ),
-                        ),
-                      ),
-                      Material(
-                        type: MaterialType.transparency,
-                        child: SwitchListTile(
-                          title: const Text(
-                            'Authentification biométrique',
-                            style: TextStyle(
-                              color: kInk,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          value: _biometric,
-                          activeThumbColor: kGreen,
-                          onChanged: (v) => setState(() => _biometric = v),
                         ),
                       ),
                     ],

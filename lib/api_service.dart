@@ -1,36 +1,170 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 
+import 'data/demo_data_store.dart';
 import 'data/mock_presales_data.dart';
 
 class ApiService {
   static const String baseUrl = 'http://127.0.0.1:5000';
-  // Web preview has no Flask/PostgreSQL backend, so hitting 127.0.0.1:5000 just
-  // spams ERR_CONNECTION_REFUSED and stalls every load. Serve demo data directly
-  // on web; append ?live=1 to force the real backend when it's actually running.
-  static bool get _useMockData =>
-      kIsWeb && Uri.base.queryParameters['live'] != '1';
+  static const bool demoModeEnabled = bool.fromEnvironment(
+    'DEMO_MODE',
+    defaultValue: false,
+  );
+  static String? _accessToken;
+  static void Function()? _onUnauthorized;
+
+  static bool get hasAuthenticatedSession =>
+      _accessToken != null && _accessToken!.isNotEmpty;
+
+  static void setUnauthorizedHandler(void Function()? handler) {
+    _onUnauthorized = handler;
+  }
+
+  static void clearAccessToken() {
+    _accessToken = null;
+  }
+
+  static Map<String, String> _authorizedHeaders(Map<String, String>? headers) {
+    final merged = <String, String>{...?headers};
+    final token = _accessToken;
+    if (token != null && token.isNotEmpty) {
+      merged['Authorization'] = 'Bearer $token';
+    }
+    return merged;
+  }
+
+  static Future<http.Response> _handleResponse(
+    Future<http.Response> request,
+  ) async {
+    final response = await request;
+    if (response.statusCode == 401 && _accessToken != null) {
+      _accessToken = null;
+      _onUnauthorized?.call();
+    }
+    return response;
+  }
+
+  static Future<http.Response> _get(Uri url, {Map<String, String>? headers}) =>
+      _handleResponse(http.get(url, headers: _authorizedHeaders(headers)));
+
+  static Future<http.Response> _post(
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+    Encoding? encoding,
+  }) => _handleResponse(
+    http.post(
+      url,
+      headers: _authorizedHeaders(headers),
+      body: body,
+      encoding: encoding,
+    ),
+  );
+
+  static Future<http.Response> _put(
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+    Encoding? encoding,
+  }) => _handleResponse(
+    http.put(
+      url,
+      headers: _authorizedHeaders(headers),
+      body: body,
+      encoding: encoding,
+    ),
+  );
+
+  static Future<http.Response> _patch(
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+    Encoding? encoding,
+  }) => _handleResponse(
+    http.patch(
+      url,
+      headers: _authorizedHeaders(headers),
+      body: body,
+      encoding: encoding,
+    ),
+  );
+
+  static Future<http.Response> _delete(
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+    Encoding? encoding,
+  }) => _handleResponse(
+    http.delete(
+      url,
+      headers: _authorizedHeaders(headers),
+      body: body,
+      encoding: encoding,
+    ),
+  );
+  // Demo data is intentionally opt-in. Production and normal development builds
+  // must authenticate against the JWT-protected backend.
+  static bool get _useMockData => demoModeEnabled;
+
+  static DemoDataStore? _demoData;
+
+  static DemoDataStore get _demoStore => _demoData ??= DemoDataStore(
+    company: _mockCompanyInfo(),
+    clients: _mockClients(),
+    recentActivities: _mockRecentActivities(),
+    orders: _mockOrders(),
+    notifications: _mockNotifications(),
+    users: _mockUsers(),
+    userPasswords: {
+      for (final user in MockPreSalesData.users.values) user.id: user.password,
+    },
+    reports: _mockReports(),
+    products: _mockProducts(),
+  );
+
+  /// Clears mutations between focused tests. Presentation builds never call it.
+  static void resetDemoDataForTesting() {
+    _demoData = null;
+    clearAccessToken();
+  }
+
+  static int? _demoCommercialId(int? id, String? email) {
+    if (id != null && id > 0) return id;
+    if (email == null || email.trim().isEmpty) return null;
+    // Demo IDs are positive. A non-null sentinel preserves the distinction
+    // between "no filter" and "an unknown commercial email".
+    return _demoStore.commercialIdForEmail(email) ?? -1;
+  }
+
+  static void _requireDemoFallback(String resource) {
+    if (!_useMockData) {
+      throw StateError('Backend request failed for $resource.');
+    }
+  }
 
   static Future<Map<String, dynamic>> getCompanyInfo() async {
-    if (_useMockData) return _mockCompanyInfo();
+    if (_useMockData) return _demoStore.company;
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/company-info'));
+      final response = await _get(Uri.parse('$baseUrl/company-info'));
       if (response.statusCode == 200) {
         final decoded = jsonDecode(utf8.decode(response.bodyBytes));
         return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
       }
     } catch (_) {
-      // Use demo data when the local Flask/PostgreSQL backend is not running.
+      if (!_useMockData) rethrow;
     }
+    _requireDemoFallback('company information');
     return _mockCompanyInfo();
   }
 
   static Future<Map<String, dynamic>> updateCompanyInfo(
     Map<String, dynamic> data,
   ) async {
-    final response = await http.put(
+    if (_useMockData) return _demoStore.updateCompany(data);
+
+    final response = await _put(
       Uri.parse('$baseUrl/company-info'),
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode(data),
@@ -56,9 +190,8 @@ class ApiService {
     String? commercialEmail,
   }) async {
     if (_useMockData) {
-      return _mockClients(
-        commercialId: commercialId,
-        commercialEmail: commercialEmail,
+      return _demoStore.clients(
+        commercialId: _demoCommercialId(commercialId, commercialEmail),
       );
     }
 
@@ -73,7 +206,7 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl/clients',
       ).replace(queryParameters: query.isEmpty ? null : query);
-      final response = await http.get(uri);
+      final response = await _get(uri);
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -89,6 +222,7 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('clients');
     return _mockClients(
       commercialId: commercialId,
       commercialEmail: commercialEmail,
@@ -102,7 +236,9 @@ class ApiService {
       '[COMMERCIAL][CLIENTS][POST] name=${data['name']} '
       'commercial_id=${data['commercial_id']} status=${data['status']}',
     );
-    final response = await http.post(
+    if (_useMockData) return _demoStore.createClient(data);
+
+    final response = await _post(
       Uri.parse('$baseUrl/clients'),
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode(data),
@@ -122,9 +258,8 @@ class ApiService {
     String? commercialEmail,
   }) async {
     if (_useMockData) {
-      return _mockRecentActivities(
-        commercialId: commercialId,
-        commercialEmail: commercialEmail,
+      return _demoStore.recentActivities(
+        commercialId: _demoCommercialId(commercialId, commercialEmail),
       );
     }
 
@@ -139,7 +274,7 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl/commercial/activites-recentes',
       ).replace(queryParameters: query.isEmpty ? null : query);
-      final response = await http.get(uri);
+      final response = await _get(uri);
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -155,6 +290,7 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('recent activities');
     return _mockRecentActivities(
       commercialId: commercialId,
       commercialEmail: commercialEmail,
@@ -164,7 +300,9 @@ class ApiService {
   static Future<Map<String, dynamic>> createCommercialRecentActivity(
     Map<String, dynamic> data,
   ) async {
-    final response = await http.post(
+    if (_useMockData) return _demoStore.createRecentActivity(data);
+
+    final response = await _post(
       Uri.parse('$baseUrl/commercial/activites-recentes'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
@@ -178,10 +316,10 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getFactures() async {
-    if (_useMockData) return _mockOrders();
+    if (_useMockData) return _demoStore.orders();
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/factures'));
+      final response = await _get(Uri.parse('$baseUrl/factures'));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -192,6 +330,7 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('orders');
     return _mockOrders();
   }
 
@@ -202,7 +341,9 @@ class ApiService {
       '[COMMANDES][POST] payload status=${data['status']} '
       'commercial_id=${data['commercial_id']} manager_id=${data['manager_id']}',
     );
-    final response = await http.post(
+    if (_useMockData) return _demoStore.createOrder(data);
+
+    final response = await _post(
       Uri.parse('$baseUrl/commandes'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
@@ -227,7 +368,9 @@ class ApiService {
     int? managerId,
     String? status,
   }) async {
-    if (_useMockData) return _mockOrdersByStatus(status);
+    if (_useMockData) {
+      return _demoStore.orders(managerId: managerId, status: status);
+    }
 
     try {
       final query = <String, String>{};
@@ -236,7 +379,7 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl/manager/commandes',
       ).replace(queryParameters: query.isEmpty ? null : query);
-      final response = await http.get(uri);
+      final response = await _get(uri);
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -252,6 +395,7 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('manager orders');
     return _mockOrdersByStatus(status);
   }
 
@@ -260,9 +404,8 @@ class ApiService {
     String? commercialEmail,
   }) async {
     if (_useMockData) {
-      return _mockOrders(
-        commercialId: commercialId,
-        commercialEmail: commercialEmail,
+      return _demoStore.orders(
+        commercialId: _demoCommercialId(commercialId, commercialEmail),
       );
     }
 
@@ -277,7 +420,7 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl/commandes',
       ).replace(queryParameters: query.isEmpty ? null : query);
-      final response = await http.get(uri);
+      final response = await _get(uri);
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -293,6 +436,7 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('commercial orders');
     return _mockOrders(
       commercialId: commercialId,
       commercialEmail: commercialEmail,
@@ -300,13 +444,15 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getNotifications({int? managerId}) async {
-    if (_useMockData) return _mockNotifications();
+    if (_useMockData) {
+      return _demoStore.notifications(managerId: managerId);
+    }
 
     try {
       final uri = managerId == null
           ? Uri.parse('$baseUrl/notifications')
           : Uri.parse('$baseUrl/notifications?manager_id=$managerId');
-      final response = await http.get(uri);
+      final response = await _get(uri);
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -321,13 +467,18 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('notifications');
     return _mockNotifications();
   }
 
   static Future<Map<String, dynamic>> markNotificationRead(
     int notificationId,
   ) async {
-    final response = await http.patch(
+    if (_useMockData) {
+      return _demoStore.markNotificationRead(notificationId);
+    }
+
+    final response = await _patch(
       Uri.parse('$baseUrl/notifications/$notificationId/read'),
       headers: {'Content-Type': 'application/json'},
     );
@@ -341,10 +492,14 @@ class ApiService {
   static Future<List<dynamic>> markAllNotificationsRead({
     int? managerId,
   }) async {
+    if (_useMockData) {
+      return _demoStore.markAllNotificationsRead(managerId: managerId);
+    }
+
     final uri = managerId == null
         ? Uri.parse('$baseUrl/notifications/read-all')
         : Uri.parse('$baseUrl/notifications/read-all?manager_id=$managerId');
-    final response = await http.patch(
+    final response = await _patch(
       uri,
       headers: {'Content-Type': 'application/json'},
     );
@@ -360,7 +515,9 @@ class ApiService {
   static Future<Map<String, dynamic>> deleteNotification(
     int notificationId,
   ) async {
-    final response = await http.delete(
+    if (_useMockData) return _demoStore.deleteNotification(notificationId);
+
+    final response = await _delete(
       Uri.parse('$baseUrl/notifications/$notificationId'),
       headers: {'Content-Type': 'application/json'},
     );
@@ -372,10 +529,10 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> getCommande(int commandeId) async {
-    if (_useMockData) return _mockCommandeById(commandeId);
+    if (_useMockData) return _demoStore.order(commandeId);
 
     try {
-      final commandeResponse = await http.get(
+      final commandeResponse = await _get(
         Uri.parse('$baseUrl/commandes/$commandeId'),
       );
       if (commandeResponse.statusCode == 200) {
@@ -388,7 +545,7 @@ class ApiService {
         return {'data': decoded};
       }
 
-      final factureResponse = await http.get(
+      final factureResponse = await _get(
         Uri.parse('$baseUrl/factures/$commandeId'),
       );
       if (factureResponse.statusCode == 200) {
@@ -403,6 +560,7 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('order details');
     return _mockCommandeById(commandeId);
   }
 
@@ -412,11 +570,20 @@ class ApiService {
     String? refusalReason,
     int? managerId,
   }) async {
+    if (_useMockData) {
+      return _demoStore.updateOrderStatus(
+        commandeId,
+        status,
+        refusalReason: refusalReason,
+        managerId: managerId,
+      );
+    }
+
     final body = <String, dynamic>{'status': status};
     if (refusalReason != null) body['refusal_reason'] = refusalReason;
     if (managerId != null) body['manager_id'] = managerId;
 
-    final response = await http.patch(
+    final response = await _patch(
       Uri.parse('$baseUrl/commandes/$commandeId'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
@@ -439,10 +606,18 @@ class ApiService {
     String comment, {
     int? managerId,
   }) async {
+    if (_useMockData) {
+      return _demoStore.addOrderComment(
+        commandeId,
+        comment,
+        managerId: managerId,
+      );
+    }
+
     final body = <String, dynamic>{'comment': comment};
     if (managerId != null) body['manager_id'] = managerId;
 
-    final response = await http.post(
+    final response = await _post(
       Uri.parse('$baseUrl/commandes/$commandeId/comments'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
@@ -455,17 +630,51 @@ class ApiService {
     throw Exception('Erreur commentaire commande');
   }
 
+  static Future<Map<String, dynamic>> requestCommandeCancellation(
+    int commandeId,
+  ) async {
+    if (_useMockData) {
+      return _demoStore.requestOrderCancellation(commandeId);
+    }
+
+    final response = await _post(
+      Uri.parse('$baseUrl/commandes/$commandeId/cancel-request'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.bodyBytes.isEmpty) {
+        return {'success': true, 'commande_id': commandeId};
+      }
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      return decoded is Map<String, dynamic>
+          ? decoded
+          : {'data': decoded, 'commande_id': commandeId};
+    }
+    throw Exception(
+      'Erreur demande annulation commande: ${utf8.decode(response.bodyBytes)}',
+    );
+  }
+
   static Future<Map<String, dynamic>> updateFactureStatus(
     int factureId,
     String status, {
     String? refusalReason,
     int? managerId,
   }) async {
+    if (_useMockData) {
+      return _demoStore.updateOrderStatus(
+        factureId,
+        status,
+        refusalReason: refusalReason,
+        managerId: managerId,
+      );
+    }
+
     final body = <String, dynamic>{'status': status};
     if (refusalReason != null) body['refusal_reason'] = refusalReason;
     if (managerId != null) body['manager_id'] = managerId;
 
-    final response = await http.patch(
+    final response = await _patch(
       Uri.parse('$baseUrl/factures/$factureId/status'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
@@ -479,10 +688,10 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getUsers() async {
-    if (_useMockData) return _mockUsers();
+    if (_useMockData) return _demoStore.users;
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/users'));
+      final response = await _get(Uri.parse('$baseUrl/users'));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(utf8.decode(response.bodyBytes));
@@ -493,13 +702,16 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('users');
     return _mockUsers();
   }
 
   static Future<Map<String, dynamic>> createUser(
     Map<String, dynamic> data,
   ) async {
-    final response = await http.post(
+    if (_useMockData) return _demoStore.createUser(data);
+
+    final response = await _post(
       Uri.parse('$baseUrl/users'),
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode(data),
@@ -518,7 +730,9 @@ class ApiService {
     int userId,
     Map<String, dynamic> data,
   ) async {
-    final response = await http.patch(
+    if (_useMockData) return _demoStore.updateUser(userId, data);
+
+    final response = await _patch(
       Uri.parse('$baseUrl/users/$userId'),
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode(data),
@@ -534,7 +748,9 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> deleteUser(int userId) async {
-    final response = await http.delete(
+    if (_useMockData) return _demoStore.deleteUser(userId);
+
+    final response = await _delete(
       Uri.parse('$baseUrl/users/$userId'),
       headers: {'Content-Type': 'application/json'},
     );
@@ -551,7 +767,11 @@ class ApiService {
     String currentPassword,
     String newPassword,
   ) async {
-    final response = await http.post(
+    if (_useMockData) {
+      return _demoStore.changePassword(userId, currentPassword, newPassword);
+    }
+
+    final response = await _post(
       Uri.parse('$baseUrl/users/$userId/change-password'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
@@ -571,7 +791,11 @@ class ApiService {
     int userId,
     Map<String, dynamic> preferences,
   ) async {
-    final response = await http.patch(
+    if (_useMockData) {
+      return _demoStore.updateUserPreferences(userId, preferences);
+    }
+
+    final response = await _patch(
       Uri.parse('$baseUrl/users/$userId/preferences'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(preferences),
@@ -585,10 +809,10 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getRapports() async {
-    if (_useMockData) return _mockReports();
+    if (_useMockData) return _demoStore.reports;
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/rapports'));
+      final response = await _get(Uri.parse('$baseUrl/rapports'));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -599,13 +823,16 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('reports');
     return _mockReports();
   }
 
   static Future<Map<String, dynamic>> createRapport(
     Map<String, dynamic> data,
   ) async {
-    final response = await http.post(
+    if (_useMockData) return _demoStore.createReport(data);
+
+    final response = await _post(
       Uri.parse('$baseUrl/rapports'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
@@ -619,7 +846,9 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> markRapportRead(int rapportId) async {
-    final response = await http.patch(
+    if (_useMockData) return _demoStore.markReportRead(rapportId);
+
+    final response = await _patch(
       Uri.parse('$baseUrl/rapports/$rapportId/read'),
       headers: {'Content-Type': 'application/json'},
     );
@@ -635,9 +864,17 @@ class ApiService {
     String comment, {
     int? managerId,
   }) async {
+    if (_useMockData) {
+      return _demoStore.addReportComment(
+        rapportId,
+        comment,
+        managerId: managerId,
+      );
+    }
+
     final body = <String, dynamic>{'comment': comment};
     if (managerId != null) body['manager_id'] = managerId;
-    final response = await http.post(
+    final response = await _post(
       Uri.parse('$baseUrl/rapports/$rapportId/comments'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
@@ -650,10 +887,10 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getProduits() async {
-    if (_useMockData) return _mockProducts();
+    if (_useMockData) return _demoStore.products;
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/produits'));
+      final response = await _get(Uri.parse('$baseUrl/produits'));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(utf8.decode(response.bodyBytes));
@@ -664,13 +901,16 @@ class ApiService {
     } catch (_) {
       // Fall through to demo data below.
     }
+    _requireDemoFallback('products');
     return _mockProducts();
   }
 
   static Future<Map<String, dynamic>> createProduit(
     Map<String, dynamic> data,
   ) async {
-    final response = await http.post(
+    if (_useMockData) return _demoStore.createProduct(data);
+
+    final response = await _post(
       Uri.parse('$baseUrl/produits'),
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode(data),
@@ -689,7 +929,9 @@ class ApiService {
     int produitId,
     Map<String, dynamic> data,
   ) async {
-    final response = await http.patch(
+    if (_useMockData) return _demoStore.updateProduct(produitId, data);
+
+    final response = await _patch(
       Uri.parse('$baseUrl/produits/$produitId'),
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode(data),
@@ -705,7 +947,9 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> deleteProduit(int produitId) async {
-    final response = await http.delete(
+    if (_useMockData) return _demoStore.deleteProduct(produitId);
+
+    final response = await _delete(
       Uri.parse('$baseUrl/produits/$produitId'),
       headers: {'Content-Type': 'application/json'},
     );
@@ -721,7 +965,9 @@ class ApiService {
     int clientId,
     Map<String, dynamic> data,
   ) async {
-    final response = await http.patch(
+    if (_useMockData) return _demoStore.updateClient(clientId, data);
+
+    final response = await _patch(
       Uri.parse('$baseUrl/clients/$clientId'),
       headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode(data),
@@ -737,7 +983,9 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> deleteClient(int clientId) async {
-    final response = await http.delete(
+    if (_useMockData) return _demoStore.deleteClient(clientId);
+
+    final response = await _delete(
       Uri.parse('$baseUrl/clients/$clientId'),
       headers: {'Content-Type': 'application/json'},
     );
@@ -753,33 +1001,30 @@ class ApiService {
     String email,
     String password,
   ) async {
+    clearAccessToken();
     if (_useMockData) {
-      final user = MockPreSalesData.userByEmail(email);
-      if (user != null && user.password == password) {
-        return {
-          'id': user.id,
-          'user_id': user.id,
-          'name': user.name,
-          'full_name': user.name,
-          'email': user.email,
-          'phone': user.phone,
-          'telephone': user.phone,
-          'role': user.role.name,
-          'type': user.role.name,
-          'is_active': user.isActive,
-        };
-      }
+      final user = _demoStore.authenticate(email, password);
+      if (user != null) return user;
       throw Exception('Email ou mot de passe incorrect');
     }
 
-    final response = await http.post(
+    final response = await _post(
       Uri.parse('$baseUrl/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('Réponse d’authentification invalide');
+      }
+      final token = decoded['access_token']?.toString() ?? '';
+      if (token.isEmpty) {
+        throw Exception('Jeton d’authentification manquant');
+      }
+      _accessToken = token;
+      return decoded;
     } else {
       throw Exception('Email ou mot de passe incorrect');
     }

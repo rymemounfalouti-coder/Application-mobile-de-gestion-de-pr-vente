@@ -70,6 +70,9 @@ class _CommercialRankingScore {
 }
 
 _CommercialRanking _commercialRankingFor(int commercialId) {
+  if (!ApiService.demoModeEnabled) {
+    return _CommercialRanking(rank: 0, totalCommercials: 0, hasActivity: false);
+  }
   final commercials = MockPreSalesData.commercialUsers(includeInactive: true);
   final scores = <_CommercialRankingScore>[];
 
@@ -291,9 +294,11 @@ class _HomeCommercialState extends State<HomeCommercial> {
     final routeEmail = args is Map ? args['email']?.toString() ?? '' : '';
     final fallbackName = args is Map ? args['name']?.toString() ?? '' : '';
     final sessionUser = CurrentUserSession.currentUser;
-    final user = sessionUser?.isCommercial == true
-        ? MockPreSalesData.userByEmail(sessionUser!.email)
-        : MockPreSalesData.userByEmail(routeEmail);
+    final user = ApiService.demoModeEnabled
+        ? sessionUser?.isCommercial == true
+              ? MockPreSalesData.userByEmail(sessionUser!.email)
+              : MockPreSalesData.userByEmail(routeEmail)
+        : null;
 
     if (sessionUser == null && user == null) {
       _redirectAfterBuild(context, '/login');
@@ -310,16 +315,20 @@ class _HomeCommercialState extends State<HomeCommercial> {
     _loadOrdersIfNeeded(email, commercialId);
     _loadClientsIfNeeded(email, commercialId);
     _loadRecentActivitiesIfNeeded(email, commercialId);
-    final dashboard = MockPreSalesData.dashboardForUser(user);
+    final dashboard = ApiService.demoModeEnabled
+        ? MockPreSalesData.dashboardForUser(user)
+        : null;
     final clients = _mergeCommercialClients([
-      ...MockPreSalesData.clientsForUser(user),
+      if (ApiService.demoModeEnabled) ...MockPreSalesData.clientsForUser(user),
       ..._persistedClients,
       ..._runtimeClientsForEmail(email),
       ..._addedClients,
     ]);
-    final tourVisits = MockPreSalesData.tourVisitsForUser(user);
+    final tourVisits = ApiService.demoModeEnabled
+        ? MockPreSalesData.tourVisitsForUser(user)
+        : const <TourVisit>[];
     final orders = _mergeCommercialOrders([
-      ...MockPreSalesData.ordersForUser(user),
+      if (ApiService.demoModeEnabled) ...MockPreSalesData.ordersForUser(user),
       ..._persistedOrders,
       ..._runtimeOrdersForEmail(email),
     ]);
@@ -376,7 +385,10 @@ class _HomeCommercialState extends State<HomeCommercial> {
                                 orders: orders,
                                 visits: tourVisits,
                                 clients: clients,
-                                createdActivities: _addedActivities,
+                                createdActivities: _mergeCommercialActivities([
+                                  ..._persistedActivityItems,
+                                  ..._addedActivities,
+                                ]),
                                 recentActivities: _persistedRecentActivities,
                                 currentEmail: email,
                                 unreadNotificationCount:
@@ -401,26 +413,10 @@ class _HomeCommercialState extends State<HomeCommercial> {
                                     () => _addedActivities.insert(0, activity),
                                   );
                                   _notifyActivityPlanned(email, activity);
-                                  ApiService.createCommercialRecentActivity({
-                                        'type_action': 'activite_creee',
-                                        'titre': 'Nouvelle activité créée',
-                                        'description':
-                                            '${activity.subtitle} • ${activity.location}',
-                                        'commercial_id': commercialId,
-                                      })
-                                      .then((_) {
-                                        if (mounted) {
-                                          _loadPersistedRecentActivities(
-                                            email,
-                                            commercialId,
-                                          );
-                                        }
-                                      })
-                                      .catchError((error) {
-                                        debugPrint(
-                                          '[COMMERCIAL][ACTIVITES_RECENTES][POST][ERROR] $error',
-                                        );
-                                      });
+                                  _loadPersistedRecentActivities(
+                                    email,
+                                    commercialId,
+                                  );
                                 },
                                 onNavigate: (index) {
                                   setState(() => _selectedIndex = index);
@@ -491,6 +487,16 @@ class _HomeCommercialState extends State<HomeCommercial> {
                                 currentUserName: userName,
                                 unreadNotificationCount:
                                     _commercialUnreadNotificationCount(),
+                                onActivityCreated: (activity) {
+                                  setState(
+                                    () => _addedActivities.insert(0, activity),
+                                  );
+                                  _notifyActivityPlanned(email, activity);
+                                  _loadPersistedRecentActivities(
+                                    email,
+                                    commercialId,
+                                  );
+                                },
                               ),
                               ProfileCommercialScreen(
                                 user: user,
@@ -815,9 +821,11 @@ class _ClientViewData {
   }
 }
 
-/// A client with no order is a prospect, whatever its stored [ClientStatus] —
-/// unless it was just converted, which grants "actif" before the first order.
+/// An explicitly selected status wins for clients created or edited at runtime.
+/// Seeded clients without orders remain prospects until they are converted.
 _ClientUiStatus _clientUiStatusFor(CommercialClient client) {
+  final explicitlySelectedStatus = _createdClientPresets[client.id]?.status;
+  if (explicitlySelectedStatus != null) return explicitlySelectedStatus;
   if (_convertedOrderClientIds.contains(client.id))
     return _ClientUiStatus.active;
   if (client.orders.isEmpty) return _ClientUiStatus.prospect;
@@ -1824,14 +1832,12 @@ class DetailCommande extends StatelessWidget {
                                         context,
                                         commercialName,
                                       ),
-                                      onDuplicate: () =>
-                                          _duplicateOrder(context),
+                                      onDuplicate: () {
+                                        _duplicateOrder(context);
+                                      },
                                       onCancel:
                                           order.status == OrderStatus.pending
-                                          ? () => _showAction(
-                                              context,
-                                              'Demande d\u2019annulation envoy\u00e9e.',
-                                            )
+                                          ? () => _requestCancellation(context)
                                           : null,
                                     ),
                                   ]),
@@ -1958,12 +1964,54 @@ class DetailCommande extends StatelessWidget {
     );
   }
 
-  void _duplicateOrder(BuildContext context) {
+  Future<void> _duplicateOrder(BuildContext context) async {
     final user = CurrentUserSession.currentUser;
-    final clients = MockPreSalesData.clientsForEmail(user?.email ?? '');
+    final email = user?.email ?? '';
+    late List<CommercialClient> clients;
+    try {
+      final rows = await ApiService.getClients(
+        commercialId: user?.id,
+        commercialEmail: email,
+      );
+      clients = rows
+          .whereType<Map>()
+          .map((row) => _commercialClientFromApi(row.cast<String, dynamic>()))
+          .toList();
+    } catch (error) {
+      debugPrint('[COMMERCIAL][COMMANDES][DUPLICATE][CLIENTS][ERROR] $error');
+      if (context.mounted) {
+        _showAction(
+          context,
+          'Impossible de charger les clients. Vérifiez votre connexion puis réessayez.',
+        );
+      }
+      return;
+    }
+
+    int? persistedClientId;
+    try {
+      final persistedOrder = await ApiService.getCommande(order.id);
+      final candidateId = _apiInt(persistedOrder, ['client_id', 'id_client']);
+      if (candidateId > 0) persistedClientId = candidateId;
+    } catch (error) {
+      debugPrint(
+        '[COMMERCIAL][COMMANDES][DUPLICATE][ORDER_LOOKUP][WARN] '
+        'id=${order.id} error=$error',
+      );
+    }
+
+    if (!context.mounted) return;
     CommercialClient? selectedClient;
     for (final client in clients) {
-      if (client.name.toLowerCase() == order.clientName.toLowerCase()) {
+      final matchesId =
+          persistedClientId != null && client.id == persistedClientId;
+      final matchesName =
+          _clientMatchKey(client.name) == _clientMatchKey(order.clientName);
+      final matchesCode =
+          client.clientCode.trim().isNotEmpty &&
+          client.clientCode.trim().toLowerCase() ==
+              order.clientName.trim().toLowerCase();
+      if (matchesId || matchesName || matchesCode) {
         selectedClient = client;
         break;
       }
@@ -1977,7 +2025,7 @@ class DetailCommande extends StatelessWidget {
       MaterialPageRoute(
         builder: (_) => NouvelleCommande(
           client: selectedClient!,
-          currentEmail: user?.email ?? '',
+          currentEmail: email,
           currentUserName: user?.fullName ?? '',
         ),
         settings: RouteSettings(arguments: {'sourceOrderId': order.id}),
@@ -1985,14 +2033,33 @@ class DetailCommande extends StatelessWidget {
     );
   }
 
+  Future<void> _requestCancellation(BuildContext context) async {
+    try {
+      await ApiService.requestCommandeCancellation(order.id);
+      if (!context.mounted) return;
+      _showAction(context, 'Demande d\u2019annulation envoy\u00e9e.');
+    } catch (error) {
+      debugPrint(
+        '[COMMERCIAL][COMMANDES][CANCEL_REQUEST][ERROR] '
+        'id=${order.id} error=$error',
+      );
+      if (!context.mounted) return;
+      _showAction(
+        context,
+        'La demande d\u2019annulation n\u2019a pas pu être envoyée. Réessayez.',
+      );
+    }
+  }
+
   void _showActionsMenu(BuildContext context) {
+    final pageContext = context;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: _HomeCommercialState.cardBg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Padding(
             padding: EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -2005,9 +2072,9 @@ class DetailCommande extends StatelessWidget {
                     'T\u00e9l\u00e9charger PDF',
                   ),
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetContext);
                     _showAction(
-                      context,
+                      pageContext,
                       'Bon de commande PDF en pr\u00e9paration.',
                     );
                   },
@@ -2016,17 +2083,17 @@ class DetailCommande extends StatelessWidget {
                   icon: Icons.copy_rounded,
                   label: AppLocalizations.globalText('Dupliquer commande'),
                   onTap: () {
-                    Navigator.pop(context);
-                    _duplicateOrder(context);
+                    Navigator.pop(sheetContext);
+                    _duplicateOrder(pageContext);
                   },
                 ),
                 _OrderMenuTile(
                   icon: Icons.info_outline_rounded,
                   label: AppLocalizations.globalText('Informations statut'),
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetContext);
                     _showAction(
-                      context,
+                      pageContext,
                       _commercialOrderStatusLabel(order.status),
                     );
                   },
@@ -3577,6 +3644,7 @@ class ActivitiesCommercial extends StatefulWidget {
     required this.currentEmail,
     required this.currentUserName,
     required this.unreadNotificationCount,
+    required this.onActivityCreated,
   });
 
   final List<TourVisit> visits;
@@ -3586,6 +3654,8 @@ class ActivitiesCommercial extends StatefulWidget {
   final String currentEmail;
   final String currentUserName;
   final int unreadNotificationCount;
+  // ignore: library_private_types_in_public_api
+  final ValueChanged<_CommercialActivityItem> onActivityCreated;
 
   @override
   State<ActivitiesCommercial> createState() => _ActivitiesCommercialState();
@@ -3643,6 +3713,7 @@ class _ActivitiesCommercialState extends State<ActivitiesCommercial> {
       currentEmail: widget.currentEmail,
       currentUserName: widget.currentUserName,
       unreadNotificationCount: widget.unreadNotificationCount,
+      onActivityCreated: widget.onActivityCreated,
     );
 
     // ignore: dead_code
@@ -3847,6 +3918,7 @@ class PremiumActivitiesPage extends StatefulWidget {
     required this.currentEmail,
     required this.currentUserName,
     required this.unreadNotificationCount,
+    required this.onActivityCreated,
   });
 
   final List<TourVisit> visits;
@@ -3856,6 +3928,8 @@ class PremiumActivitiesPage extends StatefulWidget {
   final String currentEmail;
   final String currentUserName;
   final int unreadNotificationCount;
+  // ignore: library_private_types_in_public_api
+  final ValueChanged<_CommercialActivityItem> onActivityCreated;
 
   @override
   State<PremiumActivitiesPage> createState() => _PremiumActivitiesPageState();
@@ -3969,22 +4043,7 @@ class _PremiumActivitiesPageState extends State<PremiumActivitiesPage> {
       _createdActivities.add(created);
       _selectedDate = DateUtils.dateOnly(created.date);
     });
-    final commercialId =
-        MockPreSalesData.userByEmail(widget.currentEmail)?.id ??
-        CurrentUserSession.currentUser?.id;
-    ApiService.createCommercialRecentActivity({
-      'type_action': 'activite_creee',
-      'titre': 'Nouvelle activité créée',
-      'description': '${created.subtitle} • ${created.location}',
-      'commercial_id': commercialId,
-      'client_id': created.client?.id,
-    }).catchError((error) {
-      debugPrint('[COMMERCIAL][ACTIVITES][POST][ERROR] $error');
-      return <String, dynamic>{};
-    });
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('Activité créée avec succès')));
+    widget.onActivityCreated(created);
   }
 
   @override
@@ -4686,8 +4745,25 @@ class _ActivityVisitDetailPage extends StatefulWidget {
 
 class _ActivityVisitDetailPageState extends State<_ActivityVisitDetailPage> {
   String _report = '';
+  bool _savingAction = false;
+
+  Future<void> _recordVisitAction({
+    required String type,
+    required String title,
+    required String description,
+  }) {
+    final session = CurrentUserSession.currentUser;
+    return ApiService.createCommercialRecentActivity({
+      'type_action': type,
+      'titre': title,
+      'description': description,
+      'commercial_id': session?.id ?? widget.activity.client?.commercialId,
+      'client_id': widget.activity.client?.id,
+    }).then((_) {});
+  }
 
   Future<void> _addReport() async {
+    if (_savingAction) return;
     final report = await _showMobileOrderSheet<String>(
       context: context,
       child: _ClientNoteSheet(
@@ -4697,12 +4773,64 @@ class _ActivityVisitDetailPageState extends State<_ActivityVisitDetailPage> {
       ),
     );
     if (report == null || report.trim().isEmpty || !mounted) return;
-    setState(() => _report = report.trim());
+    setState(() => _savingAction = true);
+    try {
+      await _recordVisitAction(
+        type: 'visite_compte_rendu',
+        title: 'Compte rendu de visite ajouté',
+        description: '${widget.activity.subtitle} • ${report.trim()}',
+      );
+    } catch (error) {
+      debugPrint('[COMMERCIAL][VISITES][REPORT][ERROR] $error');
+      if (!mounted) return;
+      setState(() => _savingAction = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Le compte rendu n’a pas pu être enregistré. Réessayez.',
+            ),
+          ),
+        );
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _report = report.trim();
+      _savingAction = false;
+    });
   }
 
-  void _updateStatus(_CommercialActivityStatus status) {
+  Future<void> _updateStatus(_CommercialActivityStatus status) async {
+    if (_savingAction) return;
+    setState(() => _savingAction = true);
+    final completed = status == _CommercialActivityStatus.done;
+    try {
+      await _recordVisitAction(
+        type: completed ? 'visite_terminee' : 'visite_demarree',
+        title: completed ? 'Visite terminée' : 'Visite démarrée',
+        description:
+            '${widget.activity.subtitle} • ${widget.activity.location}',
+      );
+    } catch (error) {
+      debugPrint('[COMMERCIAL][VISITES][STATUS][ERROR] $error');
+      if (!mounted) return;
+      setState(() => _savingAction = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Le statut de la visite n’a pas pu être enregistré. Réessayez.',
+            ),
+          ),
+        );
+      return;
+    }
+    if (!mounted) return;
     _setActivityStatus(widget.activity.id, status);
-    setState(() {});
+    setState(() => _savingAction = false);
   }
 
   @override
@@ -4753,15 +4881,22 @@ class _ActivityVisitDetailPageState extends State<_ActivityVisitDetailPage> {
             _ActivityPrimaryButton(
               label: AppLocalizations.globalText('D\u00e9marrer visite'),
               icon: Icons.play_arrow_rounded,
-              onPressed: () =>
-                  _updateStatus(_CommercialActivityStatus.inProgress),
+              onPressed: _savingAction
+                  ? null
+                  : () {
+                      _updateStatus(_CommercialActivityStatus.inProgress);
+                    },
             ),
             SizedBox(height: 10),
           ],
           _ActivityPrimaryButton(
             label: AppLocalizations.globalText('Terminer visite'),
             icon: Icons.check_rounded,
-            onPressed: () => _updateStatus(_CommercialActivityStatus.done),
+            onPressed: _savingAction
+                ? null
+                : () {
+                    _updateStatus(_CommercialActivityStatus.done);
+                  },
           ),
           SizedBox(height: 10),
         ],
@@ -4866,7 +5001,7 @@ class _ActivityDetailScaffold extends StatelessWidget {
                         Container(
                           width: double.infinity,
                           padding: EdgeInsets.all(18),
-                          decoration: _premiumCardDecoration(22),
+                          decoration: _activityCardDecoration(22),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -5027,6 +5162,7 @@ class _NewActivityPageState extends State<NewActivityPage> {
   String _status = 'Planifiée';
   String _result = 'À relancer';
   String _visitAddress = '';
+  bool _submitting = false;
 
   static const _activityTypes = [
     'Visite client',
@@ -5186,6 +5322,7 @@ class _NewActivityPageState extends State<NewActivityPage> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     if (!_formKey.currentState!.validate()) return;
     if (_client == null) {
       _showMessage('Veuillez sélectionner un client');
@@ -5196,8 +5333,42 @@ class _NewActivityPageState extends State<NewActivityPage> {
       return;
     }
 
+    setState(() => _submitting = true);
+    Map<String, dynamic> persisted;
+    final session = CurrentUserSession.currentUser;
+    final commercialId = session?.id ?? _client?.commercialId ?? 0;
+    try {
+      persisted = await ApiService.createCommercialRecentActivity({
+        'type_action': 'activite_creee',
+        'titre': _type,
+        'description': '${_activitySubtitle()} • ${_activityLocation()}',
+        'commercial_id': commercialId,
+        'client_id': _client?.id,
+      });
+    } catch (error) {
+      debugPrint('[COMMERCIAL][ACTIVITES][CREATE][ERROR] $error');
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      await _showMobileOrderSheet<void>(
+        context: context,
+        child: _OrderInfoSheet(
+          icon: Icons.cloud_off_rounded,
+          iconColor: Color(0xFFEF4444),
+          title: 'Création impossible',
+          message:
+              'L’activité n’a pas pu être enregistrée. Vérifiez votre connexion puis réessayez.',
+          buttonLabel: 'Compris',
+          onPressed: () => Navigator.pop(context),
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    final persistedId = _apiInt(persisted, ['id']);
     final created = _CommercialActivityItem(
-      id: DateTime.now().millisecondsSinceEpoch,
+      id: persistedId > 0 ? persistedId : DateTime.now().millisecondsSinceEpoch,
       title: _type,
       subtitle: _activitySubtitle(),
       location: _activityLocation(),
@@ -5498,9 +5669,21 @@ class _NewActivityPageState extends State<NewActivityPage> {
                                   height: 58,
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
-                                    onPressed: _submit,
-                                    icon: Icon(Icons.add_rounded, size: 28),
-                                    label: Text('Créer activité'),
+                                    onPressed: _submitting ? null : _submit,
+                                    icon: _submitting
+                                        ? SizedBox.square(
+                                            dimension: 22,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.4,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : Icon(Icons.add_rounded, size: 28),
+                                    label: Text(
+                                      _submitting
+                                          ? 'Enregistrement...'
+                                          : 'Créer activité',
+                                    ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor:
                                           _HomeCommercialState.brandPrimary,
@@ -6407,6 +6590,10 @@ class _DetailClientState extends State<DetailClient> {
   void initState() {
     super.initState();
     _client = widget.client;
+    final persistedNotes = widget.client?.notes.trim() ?? '';
+    if (persistedNotes.isNotEmpty) {
+      _notes.add(_ClientNote(text: persistedNotes, createdAt: DateTime.now()));
+    }
   }
 
   Future<void> _launch(Uri uri) async {
@@ -6485,13 +6672,52 @@ class _DetailClientState extends State<DetailClient> {
         child: _ClientNoteSheet(),
       );
       if (note == null || note.trim().isEmpty || !mounted) return;
+      final currentClient = _client ?? client;
+      final previousNotes = currentClient.notes.trim();
+      final updatedNotes = previousNotes.isEmpty
+          ? note.trim()
+          : '${note.trim()}\n\n$previousNotes';
+      final updatedClient = currentClient.copyWith(notes: updatedNotes);
+      final commercialId =
+          CurrentUserSession.currentUser?.id ??
+          MockPreSalesData.userByEmail(widget.currentEmail)?.id ??
+          currentClient.commercialId;
+      try {
+        await ApiService.updateClient(
+          currentClient.id,
+          _commercialClientToApi(updatedClient, commercialId),
+        );
+      } catch (error) {
+        debugPrint(
+          '[COMMERCIAL][CLIENTS][NOTES][SAVE][ERROR] '
+          'id=${currentClient.id} error=$error',
+        );
+        if (!mounted) return;
+        await _showMobileOrderSheet<void>(
+          context: context,
+          child: _OrderInfoSheet(
+            icon: Icons.cloud_off_rounded,
+            iconColor: Color(0xFFEF4444),
+            title: 'Note non enregistrée',
+            message:
+                'La note n’a pas pu être enregistrée. Vérifiez votre connexion puis réessayez.',
+            buttonLabel: 'Compris',
+            onPressed: () => Navigator.pop(context),
+          ),
+        );
+        return;
+      }
+      if (!mounted) return;
       setState(() {
+        _client = updatedClient;
         _notes.insert(
           0,
           _ClientNote(text: note.trim(), createdAt: DateTime.now()),
         );
         _selectedTab = 1;
       });
+      _addRuntimeClientForEmail(widget.currentEmail, updatedClient);
+      _clientDataRevision.value++;
     }
   }
 
@@ -6513,10 +6739,24 @@ class _DetailClientState extends State<DetailClient> {
         ),
       );
       if (shouldConvert != true) return;
-      orderClient = client.copyWith(status: ClientStatus.visited);
+      try {
+        orderClient = await _persistProspectConversion(
+          client,
+          widget.currentEmail,
+        );
+      } catch (error) {
+        debugPrint(
+          '[COMMERCIAL][CLIENTS][CONVERT][ERROR] id=${client.id} error=$error',
+        );
+        if (!mounted) return;
+        await _showProspectConversionError(context);
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _client = orderClient);
+      _addRuntimeClientForEmail(widget.currentEmail, orderClient);
       _convertedOrderClientIds.add(client.id);
       _clientDataRevision.value++;
-      if (!mounted) return;
       await _showConvertedClientSheet(context);
     }
 
@@ -6767,14 +7007,27 @@ class _NouvelleCommandeClientSelectionState
         ),
       );
       if (shouldConvert != true) return;
-      final convertedClient = client.client.copyWith(
-        status: ClientStatus.visited,
-      );
+      late CommercialClient convertedClient;
+      try {
+        convertedClient = await _persistProspectConversion(
+          client.client,
+          widget.currentEmail,
+        );
+      } catch (error) {
+        debugPrint(
+          '[COMMERCIAL][CLIENTS][CONVERT][ERROR] '
+          'id=${client.client.id} error=$error',
+        );
+        if (!mounted) return;
+        await _showProspectConversionError(context);
+        return;
+      }
+      if (!mounted) return;
+      _addRuntimeClientForEmail(widget.currentEmail, convertedClient);
       _convertedOrderClientIds.add(client.client.id);
       _clientDataRevision.value++;
       selected = _ClientViewData.fromClient(convertedClient);
       setState(() => _convertedClientIds.add(client.client.id));
-      if (!mounted) return;
       await _showConvertedClientSheet(context);
     }
 
@@ -6940,6 +7193,37 @@ Future<void> _showInactiveClientSheet(BuildContext context) {
   return _showMobileOrderSheet<void>(
     context: context,
     child: _InactiveClientSheet(onClose: () => Navigator.pop(context)),
+  );
+}
+
+Future<CommercialClient> _persistProspectConversion(
+  CommercialClient client,
+  String commercialEmail,
+) async {
+  final converted = client.copyWith(status: ClientStatus.visited);
+  final commercialId =
+      CurrentUserSession.currentUser?.id ??
+      MockPreSalesData.userByEmail(commercialEmail)?.id ??
+      client.commercialId;
+  await ApiService.updateClient(
+    client.id,
+    _commercialClientToApi(converted, commercialId),
+  );
+  return converted;
+}
+
+Future<void> _showProspectConversionError(BuildContext context) {
+  return _showMobileOrderSheet<void>(
+    context: context,
+    child: _OrderInfoSheet(
+      icon: Icons.cloud_off_rounded,
+      iconColor: Color(0xFFEF4444),
+      title: 'Conversion impossible',
+      message:
+          'Le prospect n’a pas pu être converti. Vérifiez votre connexion puis réessayez.',
+      buttonLabel: 'Compris',
+      onPressed: () => Navigator.pop(context),
+    ),
   );
 }
 
@@ -7508,8 +7792,9 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
     }
 
     final order = _buildOrder("En attente");
+    late Map<String, dynamic> persistedOrder;
     try {
-      await ApiService.createCommande(_orderPayload(order));
+      persistedOrder = await ApiService.createCommande(_orderPayload(order));
     } catch (error) {
       await _showOrderWorkflowSheet(
         icon: Icons.cloud_off_rounded,
@@ -7524,9 +7809,11 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
 
     final session = CurrentUserSession.currentUser;
     final user = MockPreSalesData.userByEmail(widget.currentEmail);
-    final commercialOrder = _commercialOrderFromValidated(
+    final commercialId = session?.id ?? user?.id ?? 0;
+    final commercialOrder = _commercialOrderFromCreateResponse(
+      persistedOrder,
       order,
-      commercialId: session?.id ?? user?.id ?? 0,
+      commercialId: commercialId,
     );
     _addRuntimeOrderForEmail(widget.currentEmail, commercialOrder);
     _notifyOrderAction(widget.currentEmail, commercialOrder);
@@ -7546,33 +7833,12 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
 
   Map<String, dynamic> _orderPayload(ValidatedOrder order) {
     final session = CurrentUserSession.currentUser;
-    return {
-      'order_number': order.orderNumber,
-      'client_id': widget.client.id,
-      'client_code': widget.client.clientCode,
-      'client_name': widget.client.name,
-      'commercial_id': session?.id,
-      'commercial_email': session?.email ?? widget.currentEmail,
-      'commercial_name': widget.currentUserName,
-      'date': order.date.toIso8601String(),
-      'created_at': DateTime.now().toIso8601String(),
-      'delivery_date': (order.deliveryDate ?? _deliveryDate).toIso8601String(),
-      'status': 'en_attente',
-      'total': order.total,
-      'notes': '',
-      'lines': order.items
-          .map(
-            (item) => {
-              'product_id': item.product.id,
-              'product_reference': item.product.reference,
-              'product_name': item.product.name,
-              'quantity': item.quantity,
-              'unit_price': item.unitPriceApplied ?? item.product.unitPrice,
-              'total': item.lineTotal,
-            },
-          )
-          .toList(),
-    };
+    return _validatedOrderPayload(
+      order,
+      commercialId: session?.id,
+      commercialEmail: session?.email ?? widget.currentEmail,
+      commercialName: widget.currentUserName,
+    );
   }
 
   ValidatedOrder _buildOrder(String status) {
@@ -7842,6 +8108,8 @@ class OrderDraftsPage extends StatefulWidget {
 }
 
 class _OrderDraftsPageState extends State<OrderDraftsPage> {
+  final Set<String> _sendingDrafts = <String>{};
+
   List<OrderDraft> get _drafts {
     return [..._orderDrafts]..sort((a, b) => b.savedAt.compareTo(a.savedAt));
   }
@@ -7861,22 +8129,90 @@ class _OrderDraftsPageState extends State<OrderDraftsPage> {
     );
   }
 
-  void _deleteDraft(OrderDraft draft) {
+  Future<void> _deleteDraft(OrderDraft draft) async {
+    final confirmed = await _showMobileOrderSheet<bool>(
+      context: context,
+      child: _OrderDecisionSheetShell(
+        icon: Icons.delete_outline_rounded,
+        iconColor: Color(0xFFEF4444),
+        title: 'Supprimer le brouillon ?',
+        message:
+            'Cette action supprimera définitivement la commande ${draft.order.orderNumber}.',
+        child: Row(
+          children: [
+            Expanded(
+              child: _OrderSheetOutlinedButton(
+                label: 'Annuler',
+                onPressed: () => Navigator.pop(context, false),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _OrderSheetPrimaryButton(
+                label: 'Supprimer',
+                onPressed: () => Navigator.pop(context, true),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     setState(() {
       _orderDrafts.remove(draft);
     });
   }
 
-  void _sendDraft(OrderDraft draft) {
-    _orderDrafts.remove(draft);
+  Future<void> _sendDraft(OrderDraft draft) async {
+    final draftNumber = draft.order.orderNumber;
+    if (_sendingDrafts.contains(draftNumber)) return;
+    setState(() => _sendingDrafts.add(draftNumber));
+
     final order = _copyDraftOrderWithStatus(draft, 'En attente');
+    final session = CurrentUserSession.currentUser;
     final user = MockPreSalesData.userByEmail(widget.currentEmail);
-    final commercialOrder = _commercialOrderFromValidated(
+    final commercialId = session?.id ?? user?.id ?? 0;
+    late Map<String, dynamic> persistedOrder;
+    try {
+      persistedOrder = await ApiService.createCommande(
+        _validatedOrderPayload(
+          order,
+          commercialId: commercialId,
+          commercialEmail: session?.email ?? widget.currentEmail,
+          commercialName: widget.currentUserName,
+        ),
+      );
+    } catch (error) {
+      debugPrint(
+        '[COMMERCIAL][COMMANDES][DRAFT_SEND][ERROR] '
+        'number=$draftNumber error=$error',
+      );
+      if (!mounted) return;
+      setState(() => _sendingDrafts.remove(draftNumber));
+      await _showMobileOrderSheet<void>(
+        context: context,
+        child: _OrderInfoSheet(
+          icon: Icons.cloud_off_rounded,
+          iconColor: Color(0xFFEF4444),
+          title: 'Envoi impossible',
+          message:
+              'Le brouillon n’a pas pu être envoyé. Il a été conservé pour que vous puissiez réessayer.',
+          buttonLabel: 'Compris',
+          onPressed: () => Navigator.pop(context),
+        ),
+      );
+      return;
+    }
+
+    final commercialOrder = _commercialOrderFromCreateResponse(
+      persistedOrder,
       order,
-      commercialId: user?.id ?? 0,
+      commercialId: commercialId,
     );
+    _orderDrafts.remove(draft);
     _addRuntimeOrderForEmail(widget.currentEmail, commercialOrder);
     _notifyOrderAction(widget.currentEmail, commercialOrder);
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -7945,8 +8281,12 @@ class _OrderDraftsPageState extends State<OrderDraftsPage> {
                                           draft: draft,
                                           onOpen: () => _openDraft(draft),
                                           onEdit: () => _openDraft(draft),
-                                          onDelete: () => _deleteDraft(draft),
-                                          onSend: () => _sendDraft(draft),
+                                          onDelete: () {
+                                            _deleteDraft(draft);
+                                          },
+                                          onSend: () {
+                                            _sendDraft(draft);
+                                          },
                                         ),
                                         SizedBox(height: 12),
                                       ],
@@ -8740,20 +9080,6 @@ class _SectionCard extends StatelessWidget {
       ),
     );
   }
-}
-
-BoxDecoration _premiumCardDecoration(double radius) {
-  return BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(radius),
-    boxShadow: [
-      BoxShadow(
-        color: Color(0xFF0F172A).withValues(alpha: .055),
-        blurRadius: 22,
-        offset: Offset(0, 10),
-      ),
-    ],
-  );
 }
 
 class _ProductSearchBar extends StatelessWidget {
@@ -9927,35 +10253,67 @@ String _dateOnlyLabel(DateTime date) {
   return '${two(date.day)}/${two(date.month)}/${date.year}';
 }
 
-CommercialOrder _commercialOrderFromValidated(
+Map<String, dynamic> _validatedOrderPayload(
+  ValidatedOrder order, {
+  required int? commercialId,
+  required String commercialEmail,
+  required String commercialName,
+}) {
+  return {
+    'order_number': order.orderNumber,
+    'client_id': order.client.id,
+    'client_code': order.client.clientCode,
+    'client_name': order.client.name,
+    'commercial_id': commercialId,
+    'commercial_email': commercialEmail,
+    'commercial_name': commercialName,
+    'date': order.date.toIso8601String(),
+    'created_at': DateTime.now().toIso8601String(),
+    'delivery_date': order.deliveryDate?.toIso8601String(),
+    'status': 'en_attente',
+    'total': order.total,
+    'notes': '',
+    'lines': order.items
+        .map(
+          (item) => {
+            'product_id': item.product.id,
+            'product_reference': item.product.reference,
+            'product_name': item.product.name,
+            'quantity': item.quantity,
+            'unit_price': item.unitPriceApplied ?? item.product.unitPrice,
+            'total': item.lineTotal,
+          },
+        )
+        .toList(),
+  };
+}
+
+CommercialOrder _commercialOrderFromCreateResponse(
+  Map<String, dynamic> response,
   ValidatedOrder order, {
   required int commercialId,
 }) {
-  return CommercialOrder(
-    commercialId: commercialId,
-    id: order.orderNumber.hashCode.abs(),
-    orderNumber: order.orderNumber,
-    clientName: order.client.name,
-    date: _dateOnlyLabel(order.date),
-    productsCount: order.items.fold<int>(
-      0,
-      (total, item) => total + item.quantity,
-    ),
-    total: order.total,
-    status: order.status == 'En attente'
-        ? OrderStatus.pending
-        : order.status == 'Brouillon'
-        ? OrderStatus.pending
-        : OrderStatus.synced,
-    items: [
+  final persisted = <String, dynamic>{
+    'commercial_id': commercialId,
+    'order_number': order.orderNumber,
+    'client_name': order.client.name,
+    'date': order.date.toIso8601String(),
+    'total': order.total,
+    'status': 'en_attente',
+    'items': [
       for (final item in order.items)
-        OrderLine(
-          productName: item.product.name,
-          quantity: item.quantity,
-          total: item.lineTotal,
-        ),
+        {
+          'product_id': item.product.id,
+          'product_reference': item.product.reference,
+          'product_name': item.product.name,
+          'quantity': item.quantity,
+          'unit_price': item.unitPriceApplied ?? item.product.unitPrice,
+          'total': item.lineTotal,
+        },
     ],
-  );
+    ...response,
+  };
+  return _commercialOrderFromApi(persisted);
 }
 
 CommercialOrder _commercialOrderFromApi(Map<String, dynamic> json) {
@@ -10031,8 +10389,10 @@ CommercialClient _commercialClientFromApi(Map<String, dynamic> json) {
     name: name,
     city: _apiString(json, ['city', 'ville']).ifEmpty('Casablanca'),
     businessType: businessType,
-    category: businessType,
+    category: _apiString(json, ['category', 'categorie']).ifEmpty(businessType),
     contactName: _apiString(json, ['contact_name', 'contact']),
+    quartier: _apiString(json, ['quartier', 'district']),
+    notes: _apiString(json, ['notes', 'commentaire']),
     latitude: _apiDouble(json, ['latitude', 'lat']).nonZero(33.5731),
     longitude: _apiDouble(json, ['longitude', 'lng']).nonZero(-7.5898),
     status: _clientStatusFromApi(
@@ -10088,6 +10448,8 @@ Map<String, dynamic> _commercialClientToApi(
     'business_type': client.businessType,
     'category': client.category,
     'contact_name': client.contactName,
+    'quartier': client.quartier,
+    'notes': client.notes,
     'initials': client.initials,
     'latitude': client.latitude,
     'longitude': client.longitude,
@@ -12990,6 +13352,33 @@ _activityLogStyle(String typeAction) {
         status: _ActivityHistoryStatus.pending,
         target: _ActivityHistoryTarget.visit,
       );
+    case 'visite_demarree':
+      return (
+        title: 'Visite démarrée',
+        icon: Icons.play_arrow_rounded,
+        color: _HomeCommercialState.brandPrimary,
+        type: _ActivityHistoryType.visits,
+        status: _ActivityHistoryStatus.pending,
+        target: _ActivityHistoryTarget.visit,
+      );
+    case 'visite_terminee':
+      return (
+        title: 'Visite terminée',
+        icon: Icons.check_circle_rounded,
+        color: _DashboardTab._green,
+        type: _ActivityHistoryType.visits,
+        status: _ActivityHistoryStatus.completed,
+        target: _ActivityHistoryTarget.visit,
+      );
+    case 'visite_compte_rendu':
+      return (
+        title: 'Compte rendu de visite ajouté',
+        icon: Icons.note_alt_rounded,
+        color: Color(0xFF7C3AED),
+        type: _ActivityHistoryType.visits,
+        status: _ActivityHistoryStatus.completed,
+        target: _ActivityHistoryTarget.visit,
+      );
     default:
       return (
         title: 'Activité récente',
@@ -13847,9 +14236,19 @@ class _DailyReportPageState extends State<_DailyReportPage> {
   }
 
   List<_CommercialActivityItem> get _reportActivities {
-    return widget.createdActivities.where((activity) {
-      return DateUtils.isSameDay(activity.date, _reportDate);
-    }).toList();
+    final activities = <_CommercialActivityItem>[
+      ...widget.createdActivities.where((activity) {
+        return DateUtils.isSameDay(activity.date, _reportDate);
+      }),
+      if (DateUtils.isSameDay(_reportDate, DateTime.now()))
+        for (final visit in widget.visits)
+          _CommercialActivityItem.fromVisit(
+            visit: visit,
+            client: _clientById(widget.clients, visit.clientId),
+            date: _reportDate,
+          ),
+    ];
+    return _mergeCommercialActivities(activities);
   }
 
   List<_CommercialActivityItem> get _reportVisits {
@@ -13995,6 +14394,22 @@ class _DailyReportPageState extends State<_DailyReportPage> {
         'revenue': _revenue,
         'comments': _commentController.text.trim(),
       });
+    } catch (error) {
+      debugPrint('[COMMERCIAL][RAPPORT][POST][ERROR] $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              "Le rapport n'a pas pu être envoyé. Vérifiez votre connexion puis réessayez.",
+            ),
+          ),
+        );
+      return;
+    }
+
+    try {
       await ApiService.createCommercialRecentActivity({
         'type_action': 'rapport_journalier',
         'titre': 'Rapport journalier envoyé',
@@ -18329,6 +18744,7 @@ class _NouveauClientScreenState extends State<NouveauClientScreen> {
       _segment = 'Standard';
       _sector = _sectorFromAddress(editingClient.address);
       _contactNameController.text = editingClient.contactName;
+      _notesController.text = editingClient.notes;
     }
     _customBusinessTypeFocus.addListener(() {
       if (!_customBusinessTypeFocus.hasFocus) _commitCustomBusinessType();
@@ -18551,6 +18967,7 @@ class _NouveauClientScreenState extends State<NouveauClientScreen> {
       businessType: resolvedBusinessType,
       category: resolvedBusinessType,
       contactName: _contactNameController.text.trim(),
+      notes: _notesController.text.trim(),
       latitude: 33.5731,
       longitude: -7.5898,
       status: status,
@@ -18561,45 +18978,60 @@ class _NouveauClientScreenState extends State<NouveauClientScreen> {
           ? [resolvedSector, 'Casablanca'].whereType<String>().join(', ')
           : _addressController.text.trim(),
     );
-    _createdClientPresets[id] = _ClientPreset(
-      name: client.name,
-      type: resolvedBusinessType,
-      status: uiStatus,
-      orders: 0,
-      revenue: 0,
-      rank: id,
-      icon: Icons.storefront_rounded,
-      color: _DashboardTab._brand,
-    );
-
     var savedClient = client;
-    if (editingClient == null) {
-      try {
-        final commercialId =
-            MockPreSalesData.userByEmail(widget.currentEmail)?.id ??
-            CurrentUserSession.currentUser?.id ??
-            client.commercialId;
+    try {
+      final commercialId = ApiService.demoModeEnabled
+          ? MockPreSalesData.userByEmail(widget.currentEmail)?.id ??
+                CurrentUserSession.currentUser?.id ??
+                client.commercialId
+          : CurrentUserSession.currentUser?.id ?? client.commercialId;
+      if (editingClient == null) {
         final response = await ApiService.createClient(
           _commercialClientToApi(client, commercialId),
         );
         savedClient = _commercialClientFromApi(response);
-        _addRuntimeClientForEmail(widget.currentEmail, savedClient);
         debugPrint(
           '[COMMERCIAL][CLIENTS][CREATED] id=${savedClient.id} '
           'name=${savedClient.name} commercial_id=$commercialId',
         );
-      } catch (error) {
-        debugPrint('[COMMERCIAL][CLIENTS][CREATE][ERROR] $error');
-        await _showNewClientInfoSheet(
-          icon: Icons.cloud_off_rounded,
-          iconColor: Color(0xFFEF4444),
-          title: 'Client non enregistré',
-          message: 'Le client n\u2019a pas pu être enregistré dans PostgreSQL.',
-          buttonLabel: 'Compris',
+      } else {
+        final response = await ApiService.updateClient(
+          editingClient.id,
+          _commercialClientToApi(client, commercialId),
         );
-        return;
+        savedClient = _commercialClientFromApi(response);
+        debugPrint(
+          '[COMMERCIAL][CLIENTS][UPDATED] id=${savedClient.id} '
+          'name=${savedClient.name} commercial_id=$commercialId',
+        );
       }
+      _addRuntimeClientForEmail(widget.currentEmail, savedClient);
+    } catch (error) {
+      debugPrint('[COMMERCIAL][CLIENTS][SAVE][ERROR] $error');
+      await _showNewClientInfoSheet(
+        icon: Icons.cloud_off_rounded,
+        iconColor: Color(0xFFEF4444),
+        title: editingClient == null
+            ? 'Client non enregistré'
+            : 'Modification non enregistrée',
+        message: editingClient == null
+            ? 'Le client n\u2019a pas pu être enregistré.'
+            : 'Les modifications du client n\u2019ont pas pu être enregistrées.',
+        buttonLabel: 'Compris',
+      );
+      return;
     }
+
+    _createdClientPresets[savedClient.id] = _ClientPreset(
+      name: savedClient.name,
+      type: resolvedBusinessType,
+      status: uiStatus,
+      orders: 0,
+      revenue: 0,
+      rank: savedClient.id,
+      icon: Icons.storefront_rounded,
+      color: _DashboardTab._brand,
+    );
 
     _clientDataRevision.value++;
     await _showNewClientInfoSheet(
@@ -19218,7 +19650,7 @@ class _NewClientConditionalField extends StatelessWidget {
           opacity: animation,
           child: SizeTransition(
             sizeFactor: animation,
-            axisAlignment: -1,
+            alignment: AlignmentDirectional.topStart,
             child: child,
           ),
         );

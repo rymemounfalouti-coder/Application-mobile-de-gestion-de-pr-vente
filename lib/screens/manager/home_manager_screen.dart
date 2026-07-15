@@ -2512,6 +2512,7 @@ class _ManagerCommercialView {
     required this.status,
     required this.revenue,
     required this.objective,
+    required this.orderTarget,
     required this.ordersCount,
     required this.clientsCount,
     required this.activitiesCount,
@@ -2530,13 +2531,18 @@ class _ManagerCommercialView {
   final _ManagerCommercialStatus status;
   final double revenue;
   final double objective;
+  final int orderTarget;
   final int ordersCount;
   final int clientsCount;
   final int activitiesCount;
   final int reportsCount;
   final DateTime? hiredAt;
 
-  _ManagerCommercialView copyWith({double? objective, int? reportsCount}) {
+  _ManagerCommercialView copyWith({
+    double? objective,
+    int? orderTarget,
+    int? reportsCount,
+  }) {
     return _ManagerCommercialView(
       id: id,
       name: name,
@@ -2549,6 +2555,7 @@ class _ManagerCommercialView {
       status: status,
       revenue: revenue,
       objective: objective ?? this.objective,
+      orderTarget: orderTarget ?? this.orderTarget,
       ordersCount: ordersCount,
       clientsCount: clientsCount,
       activitiesCount: activitiesCount,
@@ -2774,6 +2781,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
       _safeApiList(ApiService.getUsers),
       _safeApiList(ApiService.getFactures),
       _safeApiList(ApiService.getClients),
+      _safeApiList(ApiService.getRapports),
     ]);
     final users = results[0].whereType<Map>().map(
       (e) => e.cast<String, dynamic>(),
@@ -2784,6 +2792,10 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
         .where((order) => order.inRange(range))
         .toList();
     final clients = results[2].whereType<Map>().toList();
+    final reports = results[3]
+        .whereType<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .toList();
     final items = <_ManagerCommercialView>[];
     for (final userJson in users) {
       final role = _readString(userJson, ['role', 'type']);
@@ -2825,10 +2837,20 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
           ),
           revenue: validated.fold(0, (sum, order) => sum + order.total),
           objective: objective?.revenueTarget ?? 0,
+          orderTarget: objective?.orderTarget ?? 0,
           ordersCount: orders.length,
           clientsCount: assignedClients,
           activitiesCount: 0,
-          reportsCount: 0,
+          reportsCount: reports
+              .where(
+                (report) => _managerReportMatchesCommercial(
+                  report,
+                  commercialId: id,
+                  user: userJson,
+                  range: range,
+                ),
+              )
+              .length,
           hiredAt: _readDate(userJson, ['hire_date', 'created_at']),
         ),
       );
@@ -3033,6 +3055,21 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
                           ChoiceChip(
                             label: Text('Performance élevée'),
                             selected: performance == 'top',
+                            labelStyle: TextStyle(
+                              color: performance == 'top'
+                                  ? Colors.white
+                                  : _DashboardManagerState.managerText,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            selectedColor:
+                                _DashboardManagerState.managerBrand,
+                            backgroundColor: Colors.white,
+                            checkmarkColor: Colors.white,
+                            side: BorderSide(
+                              color: performance == 'top'
+                                  ? _DashboardManagerState.managerBrand
+                                  : _DashboardManagerState.managerBorder,
+                            ),
                             onSelected: (selected) {
                               setSheetState(() {
                                 performance = selected ? 'top' : '';
@@ -3071,6 +3108,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
+                              style: _managerSecondaryButtonStyle(),
                               onPressed: () {
                                 _resetFilters();
                                 Navigator.pop(context);
@@ -3362,7 +3400,9 @@ class _CommerciauxManagerState extends State<CommerciauxManager> {
 }
 
 class OrdersManagerScreen extends StatefulWidget {
-  OrdersManagerScreen({super.key});
+  OrdersManagerScreen({super.key, this.initialCommercialName});
+
+  final String? initialCommercialName;
 
   @override
   State<OrdersManagerScreen> createState() => _OrdersManagerApiScreenState();
@@ -3386,6 +3426,7 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
   @override
   void initState() {
     super.initState();
+    _commercialFilter = widget.initialCommercialName?.trim() ?? '';
     _searchController.addListener(() => setState(() {}));
     _ordersFuture = _loadOrders();
   }
@@ -3726,67 +3767,7 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
   }
 
   Future<String?> _askRefusalReason() {
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        String selected = 'Prix incorrect';
-        final customController = TextEditingController();
-        return AlertDialog(
-          title: Text('Motif de refus'),
-          content: StatefulBuilder(
-            builder: (context, setDialogState) {
-              final reasons = [
-                'Prix incorrect',
-                'Stock indisponible',
-                'Informations client incomplètes',
-                'Doublon',
-                'Autre',
-              ];
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final reason in reasons)
-                    ListTile(
-                      onTap: () => setDialogState(() => selected = reason),
-                      leading: Icon(
-                        selected == reason
-                            ? Icons.check_circle
-                            : Icons.circle_outlined,
-                        color: selected == reason
-                            ? _DashboardManagerState.managerBrand
-                            : _DashboardManagerState.managerMuted,
-                      ),
-                      title: Text(reason),
-                    ),
-                  if (selected == 'Autre')
-                    TextField(
-                      controller: customController,
-                      decoration: InputDecoration(labelText: 'Motif'),
-                    ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  selected == 'Autre'
-                      ? customController.text.trim().ifEmpty('Autre')
-                      : selected,
-                );
-              },
-              child: Text('Refuser'),
-            ),
-          ],
-        );
-      },
-    );
+    return _showManagerRefusalReasonDialog(context);
   }
 
   void _showOrderActionError() {
@@ -3902,6 +3883,7 @@ class _OrdersManagerApiScreenState extends State<OrdersManagerScreen> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
+                              style: _managerSecondaryButtonStyle(),
                               onPressed: () {
                                 setState(() {
                                   _selectedStatus = _ManagerOrderApiStatus.all;
@@ -4211,7 +4193,9 @@ class _OrdersManagerScreenState extends State<OrdersManagerScreen> {
 }
 
 class ReportsManagerScreen extends StatefulWidget {
-  ReportsManagerScreen({super.key});
+  ReportsManagerScreen({super.key, this.initialCommercialName});
+
+  final String? initialCommercialName;
 
   @override
   State<ReportsManagerScreen> createState() => _ReportsManagerApiScreenState();
@@ -4312,6 +4296,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
   @override
   void initState() {
     super.initState();
+    _commercialFilter = widget.initialCommercialName?.trim() ?? '';
     _searchController.addListener(() => setState(() {}));
     _future = _loadData();
   }
@@ -4478,6 +4463,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
           ),
           revenue: 0,
           objective: 0,
+          orderTarget: 0,
           ordersCount: 0,
           clientsCount: 0,
           activitiesCount: 0,
@@ -4744,6 +4730,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
+                            style: _managerSecondaryButtonStyle(),
                             onPressed: () {
                               _resetFilters();
                               Navigator.pop(context);
@@ -6502,9 +6489,30 @@ class _ManagerReportHint extends StatelessWidget {
   );
 }
 
-class _ReportDetailScreen extends StatelessWidget {
+class _ReportDetailScreen extends StatefulWidget {
   const _ReportDetailScreen({required this.report});
   final _ManagerReportView report;
+
+  @override
+  State<_ReportDetailScreen> createState() => _ReportDetailScreenState();
+}
+
+class _ReportDetailScreenState extends State<_ReportDetailScreen> {
+  late bool _isRead;
+  late String _comments;
+  bool _markingRead = false;
+  bool _savingComment = false;
+  bool _exportingPdf = false;
+
+  bool get _hasPersistedReport => widget.report.sent && widget.report.id > 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _isRead = widget.report.read;
+    _comments = widget.report.comments;
+  }
+
   @override
   Widget build(BuildContext context) => _DetailOrderShell(
     child: SingleChildScrollView(
@@ -6520,14 +6528,14 @@ class _ReportDetailScreen extends StatelessWidget {
           SizedBox(height: 12),
           _ManagerDetailCard(
             children: [
-              _ManagerDetailLine('Commercial', report.commercialName),
-              _ManagerDetailLine('Téléphone', report.phone.ifEmpty('-')),
-              _ManagerDetailLine('Email', report.email.ifEmpty('-')),
-              _ManagerDetailLine('Ville', report.city),
-              _ManagerDetailLine('Matricule', report.matricule),
+              _ManagerDetailLine('Commercial', widget.report.commercialName),
+              _ManagerDetailLine('Téléphone', widget.report.phone.ifEmpty('-')),
+              _ManagerDetailLine('Email', widget.report.email.ifEmpty('-')),
+              _ManagerDetailLine('Ville', widget.report.city),
+              _ManagerDetailLine('Matricule', widget.report.matricule),
               _ManagerDetailLine(
                 'Date',
-                '${_dateLabel(report.date)} • ${_timeLabel(report.date)}',
+                '${_dateLabel(widget.report.date)} • ${_timeLabel(widget.report.date)}',
               ),
             ],
           ),
@@ -6537,39 +6545,179 @@ class _ReportDetailScreen extends StatelessWidget {
             children: [
               _ManagerDetailLine(
                 'Résumé',
-                report.summary.ifEmpty(
-                  report.sent ? '-' : 'Aucun rapport disponible.',
+                widget.report.summary.ifEmpty(
+                  widget.report.sent ? '-' : 'Aucun rapport disponible.',
                 ),
               ),
-              _ManagerDetailLine('Visites', '${report.clients}'),
-              _ManagerDetailLine('Appels', '${report.calls}'),
-              _ManagerDetailLine('Réunions', '${report.meetings}'),
-              _ManagerDetailLine('Tâches', '${report.tasks}'),
-              _ManagerDetailLine('Réclamations', '${report.claims}'),
-              _ManagerDetailLine('Commandes créées', '${report.orders}'),
-              _ManagerDetailLine('Commentaires', report.comments.ifEmpty('-')),
+              _ManagerDetailLine('Visites', '${widget.report.clients}'),
+              _ManagerDetailLine('Appels', '${widget.report.calls}'),
+              _ManagerDetailLine('Réunions', '${widget.report.meetings}'),
+              _ManagerDetailLine('Tâches', '${widget.report.tasks}'),
+              _ManagerDetailLine('Réclamations', '${widget.report.claims}'),
+              _ManagerDetailLine('Commandes créées', '${widget.report.orders}'),
+              _ManagerDetailLine('Commentaires', _comments.ifEmpty('-')),
             ],
           ),
-          SizedBox(height: 14),
-          _ManagerDetailCard(
-            title: 'Actions Manager',
-            children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _DetailActionChip('Marquer comme lu', Icons.check_circle),
-                  _DetailActionChip('Ajouter commentaire', Icons.message),
-                  _DetailActionChip('Télécharger PDF', Icons.download),
-                  _DetailActionChip('Partager', Icons.share),
-                ],
-              ),
-            ],
-          ),
+          if (_hasPersistedReport) ...[
+            SizedBox(height: 14),
+            _ManagerDetailCard(
+              title: 'Actions Manager',
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _DetailActionChip(
+                      _isRead ? 'Rapport lu' : 'Marquer comme lu',
+                      Icons.check_circle,
+                      onTap: _isRead || _markingRead ? null : _markAsRead,
+                      enabled: !_isRead,
+                      loading: _markingRead,
+                    ),
+                    _DetailActionChip(
+                      'Ajouter un commentaire',
+                      Icons.message,
+                      onTap: _savingComment ? null : _addComment,
+                      loading: _savingComment,
+                    ),
+                    _DetailActionChip(
+                      'Exporter le PDF',
+                      Icons.picture_as_pdf_outlined,
+                      onTap: _exportingPdf ? null : _exportPdf,
+                      loading: _exportingPdf,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     ),
   );
+
+  Future<void> _markAsRead() async {
+    if (!_hasPersistedReport || _isRead || _markingRead) return;
+    setState(() => _markingRead = true);
+    try {
+      await ApiService.markRapportRead(widget.report.id);
+      if (!mounted) return;
+      setState(() => _isRead = true);
+      _showResult('Rapport marqué comme lu.');
+    } catch (error) {
+      if (!mounted) return;
+      _showResult(
+        _managerActionError(
+          error,
+          'Impossible de marquer le rapport comme lu.',
+        ),
+        error: true,
+      );
+    } finally {
+      if (mounted) setState(() => _markingRead = false);
+    }
+  }
+
+  Future<void> _addComment() async {
+    if (!_hasPersistedReport || _savingComment) return;
+    final controller = TextEditingController();
+    var canSubmit = false;
+    final comment = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Commentaire manager'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 3,
+            maxLines: 6,
+            maxLength: 1000,
+            decoration: InputDecoration(
+              hintText: 'Ajouter une note pour le suivi du commercial',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              final next = value.trim().isNotEmpty;
+              if (next != canSubmit) {
+                setDialogState(() => canSubmit = next);
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: canSubmit
+                  ? () => Navigator.pop(dialogContext, controller.text.trim())
+                  : null,
+              child: Text('Enregistrer'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    if (comment == null || comment.isEmpty || !mounted) return;
+
+    setState(() => _savingComment = true);
+    try {
+      await ApiService.addRapportComment(
+        widget.report.id,
+        comment,
+        managerId: CurrentUserSession.currentUser?.id,
+      );
+      if (!mounted) return;
+      setState(() => _comments = comment);
+      _showResult('Commentaire enregistré.');
+    } catch (error) {
+      if (!mounted) return;
+      _showResult(
+        _managerActionError(error, 'Impossible d\'enregistrer le commentaire.'),
+        error: true,
+      );
+    } finally {
+      if (mounted) setState(() => _savingComment = false);
+    }
+  }
+
+  Future<void> _exportPdf() async {
+    if (!_hasPersistedReport || _exportingPdf) return;
+    setState(() => _exportingPdf = true);
+    try {
+      final bytes = await _buildReportPdf([widget.report]);
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'rapport_${widget.report.id}.pdf',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showResult(
+        _managerActionError(error, 'Impossible de générer le PDF.'),
+        error: true,
+      );
+    } finally {
+      if (mounted) setState(() => _exportingPdf = false);
+    }
+  }
+
+  void _showResult(String message, {bool error = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: error ? Colors.red.shade700 : null,
+        ),
+      );
+  }
+}
+
+String _managerActionError(Object error, String fallback) {
+  final message = error.toString().replaceFirst('Exception: ', '').trim();
+  return message.isEmpty ? fallback : message;
 }
 
 Future<Uint8List> _buildReportPdf(List<_ManagerReportView> reports) async {
@@ -6696,7 +6844,7 @@ class _ManagerObjectivesKpis extends StatelessWidget {
   Widget build(BuildContext context) {
     final orderTarget = data.items.fold<int>(
       0,
-      (sum, item) => sum + item.reportsCount,
+      (sum, item) => sum + item.orderTarget,
     );
     final revenueTarget = data.items.fold<double>(
       0,
@@ -6838,7 +6986,7 @@ class _ManagerObjectiveChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final withObj = data.items
-        .where((item) => item.objective > 0 || item.reportsCount > 0)
+        .where((item) => item.objective > 0 || item.orderTarget > 0)
         .length;
     final chips = [
       (_ObjectiveChipFilter.all, 'Tous', data.total),
@@ -6928,9 +7076,9 @@ class _ManagerObjectiveCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rate = commercial.objectiveRate;
-    final orderRate = commercial.reportsCount <= 0
+    final orderRate = commercial.orderTarget <= 0
         ? 0
-        : ((commercial.ordersCount / commercial.reportsCount) * 100).round();
+        : ((commercial.ordersCount / commercial.orderTarget) * 100).round();
     final color = _objectiveRateColor(rate);
     return InkWell(
       onTap: onTap,
@@ -7030,7 +7178,7 @@ class _ManagerObjectiveCard extends StatelessWidget {
                         ),
                         _ObjectiveInfoPill(
                           label: 'Objectif cmd',
-                          value: '${commercial.reportsCount}',
+                          value: '${commercial.orderTarget}',
                         ),
                         _ObjectiveInfoPill(
                           label: 'CA atteint',
@@ -8493,14 +8641,12 @@ class _ManagerFilterField extends StatelessWidget {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
-        decoration: InputDecoration(
-          labelText: label,
-          border: _managerInputBorder(),
-          enabledBorder: _managerInputBorder(),
-          focusedBorder: _managerInputBorder(
-            color: _DashboardManagerState.managerBrand,
-          ),
+        cursorColor: _DashboardManagerState.managerBrand,
+        style: TextStyle(
+          color: _DashboardManagerState.managerText,
+          fontWeight: FontWeight.w600,
         ),
+        decoration: _managerLightInputDecoration(labelText: label),
       ),
     );
   }
@@ -12258,8 +12404,21 @@ class _ManagerChoiceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListTile(
     contentPadding: EdgeInsets.zero,
+    selected: selected,
+    selectedTileColor: _DashboardManagerState.managerBrand.withValues(
+      alpha: .08,
+    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     onTap: onTap,
-    title: Text(label),
+    title: Text(
+      label,
+      style: TextStyle(
+        color: selected
+            ? _DashboardManagerState.managerBrand
+            : _DashboardManagerState.managerText,
+        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+      ),
+    ),
     trailing: selected
         ? Icon(Icons.check_circle, color: _DashboardManagerState.managerBrand)
         : null,
@@ -12663,10 +12822,30 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
     _ManagerCommercialsCache.put(
       commercial.copyWith(
         objective: saved.revenueTarget ?? 0,
-        reportsCount: saved.orderTarget ?? 0,
+        orderTarget: saved.orderTarget ?? 0,
       ),
     );
     setState(() {});
+  }
+
+  void _openCommercialOrders(_ManagerCommercialView commercial) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            OrdersManagerScreen(initialCommercialName: commercial.name),
+      ),
+    );
+  }
+
+  void _openCommercialReports(_ManagerCommercialView commercial) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            ReportsManagerScreen(initialCommercialName: commercial.name),
+      ),
+    );
   }
 
   @override
@@ -12677,6 +12856,8 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
         child: _ManagerCommercialApiDetail(
           commercial: apiCommercial,
           onSetObjectives: () => _openDefineObjective(apiCommercial),
+          onOpenOrders: () => _openCommercialOrders(apiCommercial),
+          onOpenReports: () => _openCommercialReports(apiCommercial),
         ),
       );
     }
@@ -12795,10 +12976,14 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
   const _ManagerCommercialApiDetail({
     required this.commercial,
     required this.onSetObjectives,
+    required this.onOpenOrders,
+    required this.onOpenReports,
   });
 
   final _ManagerCommercialView commercial;
   final VoidCallback onSetObjectives;
+  final VoidCallback onOpenOrders;
+  final VoidCallback onOpenReports;
 
   @override
   Widget build(BuildContext context) {
@@ -12915,16 +13100,22 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
           ),
           SizedBox(height: 14),
           _ManagerDetailCard(
-            title: 'Sections',
+            title: 'Accès rapides',
             children: [
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _DetailActionChip('Clients', Icons.people),
-                  _DetailActionChip('Commandes', Icons.receipt_long),
-                  _DetailActionChip('Activités', Icons.event_available),
-                  _DetailActionChip('Rapports', Icons.description),
+                  _DetailActionChip(
+                    'Voir les commandes',
+                    Icons.receipt_long,
+                    onTap: onOpenOrders,
+                  ),
+                  _DetailActionChip(
+                    'Voir les rapports',
+                    Icons.description,
+                    onTap: onOpenReports,
+                  ),
                 ],
               ),
             ],
@@ -13132,11 +13323,16 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
       _safeApiList(ApiService.getUsers),
       _safeApiList(ApiService.getFactures),
       _safeApiList(ApiService.getClients),
+      _safeApiList(ApiService.getRapports),
     ]);
     final orders = results[1]
         .whereType<Map>()
         .map((e) => _ManagerOrderView.fromJson(e.cast<String, dynamic>()))
         .where((order) => order.inRange(range))
+        .toList();
+    final reports = results[3]
+        .whereType<Map>()
+        .map((item) => item.cast<String, dynamic>())
         .toList();
     final items = <_ManagerCommercialView>[];
     for (final userJson in results[0].whereType<Map>().map(
@@ -13172,6 +13368,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
           ),
           revenue: validated.fold(0, (sum, order) => sum + order.total),
           objective: objective?.revenueTarget ?? 0,
+          orderTarget: objective?.orderTarget ?? 0,
           ordersCount: validated.length,
           clientsCount: results[2].whereType<Map>().where((client) {
             final commercialId = _readNullableInt(client, [
@@ -13183,7 +13380,16 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
             return commercialId == null || commercialId == id;
           }).length,
           activitiesCount: 0,
-          reportsCount: objective?.orderTarget ?? 0,
+          reportsCount: reports
+              .where(
+                (report) => _managerReportMatchesCommercial(
+                  report,
+                  commercialId: id,
+                  user: userJson,
+                  range: range,
+                ),
+              )
+              .length,
           hiredAt: _readDate(userJson, ['hire_date', 'created_at']),
         ),
       );
@@ -13213,7 +13419,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
   List<_ManagerCommercialView> _visible(List<_ManagerCommercialView> source) {
     final query = _searchController.text.trim().toLowerCase();
     return source.where((item) {
-      final hasObjective = item.objective > 0 || item.reportsCount > 0;
+      final hasObjective = item.objective > 0 || item.orderTarget > 0;
       final chipOk = switch (_chipFilter) {
         _ObjectiveChipFilter.all => true,
         _ObjectiveChipFilter.withObjective => hasObjective,
@@ -13447,6 +13653,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
+                              style: _managerSecondaryButtonStyle(),
                               onPressed: () {
                                 _resetFilters();
                                 Navigator.pop(context);
@@ -13549,36 +13756,67 @@ class _DetailKpi extends StatelessWidget {
 }
 
 class _DetailActionChip extends StatelessWidget {
-  const _DetailActionChip(this.label, this.icon);
+  const _DetailActionChip(
+    this.label,
+    this.icon, {
+    this.onTap,
+    this.enabled = true,
+    this.loading = false,
+  });
+
   final String label;
   final IconData icon;
+  final VoidCallback? onTap;
+  final bool enabled;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: _DashboardManagerState.managerBrand.withValues(alpha: .08),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(
-          color: _DashboardManagerState.managerBrand.withValues(alpha: .18),
+    final color = enabled
+        ? _DashboardManagerState.managerBrand
+        : _DashboardManagerState.managerMuted;
+    return Opacity(
+      opacity: enabled ? 1 : .62,
+      child: Material(
+        color: color.withValues(alpha: .08),
+        shape: StadiumBorder(
+          side: BorderSide(color: color.withValues(alpha: .18)),
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: _DashboardManagerState.managerBrand),
-          SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Roboto',
-              color: _DashboardManagerState.managerText,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
+        child: InkWell(
+          onTap: enabled && !loading ? onTap : null,
+          borderRadius: BorderRadius.circular(99),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (loading)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: color,
+                    ),
+                  )
+                else
+                  Icon(icon, size: 16, color: color),
+                SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Roboto',
+                    color: enabled
+                        ? _DashboardManagerState.managerText
+                        : _DashboardManagerState.managerMuted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -13590,9 +13828,9 @@ class _ObjectiveDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orderRate = commercial.reportsCount <= 0
+    final orderRate = commercial.orderTarget <= 0
         ? 0
-        : ((commercial.ordersCount / commercial.reportsCount) * 100).round();
+        : ((commercial.ordersCount / commercial.orderTarget) * 100).round();
     return _DetailOrderShell(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(18, 14, 18, 24),
@@ -13687,7 +13925,7 @@ class _ObjectiveDetailScreen extends StatelessWidget {
               children: [
                 _ManagerDetailLine(
                   'Objectif commandes',
-                  '${commercial.reportsCount}',
+                  '${commercial.orderTarget}',
                 ),
                 _ManagerDetailLine(
                   'Commandes réalisées',
@@ -13759,8 +13997,8 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
     _revenueController.text = commercial.objective > 0
         ? commercial.objective.round().toString()
         : '';
-    _ordersController.text = commercial.reportsCount > 0
-        ? commercial.reportsCount.toString()
+    _ordersController.text = commercial.orderTarget > 0
+        ? commercial.orderTarget.toString()
         : '';
   }
 
@@ -14226,8 +14464,8 @@ class _ObjectiveCommercialSummary extends StatelessWidget {
     final revenueTarget = commercial.objective > 0
         ? '${_formatNumber(commercial.objective.round())} DH'
         : 'Non defini';
-    final orderTarget = commercial.reportsCount > 0
-        ? '${commercial.reportsCount}'
+    final orderTarget = commercial.orderTarget > 0
+        ? '${commercial.orderTarget}'
         : 'Non defini';
 
     return Container(
@@ -15541,6 +15779,7 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
                   'Motif du refus',
                   style: TextStyle(
                     fontFamily: 'Roboto',
+                    color: _DashboardManagerState.managerText,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -15552,46 +15791,65 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
                   'Informations manquantes',
                   'Autre',
                 ])
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
+                  _ManagerRefusalReasonTile(
+                    label: option,
+                    selected: selected == option,
                     onTap: () => setSheetState(() => selected = option),
-                    leading: Icon(
-                      selected == option
-                          ? Icons.check_circle
-                          : Icons.circle_outlined,
-                      color: selected == option
-                          ? _DashboardManagerState.managerBrand
-                          : _DashboardManagerState.managerMuted,
-                    ),
-                    title: Text(option),
                   ),
+                SizedBox(height: 8),
                 TextField(
                   controller: reasonController,
                   minLines: 2,
                   maxLines: 4,
-                  decoration: InputDecoration(
+                  cursorColor: _DashboardManagerState.managerBrand,
+                  style: TextStyle(
+                    color: _DashboardManagerState.managerText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: _managerLightInputDecoration(
                     labelText: selected == 'Autre'
                         ? 'Motif obligatoire'
                         : 'Détail du motif',
-                    border: _managerInputBorder(),
-                    enabledBorder: _managerInputBorder(),
+                    hintText: 'Précisez le motif si nécessaire',
                   ),
+                  onChanged: (_) => setSheetState(() {}),
                 ),
                 SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _DashboardManagerState.managerRed,
-                      foregroundColor: Colors.white,
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: _managerSecondaryButtonStyle(),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('Annuler'),
+                      ),
                     ),
-                    onPressed: () {
-                      final typed = reasonController.text.trim();
-                      if (selected == 'Autre' && typed.isEmpty) return;
-                      Navigator.pop(context, typed.ifEmpty(selected));
-                    },
-                    child: Text('Confirmer le refus'),
-                  ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _DashboardManagerState.managerRed,
+                          disabledBackgroundColor: _DashboardManagerState
+                              .managerRed
+                              .withValues(alpha: .35),
+                          foregroundColor: Colors.white,
+                          disabledForegroundColor: Colors.white,
+                        ),
+                        onPressed:
+                            selected == 'Autre' &&
+                                reasonController.text.trim().isEmpty
+                            ? null
+                            : () {
+                                final typed = reasonController.text.trim();
+                                Navigator.pop(
+                                  context,
+                                  typed.ifEmpty(selected),
+                                );
+                              },
+                        child: Text('Confirmer le refus'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -16154,67 +16412,7 @@ class _ManagerApiOrderDetailState extends State<_ManagerApiOrderDetail> {
   }
 
   Future<void> _refuse() async {
-    final reason = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        String selected = 'Prix incorrect';
-        final customController = TextEditingController();
-        return AlertDialog(
-          title: Text('Motif de refus'),
-          content: StatefulBuilder(
-            builder: (context, setDialogState) {
-              final reasons = [
-                'Prix incorrect',
-                'Stock indisponible',
-                'Informations client incomplètes',
-                'Doublon',
-                'Autre',
-              ];
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final reason in reasons)
-                    ListTile(
-                      onTap: () => setDialogState(() => selected = reason),
-                      leading: Icon(
-                        selected == reason
-                            ? Icons.check_circle
-                            : Icons.circle_outlined,
-                        color: selected == reason
-                            ? _DashboardManagerState.managerBrand
-                            : _DashboardManagerState.managerMuted,
-                      ),
-                      title: Text(reason),
-                    ),
-                  if (selected == 'Autre')
-                    TextField(
-                      controller: customController,
-                      decoration: InputDecoration(labelText: 'Motif'),
-                    ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  selected == 'Autre'
-                      ? customController.text.trim().ifEmpty('Autre')
-                      : selected,
-                );
-              },
-              child: Text('Refuser'),
-            ),
-          ],
-        );
-      },
-    );
+    final reason = await _showManagerRefusalReasonDialog(context);
     if (reason == null) return;
     await _updateStatus('refusee', reason: reason);
   }
@@ -17511,6 +17709,225 @@ class _CommercialsSummary {
   final int totalRevenue;
   final int totalOrders;
   final int totalVisits;
+}
+
+bool _managerReportMatchesCommercial(
+  Map<String, dynamic> report, {
+  required int commercialId,
+  required Map<String, dynamic> user,
+  required DateTimeRange range,
+}) {
+  final reportCommercialId = _readNullableInt(report, [
+    'commercial_id',
+    'user_id',
+    'created_by',
+  ]);
+  if (reportCommercialId != null && reportCommercialId != commercialId) {
+    return false;
+  }
+  if (reportCommercialId == null) {
+    final reportName = _readString(report, [
+      'commercial_name',
+      'commercial',
+      'user_name',
+    ]).toLowerCase();
+    final userName = _readUserDisplayName(user).toLowerCase();
+    final reportEmail = _readString(report, ['email']).toLowerCase();
+    final userEmail = _readString(user, ['email']).toLowerCase();
+    final matchesIdentity =
+        (reportName.isNotEmpty &&
+            userName.isNotEmpty &&
+            reportName.contains(userName)) ||
+        (reportEmail.isNotEmpty &&
+            userEmail.isNotEmpty &&
+            reportEmail == userEmail);
+    if (!matchesIdentity) return false;
+  }
+  final date = _readDate(report, [
+    'report_date',
+    'date',
+    'sent_at',
+    'created_at',
+  ]);
+  return date == null || (!date.isBefore(range.start) && !date.isAfter(range.end));
+}
+
+Future<String?> _showManagerRefusalReasonDialog(BuildContext context) async {
+  final customController = TextEditingController();
+  var selected = 'Prix incorrect';
+  final result = await showDialog<String>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        final customReasonRequired = selected == 'Autre';
+        final canSubmit =
+            !customReasonRequired || customController.text.trim().isNotEmpty;
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          title: Text(
+            'Motif de refus',
+            style: TextStyle(
+              color: _DashboardManagerState.managerText,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final reason in [
+                  'Prix incorrect',
+                  'Stock indisponible',
+                  'Informations client incomplètes',
+                  'Doublon',
+                  'Autre',
+                ])
+                  _ManagerRefusalReasonTile(
+                    label: reason,
+                    selected: selected == reason,
+                    onTap: () => setDialogState(() => selected = reason),
+                  ),
+                if (customReasonRequired) ...[
+                  SizedBox(height: 10),
+                  TextField(
+                    controller: customController,
+                    autofocus: true,
+                    minLines: 2,
+                    maxLines: 4,
+                    cursorColor: _DashboardManagerState.managerBrand,
+                    style: TextStyle(
+                      color: _DashboardManagerState.managerText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: _managerLightInputDecoration(
+                      labelText: 'Motif obligatoire',
+                      hintText: 'Précisez le motif du refus',
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: _DashboardManagerState.managerText,
+              ),
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('Annuler'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _DashboardManagerState.managerRed,
+                disabledBackgroundColor: _DashboardManagerState.managerRed
+                    .withValues(alpha: .35),
+                foregroundColor: Colors.white,
+                disabledForegroundColor: Colors.white,
+              ),
+              onPressed: canSubmit
+                  ? () => Navigator.pop(
+                      dialogContext,
+                      customReasonRequired
+                          ? customController.text.trim()
+                          : selected,
+                    )
+                  : null,
+              child: Text('Refuser'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+  customController.dispose();
+  return result;
+}
+
+class _ManagerRefusalReasonTile extends StatelessWidget {
+  const _ManagerRefusalReasonTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? _DashboardManagerState.managerBrand
+        : _DashboardManagerState.managerText;
+    return Padding(
+      padding: EdgeInsets.only(bottom: 4),
+      child: ListTile(
+        dense: true,
+        selected: selected,
+        selectedTileColor: _DashboardManagerState.managerBrand.withValues(
+          alpha: .09,
+        ),
+        tileColor: Colors.white,
+        contentPadding: EdgeInsets.symmetric(horizontal: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onTap: onTap,
+        leading: Icon(
+          selected ? Icons.check_circle : Icons.circle_outlined,
+          color: selected
+              ? _DashboardManagerState.managerBrand
+              : _DashboardManagerState.managerMuted,
+        ),
+        title: Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 15,
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+InputDecoration _managerLightInputDecoration({
+  required String labelText,
+  String? hintText,
+}) {
+  return InputDecoration(
+    labelText: labelText,
+    hintText: hintText,
+    labelStyle: TextStyle(color: _DashboardManagerState.managerMuted),
+    floatingLabelStyle: TextStyle(
+      color: _DashboardManagerState.managerBrand,
+      fontWeight: FontWeight.w700,
+    ),
+    hintStyle: TextStyle(
+      color: _DashboardManagerState.managerMuted.withValues(alpha: .82),
+    ),
+    filled: true,
+    fillColor: Color(0xFFF8FAFC),
+    border: _managerInputBorder(
+      color: _DashboardManagerState.managerBorder,
+    ),
+    enabledBorder: _managerInputBorder(
+      color: _DashboardManagerState.managerBorder,
+    ),
+    focusedBorder: _managerInputBorder(
+      color: _DashboardManagerState.managerBrand,
+    ),
+  );
+}
+
+ButtonStyle _managerSecondaryButtonStyle() {
+  return OutlinedButton.styleFrom(
+    backgroundColor: Colors.white,
+    foregroundColor: _DashboardManagerState.managerText,
+    side: BorderSide(color: _DashboardManagerState.managerBorder),
+  );
 }
 
 OutlineInputBorder _managerInputBorder({

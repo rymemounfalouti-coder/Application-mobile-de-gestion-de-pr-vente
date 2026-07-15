@@ -42,3 +42,50 @@ class TestDelete:
         resp = client.delete("/users/4")
         assert resp.status_code == 200
         assert resp.get_json()["id"] == 4
+
+
+class TestPreferences:
+    def test_user_can_update_own_preferences(self, client, fake_db, auth_headers):
+        conn = fake_db(
+            FakeCursor(
+                fetchone=[
+                    {
+                        "user_id": 3,
+                        "preferences": {"language": "fr"},
+                    }
+                ]
+            )
+        )
+
+        resp = client.patch(
+            "/users/3/preferences",
+            json={"language": "fr"},
+            headers=auth_headers("commercial", user_id=3),
+        )
+
+        assert resp.status_code == 200
+        assert resp.get_json()["preferences"]["language"] == "fr"
+        assert "CREATE TABLE IF NOT EXISTS user_preferences" in conn._cursor.sql
+        assert conn.committed == 1
+
+    def test_user_cannot_update_another_users_preferences(
+        self, client, fake_db, auth_headers
+    ):
+        fake_db(FakeCursor())
+
+        resp = client.patch(
+            "/users/4/preferences",
+            json={"theme": "dark"},
+            headers=auth_headers("commercial", user_id=3),
+        )
+
+        assert resp.status_code == 403
+
+    def test_unknown_preferences_are_rejected(self, client, fake_db):
+        fake_db(FakeCursor())
+
+        resp = client.patch(
+            "/users/1/preferences", json={"is_admin": True}
+        )
+
+        assert resp.status_code == 400
