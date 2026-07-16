@@ -16,6 +16,7 @@ import '../../mockData/manager_dashboard.dart';
 import '../../mockData/manager_orders.dart';
 import '../../mockData/manager_reports.dart';
 import '../../services/commercial_objectives_service.dart';
+import '../../services/manager_revenue_rules.dart';
 import '../../settings/app_appearance_controller.dart';
 import '../../theme/app_palette.dart';
 
@@ -268,7 +269,11 @@ class _ManagerHomeData {
     final validated = orders
         .where((order) => order.status == _ManagerOrderApiStatus.validated)
         .toList();
-    final revenue = orders.fold<double>(0, (sum, order) => sum + order.total);
+    final revenue = sumConfirmedManagerRevenue(
+      orders,
+      statusOf: (order) => _statusFilterValue(order.status),
+      amountOf: (order) => order.total,
+    );
     final pendingOrders = orders
         .where((o) => o.status == _ManagerOrderApiStatus.pending)
         .length;
@@ -277,7 +282,7 @@ class _ManagerHomeData {
         .length;
 
     final byCommercial = <int, _ManagerCommercialPerformance>{};
-    for (final order in orders) {
+    for (final order in validated) {
       final commercialId = order.commercialId ?? 0;
       final existing = byCommercial[commercialId];
       final userName = usersById[commercialId]?.name ?? '';
@@ -318,7 +323,7 @@ class _ManagerHomeData {
       activeCommercials: activeCommercials,
       activeClients: activeClients,
       objectiveRate: objectiveRate,
-      revenueSeries: _buildRevenueSeries(orders, range, period),
+      revenueSeries: _buildRevenueSeries(validated, range, period),
       topCommercials: top5,
       recentActivities: _buildRecentActivities(orders),
       unreadNotifications: unreadNotifications,
@@ -462,10 +467,13 @@ List<_ManagerRevenuePoint> _buildRevenueSeries(
   DateTimeRange range,
   _ManagerDashboardPeriod period,
 ) {
+  final confirmedOrders = orders
+      .where((order) => order.status == _ManagerOrderApiStatus.validated)
+      .toList();
   final days = range.end.difference(range.start).inDays + 1;
   if (period == _ManagerDashboardPeriod.today) {
     return List.generate(24, (hour) {
-      final amount = orders
+      final amount = confirmedOrders
           .where((order) => order.date?.hour == hour)
           .fold<double>(0, (sum, order) => sum + order.total);
       return _ManagerRevenuePoint(label: '${hour}h', amount: amount);
@@ -478,7 +486,7 @@ List<_ManagerRevenuePoint> _buildRevenueSeries(
         range.start.month,
         range.start.day + index,
       );
-      final amount = orders
+      final amount = confirmedOrders
           .where(
             (order) =>
                 order.date != null &&
@@ -500,7 +508,7 @@ List<_ManagerRevenuePoint> _buildRevenueSeries(
     months['${cursor.month}/${cursor.year}'] = 0;
     cursor = DateTime(cursor.year, cursor.month + 1, 1);
   }
-  for (final order in orders) {
+  for (final order in confirmedOrders) {
     final date = order.date;
     if (date == null) continue;
     final key = '${date.month}/${date.year}';
@@ -576,7 +584,7 @@ bool _isActiveStatus(String status) {
 
 _ManagerOrderApiStatus _parseOrderStatus(String raw) {
   final value = raw.toLowerCase().trim();
-  if (value.contains('valid') || value.contains('livr')) {
+  if (managerOrderContributesToRevenue(value)) {
     return _ManagerOrderApiStatus.validated;
   }
   if (value.contains('refus') ||
