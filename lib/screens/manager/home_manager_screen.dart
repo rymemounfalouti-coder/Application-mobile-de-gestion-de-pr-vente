@@ -13992,18 +13992,24 @@ class _DefineObjectiveScreen extends StatefulWidget {
 }
 
 class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
-  _ManagerCommercialView? _selected;
+  // The same objective can be assigned to several commercials at once.
+  final Set<int> _selectedIds = <int>{};
   final _revenueController = TextEditingController();
   final _ordersController = TextEditingController();
   final _commentController = TextEditingController();
   bool _saving = false;
 
+  bool get _isSingleCommercial => widget.commercials.length == 1;
+
   @override
   void initState() {
     super.initState();
-    if (widget.commercials.isNotEmpty) {
-      _selected = widget.commercials.first;
-      _fill(_selected!);
+    // Opened from one commercial's page: keep today's behaviour (preselected +
+    // prefilled). Opened from the Objectifs tab: the manager picks who gets it.
+    if (_isSingleCommercial) {
+      final only = widget.commercials.first;
+      _selectedIds.add(only.id);
+      _fill(only);
     }
   }
 
@@ -14067,81 +14073,33 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
                     icon: Icons.people_outline,
                     text: 'Aucun commercial disponible.',
                   )
-                else ...[
-                  PopupMenuButton<_ManagerCommercialView>(
-                    tooltip: 'Choisir un commercial',
-                    color: Colors.white,
-                    elevation: 10,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    onSelected: (commercial) {
+                else if (_isSingleCommercial) ...[
+                  _ObjectiveCommercialSummary(
+                    commercial: widget.commercials.first,
+                  ),
+                ] else ...[
+                  _ObjectiveCommercialMultiSelect(
+                    commercials: widget.commercials,
+                    selectedIds: _selectedIds,
+                    onToggle: (commercial) {
                       setState(() {
-                        _selected = commercial;
-                        _fill(commercial);
+                        if (!_selectedIds.remove(commercial.id)) {
+                          _selectedIds.add(commercial.id);
+                        }
                       });
                     },
-                    itemBuilder: (context) => widget.commercials
-                        .map(
-                          (commercial) => PopupMenuItem<_ManagerCommercialView>(
-                            value: commercial,
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 16,
-                                  backgroundColor:
-                                      _DashboardManagerState.iconBrandBg,
-                                  child: Text(
-                                    _initials(commercial.name).ifEmpty('C'),
-                                    style: TextStyle(
-                                      color:
-                                          _DashboardManagerState.managerBrand,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        commercial.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: _objectiveInputTextStyle(),
-                                      ),
-                                      Text(
-                                        commercial.email.ifEmpty(
-                                          commercial.role,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontFamily: 'Roboto',
-                                          color: _DashboardManagerState
-                                              .managerMuted,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    child: _ObjectiveCommercialPicker(commercial: _selected),
+                    onToggleAll: () {
+                      setState(() {
+                        if (_selectedIds.length == widget.commercials.length) {
+                          _selectedIds.clear();
+                        } else {
+                          _selectedIds
+                            ..clear()
+                            ..addAll(widget.commercials.map((c) => c.id));
+                        }
+                      });
+                    },
                   ),
-                  if (_selected != null) ...[
-                    SizedBox(height: 12),
-                    _ObjectiveCommercialSummary(commercial: _selected!),
-                  ],
                   SizedBox(height: 16),
                   _ObjectiveLabeledField(
                     controller: _revenueController,
@@ -14209,7 +14167,11 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
                                 : Icon(Icons.save_outlined, size: 18),
                             label: FittedBox(
                               child: Text(
-                                _saving ? 'Sauvegarde...' : 'Enregistrer',
+                                _saving
+                                    ? 'Sauvegarde...'
+                                    : _selectedIds.length > 1
+                                    ? 'Enregistrer (${_selectedIds.length})'
+                                    : 'Enregistrer',
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
@@ -14235,35 +14197,103 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
     );
   }
 
+  void _showSaveError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      );
+  }
+
+  /// Selected commercials whose existing objective this save would replace.
+  List<_ManagerCommercialView> get _objectivesToReplace => widget.commercials
+      .where(
+        (commercial) =>
+            _selectedIds.contains(commercial.id) &&
+            (commercial.objective > 0 || commercial.orderTarget > 0),
+      )
+      .toList();
+
+  Future<bool> _confirmReplace(List<_ManagerCommercialView> existing) async {
+    final many = existing.length > 1;
+    final names = existing.map((commercial) => commercial.name).join(', ');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          many
+              ? '${existing.length} commerciaux ont déjà un objectif'
+              : '${existing.first.name} a déjà un objectif',
+        ),
+        content: Text(
+          many
+              ? 'Leur objectif actuel sera remplacé : $names.'
+              : 'Son objectif actuel sera remplacé.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _DashboardManagerState.managerBrand,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Remplacer'),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
   Future<void> _save() async {
-    final selected = _selected;
     final revenue = double.tryParse(
       _revenueController.text.replaceAll(',', '.'),
     );
     final orders = int.tryParse(_ordersController.text.trim());
-    if (selected == null ||
-        revenue == null ||
-        revenue <= 0 ||
-        orders == null ||
-        orders <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Le CA doit être positif et les commandes supérieures à zéro.',
-          ),
-        ),
+    if (_selectedIds.isEmpty) {
+      _showSaveError('Sélectionnez au moins un commercial.');
+      return;
+    }
+    if (revenue == null || revenue <= 0 || orders == null || orders <= 0) {
+      _showSaveError(
+        'Le CA doit être positif et les commandes supérieures à zéro.',
       );
       return;
     }
+    // Editing one person's own page is a deliberate edit, so it doesn't ask.
+    // A bulk assignment can silently wipe objectives, so it does.
+    if (!_isSingleCommercial) {
+      final replacing = _objectivesToReplace;
+      if (replacing.isNotEmpty && !await _confirmReplace(replacing)) return;
+      if (!mounted) return;
+    }
     setState(() => _saving = true);
-    final objective = CommercialObjective(
-      commercialId: selected.id,
-      revenueTarget: revenue,
-      orderTarget: orders,
-    );
-    await CommercialObjectivesService.instance.saveObjective(objective);
+    // Same objective for everyone selected.
+    final objectives = [
+      for (final id in _selectedIds)
+        CommercialObjective(
+          commercialId: id,
+          revenueTarget: revenue,
+          orderTarget: orders,
+        ),
+    ];
+    try {
+      await CommercialObjectivesService.instance.saveObjectives(objectives);
+    } catch (error) {
+      debugPrint('Échec de l’enregistrement des objectifs: $error');
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _showSaveError("Impossible d'enregistrer les objectifs.");
+      return;
+    }
     if (!mounted) return;
-    Navigator.pop(context, objective);
+    // The single-commercial caller updates its cache from the returned
+    // objective; the bulk caller just refreshes from storage.
+    Navigator.pop(context, objectives.length == 1 ? objectives.first : null);
   }
 }
 
@@ -14276,86 +14306,155 @@ TextStyle _objectiveInputTextStyle() {
   );
 }
 
-class _ObjectiveCommercialPicker extends StatelessWidget {
-  const _ObjectiveCommercialPicker({required this.commercial});
+/// Lets the manager assign one objective to several commercials at once.
+class _ObjectiveCommercialMultiSelect extends StatelessWidget {
+  const _ObjectiveCommercialMultiSelect({
+    required this.commercials,
+    required this.selectedIds,
+    required this.onToggle,
+    required this.onToggleAll,
+  });
 
-  final _ManagerCommercialView? commercial;
+  final List<_ManagerCommercialView> commercials;
+  final Set<int> selectedIds;
+  final ValueChanged<_ManagerCommercialView> onToggle;
+  final VoidCallback onToggleAll;
 
   @override
   Widget build(BuildContext context) {
-    final name = commercial?.name ?? 'Choisir un commercial';
-    final meta = commercial == null
-        ? 'Sélectionnez la personne à suivre'
-        : commercial!.email.ifEmpty(commercial!.role);
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: _DashboardManagerState.managerBrand.withValues(alpha: .08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _DashboardManagerState.managerBrand.withValues(alpha: .28),
-        ),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: Colors.white,
-            child: Icon(
-              Icons.person_search_rounded,
-              color: _DashboardManagerState.managerBrand,
-              size: 21,
+    final allSelected = selectedIds.length == commercials.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Commerciaux (${selectedIds.length}/${commercials.length})',
+                style: TextStyle(
+                  fontFamily: 'Roboto',
+                  color: _DashboardManagerState.managerText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
+            TextButton(
+              onPressed: onToggleAll,
+              style: TextButton.styleFrom(
+                foregroundColor: _DashboardManagerState.managerBrand,
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                allSelected ? 'Tout désélectionner' : 'Tout sélectionner',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _DashboardManagerState.managerBorder),
           ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Commercial',
-                  style: TextStyle(
-                    fontFamily: 'Roboto',
-                    color: _DashboardManagerState.managerBrand,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
+          child: Column(
+            children: [
+              for (var i = 0; i < commercials.length; i++) ...[
+                if (i != 0)
+                  Divider(
+                    height: 1,
+                    color: _DashboardManagerState.managerBorder,
                   ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Roboto',
-                    color: _DashboardManagerState.managerText,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  meta,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Roboto',
-                    color: _DashboardManagerState.managerMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
+                _ObjectiveCommercialCheckRow(
+                  commercial: commercials[i],
+                  selected: selectedIds.contains(commercials[i].id),
+                  onTap: () => onToggle(commercials[i]),
                 ),
               ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ObjectiveCommercialCheckRow extends StatelessWidget {
+  const _ObjectiveCommercialCheckRow({
+    required this.commercial,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _ManagerCommercialView commercial;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasObjective = commercial.objective > 0 || commercial.orderTarget > 0;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Checkbox(
+              value: selected,
+              onChanged: (_) => onTap(),
+              activeColor: _DashboardManagerState.managerBrand,
+              visualDensity: VisualDensity.compact,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-          ),
-          SizedBox(width: 8),
-          Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: _DashboardManagerState.managerBrand,
-            size: 22,
-          ),
-        ],
+            SizedBox(width: 6),
+            CircleAvatar(
+              radius: 15,
+              backgroundColor: _DashboardManagerState.iconBrandBg,
+              child: Text(
+                _initials(commercial.name).ifEmpty('C'),
+                style: TextStyle(
+                  color: _DashboardManagerState.managerBrand,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    commercial.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _objectiveInputTextStyle(),
+                  ),
+                  Text(
+                    // Warn that an existing objective will be overwritten.
+                    hasObjective
+                        ? 'Objectif actuel : ${_formatNumber(commercial.objective.round())} DH · ${commercial.orderTarget} cmd'
+                        : 'Aucun objectif défini',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      color: hasObjective
+                          ? _DashboardManagerState.managerOrange
+                          : _DashboardManagerState.managerMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -108,6 +108,102 @@ void main() {
     },
   );
 
+  test(
+    'bulk save assigns one objective to every commercial in one write',
+    () async {
+      // Start from an existing (empty) store so the default-seeding write
+      // doesn't get counted against the bulk write.
+      var stored = jsonEncode({
+        'version': 1,
+        'objectives': <Map<String, Object?>>[],
+      });
+      var writes = 0;
+      final service = CommercialObjectivesService.forWebTesting(
+        readStore: (_) async => stored,
+        writeStore: (_, contents) async {
+          writes++;
+          stored = contents;
+        },
+      );
+
+      await service.saveObjectives([
+        for (final id in [11, 12, 13])
+          CommercialObjective(
+            commercialId: id,
+            orderTarget: 8,
+            revenueTarget: 40000,
+          ),
+      ]);
+
+      expect(
+        writes,
+        1,
+        reason: 'bulk assignment must not write once per person',
+      );
+      for (final id in [11, 12, 13]) {
+        final saved = await service.getObjective(id);
+        expect(saved?.orderTarget, 8);
+        expect(saved?.revenueTarget, 40000);
+      }
+    },
+  );
+
+  test(
+    'bulk save overwrites existing objectives and keeps untouched ones',
+    () async {
+      var stored = jsonEncode({
+        'version': 1,
+        'objectives': [
+          {'commercial_id': 5, 'order_target': 2, 'revenue_target': 1000},
+          {'commercial_id': 6, 'order_target': 3, 'revenue_target': 2000},
+        ],
+      });
+      final service = CommercialObjectivesService.forWebTesting(
+        readStore: (_) async => stored,
+        writeStore: (_, contents) async => stored = contents,
+      );
+
+      await service.saveObjectives([
+        CommercialObjective(
+          commercialId: 5,
+          orderTarget: 20,
+          revenueTarget: 90000,
+        ),
+      ]);
+
+      expect((await service.getObjective(5))?.orderTarget, 20);
+      expect(
+        (await service.getObjective(6))?.orderTarget,
+        3,
+        reason: 'commercials outside the selection must keep their objective',
+      );
+    },
+  );
+
+  test('a failed bulk save applies to nobody', () async {
+    final stored = jsonEncode({
+      'version': 1,
+      'objectives': [
+        {'commercial_id': 7, 'order_target': 3, 'revenue_target': 10000},
+      ],
+    });
+    final service = CommercialObjectivesService.forWebTesting(
+      readStore: (_) async => stored,
+      writeStore: (_, _) async => throw Exception('Quota dépassé.'),
+    );
+
+    expect((await service.getObjective(7))?.orderTarget, 3);
+    await expectLater(
+      service.saveObjectives([
+        CommercialObjective(commercialId: 7, orderTarget: 99, revenueTarget: 1),
+        CommercialObjective(commercialId: 8, orderTarget: 99, revenueTarget: 1),
+      ]),
+      throwsA(isA<Exception>()),
+    );
+    expect((await service.getObjective(7))?.orderTarget, 3);
+    expect((await service.getObjective(8)), isNull);
+  });
+
   test('failed web save rolls the in-memory objective back', () async {
     final stored = jsonEncode({
       'version': 1,

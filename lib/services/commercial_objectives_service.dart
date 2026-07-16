@@ -198,4 +198,40 @@ class CommercialObjectivesService {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
+
+  /// Assigns several objectives in one shot (same target to many commercials).
+  /// Written as a single storage write so a bulk assignment can't half-apply,
+  /// leaving some commercials with the objective and others without.
+  Future<void> saveObjectives(Iterable<CommercialObjective> objectives) async {
+    final pending = objectives.toList();
+    if (pending.isEmpty) return;
+
+    if (_useWebStorage) {
+      final current = await _loadWebObjectives();
+      final snapshot = Map<int, CommercialObjective>.from(current);
+      for (final objective in pending) {
+        current[objective.commercialId] = objective;
+      }
+      try {
+        await _writeWebObjectives(current);
+      } catch (_) {
+        // Keep the in-memory cache matching what is actually stored.
+        _webObjectives = snapshot;
+        rethrow;
+      }
+      return;
+    }
+
+    await _ensureTable();
+    final db = await DatabaseHelper.instance.database;
+    final batch = db.batch();
+    for (final objective in pending) {
+      batch.insert(
+        'commercial_objectives',
+        objective.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
 }

@@ -12678,6 +12678,7 @@ class _DashboardTab extends StatelessWidget {
           clients: clients,
           createdActivities: createdActivities,
           recentActivities: recentActivities,
+          objective: objective,
         ),
       ),
     );
@@ -12772,6 +12773,7 @@ class _DashboardTab extends StatelessWidget {
           currentEmail: currentEmail,
           city: _primaryCity(clients),
           summary: summary,
+          objective: objective,
           orders: orders,
           visits: visits,
           createdActivities: createdActivities,
@@ -12911,6 +12913,7 @@ class _ActivityHistoryPage extends StatefulWidget {
     required this.clients,
     required this.createdActivities,
     required this.recentActivities,
+    this.objective,
   });
 
   final String commercialName;
@@ -12919,6 +12922,7 @@ class _ActivityHistoryPage extends StatefulWidget {
   final List<CommercialClient> clients;
   final List<_CommercialActivityItem> createdActivities;
   final List<_ActivityHistoryItem> recentActivities;
+  final CommercialObjective? objective;
 
   @override
   State<_ActivityHistoryPage> createState() => _ActivityHistoryPageState();
@@ -13125,6 +13129,7 @@ class _ActivityHistoryPageState extends State<_ActivityHistoryPage> {
               currentEmail: CurrentUserSession.currentUser?.email ?? '',
               city: _primaryCity(widget.clients),
               summary: CommercialDashboardData.empty().summary,
+              objective: widget.objective,
               orders: widget.orders,
               visits: widget.visits,
               createdActivities: widget.createdActivities,
@@ -14185,6 +14190,7 @@ class _DailyReportPage extends StatefulWidget {
     required this.currentEmail,
     required this.city,
     required this.summary,
+    this.objective,
     required this.orders,
     required this.visits,
     required this.createdActivities,
@@ -14195,6 +14201,9 @@ class _DailyReportPage extends StatefulWidget {
   final String currentEmail;
   final String city;
   final CommercialDashboardSummary summary;
+  // The revenue objective the manager actually set — same source the
+  // homepage's "Objectif CA" card reads, so the two stay in sync.
+  final CommercialObjective? objective;
   final List<CommercialOrder> orders;
   final List<TourVisit> visits;
   final List<_CommercialActivityItem> createdActivities;
@@ -14227,12 +14236,15 @@ class _DailyReportPageState extends State<_DailyReportPage> {
     if (mounted) setState(() {});
   }
 
+  // The daily report reflects confirmed business only: a pending order isn't
+  // counted (in the summary, detail list, PDF or manager payload) until it's
+  // validated — same rule the monthly objective uses.
   List<CommercialOrder> get _reportOrders {
-    final sameDayOrders = widget.orders.where((order) {
+    return widget.orders.where((order) {
+      if (!_isValidatedStatus(order.status)) return false;
       final date = _parseOrderDate(order.date);
       return date != null && DateUtils.isSameDay(date, _reportDate);
     }).toList();
-    return sameDayOrders;
   }
 
   List<_CommercialActivityItem> get _reportActivities {
@@ -14273,19 +14285,22 @@ class _DailyReportPageState extends State<_DailyReportPage> {
 
   int get _newClients => _runtimeClientsForEmail(widget.currentEmail).length;
 
-  int get _visitTarget => widget.summary.dailyVisitsTotal <= 0
-      ? _reportVisits.length
-      : widget.summary.dailyVisitsTotal;
-
-  double get _revenueTarget => widget.summary.monthlyTarget <= 0
-      ? _revenue
-      : widget.summary.monthlyTarget / 20;
-
-  double get _visitProgress =>
-      _visitTarget <= 0 ? 0 : (_visitedCount / _visitTarget).clamp(0, 1);
-
-  double get _revenueProgress =>
-      _revenueTarget <= 0 ? 0 : (_revenue / _revenueTarget).clamp(0, 1);
+  // The report's objective section tracks the MONTHLY objective (the only one
+  // anyone sets), computed by the exact same class the homepage uses — so the
+  // two screens can never disagree. Only validated orders in the current month
+  // count toward the manager-set target. Ranking is irrelevant here.
+  _DashboardMetrics get _metrics => _DashboardMetrics.from(
+    summary: widget.summary,
+    orders: widget.orders,
+    visits: widget.visits,
+    createdActivities: widget.createdActivities,
+    objective: widget.objective,
+    ranking: _CommercialRanking(
+      rank: 0,
+      totalCommercials: 0,
+      hasActivity: false,
+    ),
+  );
 
   Future<void> _pickReportDate() async {
     final picked = await showDatePicker(
@@ -14326,7 +14341,7 @@ class _DailyReportPageState extends State<_DailyReportPage> {
           ),
           pw.Text("Clients visités : $_visitedCount"),
           pw.Text("Commandes créées : ${_reportOrders.length}"),
-          pw.Text("Chiffre d'affaires réalisé : ${_reportMoney(_revenue)}"),
+          pw.Text("CA réalisé : ${_reportMoney(_revenue)}"),
           pw.Text('Appels de suivi : $_followUpCalls'),
           pw.Text('Nouveaux clients : $_newClients'),
           pw.SizedBox(height: 18),
@@ -14495,14 +14510,7 @@ class _DailyReportPageState extends State<_DailyReportPage> {
                           newClients: _newClients,
                         ),
                         SizedBox(height: 18),
-                        _ReportObjectivesSection(
-                          visited: _visitedCount,
-                          visitTarget: _visitTarget,
-                          revenue: _revenue,
-                          revenueTarget: _revenueTarget,
-                          visitProgress: _visitProgress,
-                          revenueProgress: _revenueProgress,
-                        ),
+                        _ReportObjectivesSection(metrics: _metrics),
                         SizedBox(height: 18),
                         _ReportVisitsCard(
                           visits: _reportVisits.take(3).toList(),
@@ -14744,7 +14752,7 @@ class _ReportKpiCard extends StatelessWidget {
         Icons.monetization_on_rounded,
         Color(0xFF8B5CF6),
         _reportMoney(revenue),
-        "Chiffre d'affaires réalisé",
+        "CA réalisé",
         "",
       ),
       _ReportKpiData(
@@ -14786,21 +14794,11 @@ class _ReportKpiCard extends StatelessWidget {
 }
 
 class _ReportObjectivesSection extends StatelessWidget {
-  _ReportObjectivesSection({
-    required this.visited,
-    required this.visitTarget,
-    required this.revenue,
-    required this.revenueTarget,
-    required this.visitProgress,
-    required this.revenueProgress,
-  });
+  _ReportObjectivesSection({required this.metrics});
 
-  final int visited;
-  final int visitTarget;
-  final double revenue;
-  final double revenueTarget;
-  final double visitProgress;
-  final double revenueProgress;
+  // Monthly objective progress — same numbers as the homepage's performance
+  // card. Nobody sets a per-day target, so the report tracks the month.
+  final _DashboardMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
@@ -14808,19 +14806,23 @@ class _ReportObjectivesSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ReportSectionHeader(title: 'Objectifs du jour'),
+          _ReportSectionHeader(title: 'Objectif mensuel'),
           SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: _ObjectiveMiniCard(
-                  icon: Icons.groups_rounded,
+                  icon: Icons.receipt_long_rounded,
                   color: Color(0xFF22C55E),
-                  title: 'Objectif visites',
-                  value: '$visited / $visitTarget',
-                  suffix: "visites réalisées",
-                  percent: visitProgress,
-                  gap: 'Gap : ${mathMax(visitTarget - visited, 0)} visites',
+                  title: 'Objectif commandes',
+                  value: metrics.hasOrderTarget
+                      ? '${metrics.monthlyOrders} / ${metrics.orderTarget} commandes'
+                      : 'Objectif non défini',
+                  suffix: 'commandes validées',
+                  percent: metrics.orderProgress,
+                  gap: metrics.hasOrderTarget
+                      ? 'Reste : ${mathMax(metrics.orderTarget! - metrics.monthlyOrders, 0)} commandes'
+                      : 'Défini par le manager',
                 ),
               ),
               SizedBox(width: 12),
@@ -14829,12 +14831,14 @@ class _ReportObjectivesSection extends StatelessWidget {
                   icon: Icons.monetization_on_rounded,
                   color: Color(0xFF8B5CF6),
                   title: 'Objectif CA',
-                  value:
-                      '${_reportMoney(revenue)} / ${_reportMoney(revenueTarget)}',
-                  suffix: "chiffre d'affaires réalisé",
-                  percent: revenueProgress,
-                  gap:
-                      'Gap : ${_reportMoney(mathMaxDouble(revenueTarget - revenue, 0))}',
+                  value: metrics.hasRevenueTarget
+                      ? '${_money(metrics.monthlyRevenue)} / ${_money(metrics.monthlyTarget!)} DH'
+                      : 'Objectif non défini',
+                  suffix: "CA validé ce mois",
+                  percent: metrics.revenueProgress,
+                  gap: metrics.hasRevenueTarget
+                      ? 'Reste : ${_money(mathMaxDouble(metrics.monthlyTarget! - metrics.monthlyRevenue, 0))} DH'
+                      : 'Défini par le manager',
                 ),
               ),
             ],
@@ -15344,14 +15348,17 @@ class _ReportMetaLine extends StatelessWidget {
         Icon(icon, color: _HomeCommercialState.brandPrimary, size: 20),
         SizedBox(width: 10),
         Expanded(
-          child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: _HomeCommercialState.textDark,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              text,
+              maxLines: 1,
+              style: TextStyle(
+                color: _HomeCommercialState.textDark,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ),
@@ -15402,19 +15409,21 @@ class _ReportKpiTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 6),
+      padding: EdgeInsets.symmetric(horizontal: 3),
       child: Column(
         children: [
           _ReportRoundIcon(icon: data.icon, color: data.color),
           SizedBox(height: 10),
-          Text(
-            data.value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: _HomeCommercialState.textDark,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              data.value,
+              maxLines: 1,
+              style: TextStyle(
+                color: _HomeCommercialState.textDark,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           SizedBox(height: 6),
@@ -15425,7 +15434,7 @@ class _ReportKpiTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: _HomeCommercialState.textMuted,
-              fontSize: 11,
+              fontSize: 10,
               height: 1.15,
               fontWeight: FontWeight.w800,
             ),
@@ -15488,12 +15497,13 @@ class _ObjectiveMiniCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: _HomeCommercialState.textDark,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
+                    height: 1.1,
                   ),
                 ),
               ),
@@ -15503,17 +15513,21 @@ class _ObjectiveMiniCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
+              SizedBox(width: 6),
               Text(
                 '${(percent * 100).round()}%',
                 style: TextStyle(

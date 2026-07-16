@@ -20,9 +20,16 @@ DB_NAME = os.getenv("DB_NAME", "prevente_db")
 
 
 def _connect(dbname):
-    return psycopg2.connect(
-        host=DB_HOST, port=DB_PORT, user=DB_USER, password=DB_PASSWORD, dbname=dbname
-    )
+    try:
+        return psycopg2.connect(
+            host=DB_HOST, port=DB_PORT, user=DB_USER, password=DB_PASSWORD, dbname=dbname
+        )
+    except (psycopg2.OperationalError, UnicodeDecodeError) as exc:
+        raise SystemExit(
+            f"Could not connect to Postgres as {DB_USER!r} (host={DB_HOST}, db={dbname}). "
+            f"Check DB_PASSWORD in backend/.env matches this machine's postgres password. "
+            f"Original error: {exc!r}"
+        )
 
 
 def ensure_database():
