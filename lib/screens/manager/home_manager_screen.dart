@@ -1030,10 +1030,13 @@ class _ManagerHomeHeader extends StatelessWidget {
         .map((part) => part[0])
         .join()
         .toUpperCase();
+    // The green banner bleeds under the status bar; inset the content below it
+    // so the system clock/battery don't collide with the greeting.
+    final topInset = MediaQuery.of(context).padding.top;
     return Container(
-      height: 100,
+      height: 100 + topInset,
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, 4, 20, 0),
+      padding: EdgeInsets.fromLTRB(20, 4 + topInset, 20, 0),
       decoration: BoxDecoration(color: _DashboardManagerState.managerHeader),
       child: Row(
         children: [
@@ -3230,7 +3233,12 @@ class _CommerciauxManagerState extends State<CommerciauxManager> {
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commerciaux,
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(14, 14, 14, 18),
+          padding: EdgeInsets.fromLTRB(
+            14,
+            14 + MediaQuery.of(context).padding.top,
+            14,
+            18,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -4028,7 +4036,12 @@ class _OrdersManagerScreenState extends State<OrdersManagerScreen> {
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.commandes,
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(22, 22, 22, 18),
+          padding: EdgeInsets.fromLTRB(
+            22,
+            22 + MediaQuery.of(context).padding.top,
+            22,
+            18,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -4851,7 +4864,12 @@ class _ReportsManagerScreenState extends State<ReportsManagerScreen> {
       body: _ManagerMobileShell(
         selectedTab: _ManagerTab.rapports,
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(22, 22, 22, 18),
+          padding: EdgeInsets.fromLTRB(
+            22,
+            22 + MediaQuery.of(context).padding.top,
+            22,
+            18,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -12245,7 +12263,12 @@ class _ManagerSimplePageShell extends StatelessWidget {
     body: _ManagerMobileShell(
       selectedTab: _ManagerTab.profil,
       child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(16, 18, 16, 96),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          18 + MediaQuery.of(context).padding.top,
+          16,
+          96,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
