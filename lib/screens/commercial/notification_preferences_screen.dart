@@ -98,7 +98,7 @@ class _NotificationPreferencesScreenState
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 428
+            final phoneWidth = constraints.maxWidth > 600
                 ? 428.0
                 : constraints.maxWidth;
 

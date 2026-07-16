@@ -346,7 +346,7 @@ class _HomeCommercialState extends State<HomeCommercial> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 390
+            final phoneWidth = constraints.maxWidth > 600
                 ? 390.0
                 : constraints.maxWidth;
 
@@ -1764,7 +1764,7 @@ class DetailCommande extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 428
+            final phoneWidth = constraints.maxWidth > 600
                 ? 428.0
                 : constraints.maxWidth;
             return Center(
@@ -6787,7 +6787,7 @@ class _DetailClientState extends State<DetailClient> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 390
+            final phoneWidth = constraints.maxWidth > 600
                 ? 390.0
                 : constraints.maxWidth;
 
@@ -7055,7 +7055,7 @@ class _NouvelleCommandeClientSelectionState
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 428
+            final phoneWidth = constraints.maxWidth > 600
                 ? 428.0
                 : constraints.maxWidth;
 
@@ -7912,7 +7912,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 428
+            final phoneWidth = constraints.maxWidth > 600
                 ? 428.0
                 : constraints.maxWidth;
 
@@ -8238,7 +8238,7 @@ class _OrderDraftsPageState extends State<OrderDraftsPage> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 428
+            final phoneWidth = constraints.maxWidth > 600
                 ? 428.0
                 : constraints.maxWidth;
             return Center(
@@ -9908,7 +9908,7 @@ class ConfirmationCommande extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 390
+            final phoneWidth = constraints.maxWidth > 600
                 ? 390.0
                 : constraints.maxWidth;
 
@@ -17707,7 +17707,7 @@ class _CommercialNotificationsPageState
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 428
+            final phoneWidth = constraints.maxWidth > 600
                 ? 428.0
                 : constraints.maxWidth;
             return Center(
@@ -18370,7 +18370,7 @@ class _DailyReportNotificationPage extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 428
+            final phoneWidth = constraints.maxWidth > 600
                 ? 428.0
                 : constraints.maxWidth;
             return Center(
@@ -19060,7 +19060,7 @@ class _NouveauClientScreenState extends State<NouveauClientScreen> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final phoneWidth = constraints.maxWidth > 428
+              final phoneWidth = constraints.maxWidth > 600
                   ? 428.0
                   : constraints.maxWidth;
               return Center(
@@ -19650,7 +19650,7 @@ class _NewClientConditionalField extends StatelessWidget {
           opacity: animation,
           child: SizeTransition(
             sizeFactor: animation,
-            alignment: AlignmentDirectional.topStart,
+            axisAlignment: -1.0,
             child: child,
           ),
         );

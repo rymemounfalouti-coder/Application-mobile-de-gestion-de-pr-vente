@@ -293,8 +293,19 @@ class PhoneFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ColoredBox(
     color: kBg,
-    child: Center(
-      child: SizedBox(width: 430, height: double.infinity, child: child),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        // Phones fill the screen; only wide (desktop) viewports get the
+        // centered 430px phone-shaped panel.
+        final width = constraints.maxWidth > 600 ? 430.0 : constraints.maxWidth;
+        return Center(
+          child: SizedBox(
+            width: width,
+            height: constraints.maxHeight,
+            child: child,
+          ),
+        );
+      },
     ),
   );
 }
@@ -370,34 +381,27 @@ class _HomeAdminState extends State<HomeAdmin> {
     ];
 
     // Phone frame wraps the Scaffold itself, so the drawer + sheets stay
-    // inside the 430px panel instead of spanning the desktop window.
-    return ColoredBox(
-      color: kBg,
-      child: Center(
-        child: SizedBox(
-          width: 430,
-          height: double.infinity,
-          child: Scaffold(
-            key: _scaffoldKey,
-            backgroundColor: kBg,
-            drawer: AdminDrawer(
-              email: email,
-              selectedIndex: _index,
-              onSelect: _go,
-              onPush: (page) {
-                _scaffoldKey.currentState?.closeDrawer();
-                Navigator.push(context, phoneRoute(page));
-              },
+    // inside the phone panel on desktop instead of spanning the window.
+    return PhoneFrame(
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: kBg,
+        drawer: AdminDrawer(
+          email: email,
+          selectedIndex: _index,
+          onSelect: _go,
+          onPush: (page) {
+            _scaffoldKey.currentState?.closeDrawer();
+            Navigator.push(context, phoneRoute(page));
+          },
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: IndexedStack(index: _index, children: pages),
             ),
-            body: Column(
-              children: [
-                Expanded(
-                  child: IndexedStack(index: _index, children: pages),
-                ),
-                AdminBottomNav(selectedIndex: _index, onChanged: _go),
-              ],
-            ),
-          ),
+            AdminBottomNav(selectedIndex: _index, onChanged: _go),
+          ],
         ),
       ),
     );
@@ -2576,13 +2580,12 @@ class _ProductImagePickerDialog extends StatelessWidget {
             Flexible(
               child: GridView.builder(
                 padding: const EdgeInsets.all(12),
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: .72,
-                    ),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: .72,
+                ),
                 itemCount: productImageAssetPaths.length,
                 itemBuilder: (context, index) {
                   final path = productImageAssetPaths[index];
@@ -2790,11 +2793,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                                             image: _image.text.trim(),
                                           ),
                                           fit: BoxFit.cover,
-                                          errorBuilder: (_, _, _) =>
-                                              const Icon(
-                                                Icons.broken_image_outlined,
-                                                color: Colors.black38,
-                                              ),
+                                          errorBuilder: (_, _, _) => const Icon(
+                                            Icons.broken_image_outlined,
+                                            color: Colors.black38,
+                                          ),
                                         ),
                                       ),
                               ),

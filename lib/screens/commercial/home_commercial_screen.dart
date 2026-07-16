@@ -96,7 +96,7 @@ class _HomeCommercialState extends State<HomeCommercial> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 390
+            final phoneWidth = constraints.maxWidth > 600
                 ? 390.0
                 : constraints.maxWidth;
 
@@ -2622,7 +2622,7 @@ class _DetailClientState extends State<DetailClient> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 390
+            final phoneWidth = constraints.maxWidth > 600
                 ? 390.0
                 : constraints.maxWidth;
 
@@ -2869,7 +2869,7 @@ class _SelectionClientCommandeState extends State<SelectionClientCommande> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 390
+            final phoneWidth = constraints.maxWidth > 600
                 ? 390.0
                 : constraints.maxWidth;
 
@@ -3449,7 +3449,7 @@ class _NouvelleCommandeState extends State<NouvelleCommande> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 390
+            final phoneWidth = constraints.maxWidth > 600
                 ? 390.0
                 : constraints.maxWidth;
 
@@ -4354,7 +4354,7 @@ class ConfirmationCommande extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 390
+            final phoneWidth = constraints.maxWidth > 600
                 ? 390.0
                 : constraints.maxWidth;
 

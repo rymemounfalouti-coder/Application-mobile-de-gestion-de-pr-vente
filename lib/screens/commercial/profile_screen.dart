@@ -801,7 +801,7 @@ class _PremiumPersonalInfoScreenState extends State<PremiumPersonalInfoScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 430
+            final phoneWidth = constraints.maxWidth > 600
                 ? 430.0
                 : constraints.maxWidth;
             return Center(
@@ -2341,7 +2341,7 @@ class _PremiumSecurityShell extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 430
+            final phoneWidth = constraints.maxWidth > 600
                 ? 430.0
                 : constraints.maxWidth;
             return Center(
@@ -4075,7 +4075,7 @@ class ProfessionalAboutAppScreen extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 430
+            final phoneWidth = constraints.maxWidth > 600
                 ? 430.0
                 : constraints.maxWidth;
 
@@ -4742,7 +4742,7 @@ class ProfessionalPrivacyScreen extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 430
+            final phoneWidth = constraints.maxWidth > 600
                 ? 430.0
                 : constraints.maxWidth;
 
@@ -5492,7 +5492,7 @@ class ProfessionalTermsScreen extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final phoneWidth = constraints.maxWidth > 430
+            final phoneWidth = constraints.maxWidth > 600
                 ? 430.0
                 : constraints.maxWidth;
 

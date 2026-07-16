@@ -52,7 +52,7 @@ class _AppearanceScreenState extends State<AppearanceScreen> {
           body: SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final phoneWidth = constraints.maxWidth > 430
+                final phoneWidth = constraints.maxWidth > 600
                     ? 430.0
                     : constraints.maxWidth;
 

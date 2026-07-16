@@ -3061,8 +3061,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
                                   : _DashboardManagerState.managerText,
                               fontWeight: FontWeight.w700,
                             ),
-                            selectedColor:
-                                _DashboardManagerState.managerBrand,
+                            selectedColor: _DashboardManagerState.managerBrand,
                             backgroundColor: Colors.white,
                             checkmarkColor: Colors.white,
                             side: BorderSide(
@@ -12485,7 +12484,7 @@ class _ManagerMobileShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final phoneWidth = constraints.maxWidth > 390
+        final phoneWidth = constraints.maxWidth > 600
             ? 390.0
             : constraints.maxWidth;
         final phoneRadius = constraints.maxWidth > phoneWidth ? 28.0 : 0.0;
@@ -15841,10 +15840,7 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
                             ? null
                             : () {
                                 final typed = reasonController.text.trim();
-                                Navigator.pop(
-                                  context,
-                                  typed.ifEmpty(selected),
-                                );
+                                Navigator.pop(context, typed.ifEmpty(selected));
                               },
                         child: Text('Confirmer le refus'),
                       ),
@@ -17749,7 +17745,8 @@ bool _managerReportMatchesCommercial(
     'sent_at',
     'created_at',
   ]);
-  return date == null || (!date.isBefore(range.start) && !date.isAfter(range.end));
+  return date == null ||
+      (!date.isBefore(range.start) && !date.isAfter(range.end));
 }
 
 Future<String?> _showManagerRefusalReasonDialog(BuildContext context) async {
@@ -17910,9 +17907,7 @@ InputDecoration _managerLightInputDecoration({
     ),
     filled: true,
     fillColor: Color(0xFFF8FAFC),
-    border: _managerInputBorder(
-      color: _DashboardManagerState.managerBorder,
-    ),
+    border: _managerInputBorder(color: _DashboardManagerState.managerBorder),
     enabledBorder: _managerInputBorder(
       color: _DashboardManagerState.managerBorder,
     ),

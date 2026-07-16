@@ -27,6 +27,7 @@ class ApiService {
     }
     return 'http://127.0.0.1:5000';
   }
+
   static const bool demoModeEnabled = bool.fromEnvironment(
     'DEMO_MODE',
     defaultValue: false,
@@ -1048,7 +1049,9 @@ class ApiService {
     } else if (response.statusCode == 401) {
       throw const InvalidCredentialsException();
     } else {
-      throw Exception('Connexion au serveur impossible (${response.statusCode})');
+      throw Exception(
+        'Connexion au serveur impossible (${response.statusCode})',
+      );
     }
   }
 
