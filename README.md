@@ -30,8 +30,9 @@ flutter build web --release --dart-define=DEMO_MODE=true
 
 ## Mode connecté au backend
 
-Le mode normal exige une base PostgreSQL déjà créée et alimentée. Le dépôt ne
-contient actuellement ni migration SQL ni jeu de données PostgreSQL initial.
+Le mode normal exige une base PostgreSQL. Le script `backend/setup_db.py`
+installe le schéma, le compte administrateur et le catalogue TeaSud de 20
+produits.
 
 ```powershell
 cd backend
@@ -47,6 +48,21 @@ $env:JWT_SECRET_KEY='<secret-long-et-aléatoire>'
 $env:CORS_ALLOWED_ORIGINS='http://localhost:3000,http://localhost:8080'
 
 python app.py
+```
+
+Pour restaurer uniquement les données initiales dans une base déjà créée,
+sans modifier ni dupliquer les produits existants :
+
+```powershell
+cd backend
+python setup_db.py --seed-only
+```
+
+Sous Windows, le catalogue seul peut aussi être restauré avec une invite de
+mot de passe locale (le mot de passe n'est ni affiché ni enregistré) :
+
+```powershell
+.\backend\restore_demo_products.ps1
 ```
 
 Dans un second terminal :

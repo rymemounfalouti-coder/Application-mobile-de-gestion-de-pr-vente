@@ -1,8 +1,12 @@
-"""One-shot local DB bootstrap: creates prevente_db (if missing), applies
-schema_export.sql, then seed_admin.sql. Reads DB_* from backend/.env.
+"""Local database bootstrap and additive demo-data recovery.
 
-Usage: python setup_db.py
+Reads DB_* from backend/.env or the current environment.
+
+Usage:
+    python setup_db.py
+    python setup_db.py --seed-only
 """
+import argparse
 import os
 from pathlib import Path
 
@@ -58,7 +62,17 @@ def run_sql_file(path):
 
 
 if __name__ == "__main__":
-    ensure_database()
-    run_sql_file(HERE / "schema_export.sql")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--seed-only",
+        action="store_true",
+        help="Restore additive seed data without reapplying the schema.",
+    )
+    args = parser.parse_args()
+
+    if not args.seed_only:
+        ensure_database()
+        run_sql_file(HERE / "schema_export.sql")
     run_sql_file(HERE / "seed_admin.sql")
-    print("Done. Login with admin@prevente.local / admin123")
+    run_sql_file(HERE / "seed_demo_products.sql")
+    print("Done. Restored the 20-product TeaSud catalog without replacing existing rows.")
