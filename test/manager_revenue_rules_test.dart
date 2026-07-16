@@ -29,11 +29,7 @@ void main() {
       'delivered',
       'synced',
     ]) {
-      expect(
-        managerOrderContributesToRevenue(status),
-        isTrue,
-        reason: status,
-      );
+      expect(managerOrderContributesToRevenue(status), isTrue, reason: status);
     }
   });
 
@@ -47,11 +43,7 @@ void main() {
       'cancelled',
       'unknown',
     ]) {
-      expect(
-        managerOrderContributesToRevenue(status),
-        isFalse,
-        reason: status,
-      );
+      expect(managerOrderContributesToRevenue(status), isFalse, reason: status);
     }
   });
 }
