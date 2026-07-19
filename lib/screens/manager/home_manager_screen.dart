@@ -19,6 +19,7 @@ import '../../services/commercial_objectives_service.dart';
 import '../../services/manager_revenue_rules.dart';
 import '../../settings/app_appearance_controller.dart';
 import '../../theme/app_palette.dart';
+import '../../widgets/notification_center.dart';
 
 class DashboardManager extends StatefulWidget {
   DashboardManager({super.key});
@@ -17195,10 +17196,43 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await _markRead(item);
     }
     if (!mounted) return;
+
+    if (item.commandeId != null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => _ManagerOrderDetailPage(orderId: item.commandeId!),
+        ),
+      );
+      return;
+    }
+
+    final style = _managerNotificationStyle(item.type);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => _ManagerNotificationDetails(item: item),
+      isScrollControlled: true,
+      builder: (sheetContext) => NotificationDetailsSheet(
+        title: item.title,
+        message: item.description,
+        typeLabel: _managerNotificationTypeLabel(item.type),
+        timeLabel: _managerNotificationTime(item.createdAt),
+        icon: style.icon,
+        iconColor: style.color,
+        action: OutlinedButton.icon(
+          onPressed: () {
+            Navigator.pop(sheetContext);
+            _deleteNotification(item);
+          },
+          icon: const Icon(Icons.delete_outline_rounded),
+          label: const Text('Supprimer la notification'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFFEF4444),
+            side: const BorderSide(color: Color(0xFFFECACA)),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+        ),
+      ),
     );
   }
 
@@ -17252,313 +17286,102 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final unread = _items.where((item) => !item.isRead).length;
     final visibleItems = _visibleItems;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: notificationCenterSurface,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 430),
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20, 18, 20, 12),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.arrow_back_rounded),
-                        color: Color(0xFF0F172A),
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Notifications',
-                          style: TextStyle(
-                            color: Color(0xFF0F172A),
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final phoneWidth = constraints.maxWidth > 600
+                ? 428.0
+                : constraints.maxWidth;
+            return Center(
+              child: SizedBox(
+                width: phoneWidth,
+                height: constraints.maxHeight,
+                child: RefreshIndicator(
+                  onRefresh: _load,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            NotificationCenterHeader(
+                              unreadCount: unread,
+                              onBack: () => Navigator.pop(context),
+                              onMarkAllRead: _markAllRead,
+                            ),
+                            const SizedBox(height: 22),
+                            NotificationFilterBar<_ManagerNotificationFilter>(
+                              selected: _filter,
+                              options: [
+                                for (final filter
+                                    in _ManagerNotificationFilter.values)
+                                  NotificationFilterOption(
+                                    value: filter,
+                                    label: filter.label,
+                                  ),
+                              ],
+                              onChanged: (filter) =>
+                                  setState(() => _filter = filter),
+                            ),
+                            const SizedBox(height: 18),
+                            if (_loading)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 100),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: notificationCenterAccent,
+                                  ),
+                                ),
+                              )
+                            else if (_error != null)
+                              NotificationCenterEmpty(
+                                title: 'Chargement impossible',
+                                message: _error!,
+                                icon: Icons.cloud_off_rounded,
+                              )
+                            else if (visibleItems.isEmpty)
+                              const NotificationCenterEmpty(
+                                message:
+                                    'Les notifications relatives aux commandes, rapports, clients et objectifs appara\u00EEtront ici.',
+                              )
+                            else
+                              NotificationCenterCardList(
+                                children: [
+                                  for (final item in visibleItems)
+                                    Builder(
+                                      builder: (context) {
+                                        final style = _managerNotificationStyle(
+                                          item.type,
+                                        );
+                                        return NotificationCenterRow(
+                                          title: item.title,
+                                          message: item.description,
+                                          timeLabel: _managerNotificationTime(
+                                            item.createdAt,
+                                          ),
+                                          icon: style.icon,
+                                          iconColor: style.color,
+                                          isRead: item.isRead,
+                                          onTap: () => _openNotification(item),
+                                        );
+                                      },
+                                    ),
+                                ],
+                              ),
+                          ]),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: unread == 0 ? null : _markAllRead,
-                        child: Text('Tout lu'),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(
-                  height: 46,
-                  child: ListView.separated(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _ManagerNotificationFilter.values.length,
-                    separatorBuilder: (context, index) => SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final filter = _ManagerNotificationFilter.values[index];
-                      final selected = filter == _filter;
-                      return ChoiceChip(
-                        selected: selected,
-                        label: Text(filter.label),
-                        onSelected: (_) => setState(() => _filter = filter),
-                        selectedColor: Color(0xFF1B7F4B),
-                        labelStyle: TextStyle(
-                          color: selected ? Colors.white : Color(0xFF6F7A90),
-                          fontWeight: FontWeight.w800,
-                        ),
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: Color(0xFFE2E8F0)),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: 12),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _load,
-                    child: _loading
-                        ? ListView(
-                            children: [
-                              SizedBox(height: 220),
-                              Center(child: CircularProgressIndicator()),
-                            ],
-                          )
-                        : _error != null
-                        ? ListView(
-                            padding: EdgeInsets.all(20),
-                            children: [
-                              _ManagerNotificationEmpty(text: _error!),
-                            ],
-                          )
-                        : visibleItems.isEmpty
-                        ? ListView(
-                            padding: EdgeInsets.all(20),
-                            children: [
-                              _ManagerNotificationEmpty(
-                                text: 'Aucune notification disponible.',
-                              ),
-                            ],
-                          )
-                        : ListView.separated(
-                            padding: EdgeInsets.fromLTRB(20, 0, 20, 24),
-                            itemBuilder: (context, index) {
-                              final item = visibleItems[index];
-                              return _ManagerNotificationTile(
-                                item: item,
-                                onTap: () => _openNotification(item),
-                                onDelete: () => _deleteNotification(item),
-                              );
-                            },
-                            separatorBuilder: (context, index) =>
-                                SizedBox(height: 10),
-                            itemCount: visibleItems.length,
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
-      ),
-    );
-  }
-}
-
-class _ManagerNotificationTile extends StatelessWidget {
-  const _ManagerNotificationTile({
-    required this.item,
-    required this.onTap,
-    required this.onDelete,
-  });
-
-  final _ManagerNotificationItem item;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = _managerNotificationStyle(item.type);
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(14, 14, 8, 14),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 10,
-                child: item.isRead
-                    ? SizedBox.shrink()
-                    : Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: Color(0xFF1B7F4B),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-              ),
-              SizedBox(width: 10),
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: style.color.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(style.icon, color: style.color),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Color(0xFF0F172A),
-                              fontWeight: item.isRead
-                                  ? FontWeight.w700
-                                  : FontWeight.w900,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          _managerNotificationTime(item.createdAt),
-                          style: TextStyle(
-                            color: Color(0xFF6F7A90),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 5),
-                    Text(
-                      item.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Color(0xFF6F7A90),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: onDelete,
-                icon: Icon(Icons.delete_outline_rounded),
-                color: Color(0xFFEF4444),
-                tooltip: 'Supprimer',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ManagerNotificationDetails extends StatelessWidget {
-  const _ManagerNotificationDetails({required this.item});
-
-  final _ManagerNotificationItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = _managerNotificationStyle(item.type);
-    return Container(
-      padding: EdgeInsets.fromLTRB(22, 22, 22, 28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: style.color.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Icon(style.icon, color: style.color, size: 30),
-            ),
-            SizedBox(height: 16),
-            Text(
-              item.title,
-              style: TextStyle(
-                color: Color(0xFF0F172A),
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              item.description,
-              style: TextStyle(
-                color: Color(0xFF6F7A90),
-                fontSize: 14,
-                height: 1.45,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              '${_managerNotificationTypeLabel(item.type)} • ${_managerNotificationTime(item.createdAt)}',
-              style: TextStyle(color: style.color, fontWeight: FontWeight.w800),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ManagerNotificationEmpty extends StatelessWidget {
-  const _ManagerNotificationEmpty({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.notifications_none_rounded,
-            size: 52,
-            color: Color(0xFF1B7F4B),
-          ),
-          SizedBox(height: 14),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF6F7A90),
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
       ),
     );
   }

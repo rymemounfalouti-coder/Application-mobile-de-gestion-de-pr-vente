@@ -100,6 +100,7 @@ CREATE TABLE public.clients (
     city text,
     address text,
     business_type text,
+    category text,
     status text,
     last_order_date text,
     commercial_id integer,

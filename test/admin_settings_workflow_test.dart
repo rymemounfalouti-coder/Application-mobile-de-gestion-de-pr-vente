@@ -135,6 +135,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // The version-1 store above is healed to version 2 during load, which is
+    // a legitimate write; what must not write is a *rejected* add below.
+    final writesAfterLoad = writes;
+
     await tester.tap(find.text('Ajouter une catégorie'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, '   ');
@@ -153,7 +157,112 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Ajouter'));
     await tester.pumpAndSettle();
     expect(find.text('Cette catégorie existe déjà.'), findsOneWidget);
-    expect(writes, 0);
+    expect(writes, writesAfterLoad);
+  });
+
+  testWidgets('a pre-v2 store regains the built-in default categories', (
+    tester,
+  ) async {
+    // Reproduces the real failure: a device seeded when only one type was
+    // actually in use kept that single option forever, hiding the standard
+    // ones from every client form.
+    var stored = jsonEncode({
+      'version': 1,
+      'kind': 'commerce',
+      'categories': ['Restaurant'],
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CategoryManagerScreen(
+          title: 'Types de commerce',
+          kind: 'commerce',
+          loadRows: () async => const [],
+          readStore: (_) async => stored,
+          writeStore: (_, contents) async => stored = contents,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (final category in ['Épicerie', 'Supermarché', 'Grossiste', 'Café']) {
+      expect(find.text(category), findsOneWidget, reason: '$category restored');
+    }
+    expect(find.text('Restaurant'), findsOneWidget);
+
+    // Healed in place, so the repair does not run again on the next open.
+    final decoded = jsonDecode(stored) as Map<String, dynamic>;
+    expect(decoded['version'], 3);
+    expect(
+      (decoded['categories'] as List<dynamic>),
+      containsAll(<String>['Café', 'Épicerie', 'Restaurant']),
+    );
+  });
+
+  testWidgets('the client store sheds commerce types but keeps custom ones', (
+    tester,
+  ) async {
+    // Pre-v3 the 'client' store doubled as the commerce-type list. Splitting
+    // them must not throw away a category the admin added by hand.
+    var stored = jsonEncode({
+      'version': 2,
+      'kind': 'client',
+      'categories': ['blacklist', 'Café', 'Restaurant'],
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CategoryManagerScreen(
+          title: 'Catégories clients',
+          kind: 'client',
+          loadRows: () async => const [],
+          readStore: (_) async => stored,
+          writeStore: (_, contents) async => stored = contents,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (final category in ['Prospect', 'Actif', 'Inactif', 'blacklist']) {
+      expect(find.text(category), findsOneWidget, reason: '$category kept');
+    }
+    expect(find.text('Café'), findsNothing);
+    expect(find.text('Restaurant'), findsNothing);
+    expect((jsonDecode(stored) as Map<String, dynamic>)['version'], 3);
+  });
+
+  testWidgets('a healed store keeps deletions instead of resurrecting them', (
+    tester,
+  ) async {
+    var stored = jsonEncode({
+      'version': 3,
+      'kind': 'commerce',
+      'categories': ['Café', 'Restaurant'],
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CategoryManagerScreen(
+          title: 'Types de commerce',
+          kind: 'commerce',
+          loadRows: () async => const [],
+          readStore: (_) async => stored,
+          writeStore: (_, contents) async => stored = contents,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Supprimer Café'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Supprimer'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Café'), findsNothing);
+    expect(
+      (jsonDecode(stored)['categories'] as List<dynamic>),
+      isNot(contains('Café')),
+    );
   });
 
   testWidgets(

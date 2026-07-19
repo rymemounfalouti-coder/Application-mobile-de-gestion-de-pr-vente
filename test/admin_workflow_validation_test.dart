@@ -41,19 +41,21 @@ void main() {
       MaterialApp(home: ProductFormScreen(store: ProductStore())),
     );
 
+    // Nom, Référence, Description, Prix, Stock. Catégorie is a dropdown and
+    // "Image produit" is a picker, so neither is a TextField.
     final fields = find.byType(TextField);
-    expect(fields, findsNWidgets(6));
+    expect(fields, findsNWidgets(5));
     await tester.enterText(fields.at(0), 'Thé test');
     await tester.enterText(fields.at(1), 'TEST-001');
-    await tester.enterText(fields.at(4), '0');
-    await tester.enterText(fields.at(5), '10');
+    await tester.enterText(fields.at(3), '0');
+    await tester.enterText(fields.at(4), '10');
     await tester.tap(find.text('Ajouter'));
     await tester.pump();
 
     expect(find.text('Le prix doit être strictement positif.'), findsOneWidget);
 
-    await tester.enterText(fields.at(4), '25');
-    await tester.enterText(fields.at(5), '-1');
+    await tester.enterText(fields.at(3), '25');
+    await tester.enterText(fields.at(4), '-1');
     await tester.tap(find.text('Ajouter'));
     await tester.pump();
 

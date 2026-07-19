@@ -303,6 +303,12 @@ def _log_recent_activity(
     )
 
 
+def _ensure_clients_category_column(cur):
+    # The user-chosen client category. Distinct from business_type (the trade
+    # itself) and from computed_status, which this API derives from orders.
+    cur.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS category TEXT")
+
+
 def _ensure_factures_status_constraint(cur):
     # Without this column the status PATCH silently drops every refusal reason.
     cur.execute("ALTER TABLE factures ADD COLUMN IF NOT EXISTS refusal_reason TEXT")
@@ -711,6 +717,7 @@ def clients():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
+        _ensure_clients_category_column(cur)
         if request.method == "POST":
             data = request.get_json() or {}
             if _jwt_role() == "commercial":
@@ -749,7 +756,7 @@ def clients():
                     "adresse": data.get("address") or data.get("adresse"),
                     "quartier": data.get("quartier") or data.get("district"),
                     "business_type": data.get("business_type") or data.get("category"),
-                    "category": data.get("category") or data.get("business_type"),
+                    "category": data.get("category"),
                     "contact_name": data.get("contact_name"),
                     "responsable": data.get("contact_name") or data.get("responsable"),
                     "notes": data.get("notes") or data.get("commentaire"),
@@ -870,6 +877,7 @@ def update_delete_client(client_id):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
+        _ensure_clients_category_column(cur)
         owner_column = None
         if _jwt_role() == "commercial":
             owner_column = _first_existing(
@@ -909,7 +917,7 @@ def update_delete_client(client_id):
             "adresse": data.get("address") or data.get("adresse"),
             "quartier": data.get("quartier") or data.get("district"),
             "business_type": data.get("business_type") or data.get("category"),
-            "category": data.get("category") or data.get("business_type"),
+            "category": data.get("category"),
             "contact_name": data.get("contact_name"),
             "responsable": data.get("contact_name") or data.get("responsable"),
             "notes": data.get("notes") or data.get("commentaire"),

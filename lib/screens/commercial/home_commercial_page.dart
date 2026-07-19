@@ -8847,7 +8847,10 @@ class _SelectedOrderClientCard extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 8),
-                        _ClientStatusBadge(status: data.uiStatus),
+                        _ClientStatusBadge(
+                          status: data.uiStatus,
+                          category: data.client.category,
+                        ),
                       ],
                     ),
                     SizedBox(height: 9),
@@ -12454,7 +12457,10 @@ class _ClientCard extends StatelessWidget {
                         ],
                       ),
                       SizedBox(height: 8),
-                      _ClientStatusBadge(status: data.uiStatus),
+                      _ClientStatusBadge(
+                        status: data.uiStatus,
+                        category: data.client.category,
+                      ),
                     ],
                   ),
                 ),
@@ -12557,13 +12563,34 @@ class _ClientLogo extends StatelessWidget {
 }
 
 class _ClientStatusBadge extends StatelessWidget {
-  _ClientStatusBadge({required this.status});
+  _ClientStatusBadge({required this.status, this.category = ''});
 
   final _ClientUiStatus status;
+  final String category;
+
+  /// The client's category when one is set (including custom ones like
+  /// "blacklist", which have no status equivalent), falling back to the
+  /// order-derived status for clients that have never been assigned one.
+  (String, Color) get _style {
+    final trimmed = category.trim();
+    if (trimmed.isEmpty) return (status.label, status.color);
+    return switch (trimmed.toLowerCase()) {
+      'prospect' => (
+        _ClientUiStatus.prospect.label,
+        _ClientUiStatus.prospect.color,
+      ),
+      'actif' => (_ClientUiStatus.active.label, _ClientUiStatus.active.color),
+      'inactif' => (
+        _ClientUiStatus.inactive.label,
+        _ClientUiStatus.inactive.color,
+      ),
+      _ => (trimmed, _HomeCommercialState.textMuted),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
-    final color = status.color;
+    final (label, color) = _style;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -12571,7 +12598,7 @@ class _ClientStatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        status.label,
+        label,
         style: TextStyle(
           color: color,
           fontSize: 11,

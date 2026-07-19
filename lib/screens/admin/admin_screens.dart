@@ -222,7 +222,7 @@ class AdminHeader extends StatelessWidget {
 /// the notifications page is opened (which also marks everything read).
 final ValueNotifier<int> adminUnreadNotifications = ValueNotifier<int>(0);
 
-bool _isUnreadAdminNotification(Map<dynamic, dynamic> item) {
+bool isUnreadAdminNotification(Map<dynamic, dynamic> item) {
   final value = item['is_read'] ?? item['read'] ?? item['lu'];
   if (value is bool) return !value;
   if (value is num) return value == 0;
@@ -237,7 +237,7 @@ Future<void> syncAdminUnreadNotifications() async {
     final notifications = await ApiService.getNotifications();
     adminUnreadNotifications.value = notifications
         .whereType<Map>()
-        .where(_isUnreadAdminNotification)
+        .where(isUnreadAdminNotification)
         .length;
   } catch (error) {
     debugPrint('[ADMIN][NOTIFICATIONS][BADGE][ERROR] $error');
@@ -268,7 +268,10 @@ class _BellButton extends StatelessWidget {
                 right: 6,
                 top: 6,
                 child: Container(
-                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
                   padding: const EdgeInsets.symmetric(horizontal: 5),
                   decoration: BoxDecoration(
                     color: kRed,
@@ -830,6 +833,30 @@ class ProductStore {
   ClientStatus.inactive => ('Inactif', kRed),
 };
 
+/// (Label, color) for a category string. The three built-in categories keep
+/// the colors clients' status badges have always used; anything else (a
+/// custom category like "blacklist") gets a neutral color, since there's no
+/// way to know in advance whether a custom category is good or bad news.
+(String, Color) categoryStyle(String category) {
+  final trimmed = category.trim();
+  return switch (trimmed.toLowerCase()) {
+    'prospect' => ('Prospect', kOrange),
+    'actif' => ('Actif', kGreen),
+    'inactif' => ('Inactif', kRed),
+    _ => (trimmed, kMuted),
+  };
+}
+
+/// The badge shown for a client: their category when one is set (including
+/// custom ones like "blacklist", which have no status equivalent), falling
+/// back to the order-derived status for clients that predate the category
+/// column and have never been assigned one.
+(String, Color) clientBadgeStyle(CommercialClient c) {
+  final category = c.category.trim();
+  if (category.isEmpty) return clientStatusStyle(c.status);
+  return categoryStyle(category);
+}
+
 class ClientStore {
   final List<CommercialClient> _items = [];
 
@@ -849,7 +876,7 @@ class ClientStore {
     'email': c.email,
     'city': c.city,
     'ville': c.city,
-    'category': c.businessType,
+    'category': c.category,
     'business_type': c.businessType,
     'contact_name': c.contactName,
     'quartier': c.quartier,
@@ -880,14 +907,12 @@ class ClientStore {
       ]),
       businessType: _jsonString(r, [
         'business_type',
-        'category',
         'categorie',
       ]).ifEmpty('Autre'),
-      category: _jsonString(r, [
-        'category',
-        'business_type',
-        'categorie',
-      ]).ifEmpty('Commerce general'),
+      // Deliberately not falling back to business_type: the two were merged
+      // before clients had their own category column, and reviving that
+      // fallback would relabel every client with its trade.
+      category: _jsonString(r, ['category']),
       status: _statusFromName(
         _jsonString(r, ['computed_status', 'status', 'statut']),
       ),
@@ -941,7 +966,7 @@ class ClientStore {
       name: name,
       city: city,
       businessType: businessType,
-      category: category.isEmpty ? 'Commerce general' : category,
+      category: category,
       status: status,
       initials: initials(name),
       phone: phone,

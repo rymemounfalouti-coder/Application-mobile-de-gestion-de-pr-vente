@@ -10,6 +10,7 @@ import '../../data/product_image_assets.dart';
 import '../../l10n/app_locale_controller.dart';
 import '../../settings/app_appearance_controller.dart';
 import '../../services/local_json_store.dart';
+import '../../widgets/notification_center.dart';
 import '../manager/home_manager_screen.dart' show ManagerCommercialsCache;
 import 'admin_screens.dart';
 
@@ -58,6 +59,27 @@ const List<String> _teaProductCategories = [
   'Thé Vert Classique',
 ];
 
+/// The trade a client operates ("Type de commerce"), managed from
+/// Settings > Types de commerce.
+const List<String> _defaultCommerceTypes = [
+  'Épicerie',
+  'Supermarché',
+  'Grossiste',
+  'Café',
+  'Restaurant',
+];
+
+/// How the business classifies a client ("Catégorie du client"), managed from
+/// Settings > Catégories clients. Distinct from the client's *statut*, which
+/// the API derives from order activity and nobody edits by hand.
+const List<String> _defaultClientCategories = ['Prospect', 'Actif', 'Inactif'];
+
+List<String> _defaultCategoriesForKind(String kind) => switch (kind) {
+  'product' => _teaProductCategories,
+  'commerce' => _defaultCommerceTypes,
+  _ => _defaultClientCategories,
+};
+
 List<String> _normalizeCategories(Iterable<String> values) {
   final result = <String>[];
   final seen = <String>{};
@@ -72,6 +94,76 @@ List<String> _normalizeCategories(Iterable<String> values) {
 
 String _categoryStoreName(String kind) => 'admin_categories_${kind}_v1.json';
 
+/// Version 1 stores were seeded from the rows actually in use, which can be
+/// sparser than the built-in defaults — a device whose clients only used one
+/// category ended up with that single option forever, silently hiding the
+/// standard ones. Version 2 merges the defaults back in, once.
+///
+/// Version 3 splits the overloaded 'client' store: it used to hold commerce
+/// types (it seeded from clients' business_type), which now live under
+/// 'commerce' so 'client' can hold real client categories.
+const int _categoryStoreVersion = 3;
+
+Future<void> _writeCategoryStore(
+  String kind,
+  List<String> values, {
+  AdminCategoryStoreWriter? writeStore,
+}) => (writeStore ?? writeLocalJson)(
+  _categoryStoreName(kind),
+  jsonEncode({
+    'version': _categoryStoreVersion,
+    'kind': kind,
+    'categories': values,
+  }),
+);
+
+/// The stored category list for [kind], or null when it has never been
+/// seeded. Heals pre-v2 stores by merging the built-in defaults back in;
+/// that repair write is best effort so an unwritable store still yields the
+/// healed list for this session instead of failing the whole load.
+Future<List<String>?> _readCategoryStore(
+  String kind, {
+  AdminCategoryStoreReader? readStore,
+  AdminCategoryStoreWriter? writeStore,
+}) async {
+  final stored = await (readStore ?? readLocalJson)(_categoryStoreName(kind));
+  if (stored == null) return null;
+
+  final decoded = jsonDecode(stored);
+  final raw = decoded is Map ? decoded['categories'] : decoded;
+  if (raw is! List) {
+    throw const FormatException('Le fichier des catégories est invalide.');
+  }
+  final categories = _normalizeCategories(raw.map((value) => value.toString()));
+
+  final version = decoded is Map
+      ? int.tryParse('${decoded['version'] ?? 1}') ?? 1
+      : 1;
+  if (version >= _categoryStoreVersion) return categories;
+
+  // Pre-v3 'client' stores held commerce types; those belong to the
+  // 'commerce' store now, so drop them here while keeping whatever the admin
+  // added themselves.
+  final carriedOver = kind == 'client' && version < 3
+      ? categories.where(
+          (value) => !_defaultCommerceTypes.any(
+            (type) => type.toLowerCase() == value.toLowerCase(),
+          ),
+        )
+      : categories;
+
+  final healed = _normalizeCategories([
+    ..._defaultCategoriesForKind(kind),
+    ...carriedOver,
+  ]);
+  try {
+    await _writeCategoryStore(kind, healed, writeStore: writeStore);
+  } catch (error) {
+    debugPrint('[ADMIN][CATEGORIES][HEAL][ERROR] $error');
+  }
+  return healed;
+}
+
 /// The admin-configured category list for [kind] ('client' | 'product'),
 /// read from the same local store [CategoryManagerScreen] edits. Falls back
 /// to [fallback] if that screen has never been opened (no store yet) or the
@@ -81,17 +173,8 @@ Future<List<String>> _loadCategoryOptions(
   List<String> fallback,
 ) async {
   try {
-    final stored = await readLocalJson(_categoryStoreName(kind));
-    if (stored != null) {
-      final decoded = jsonDecode(stored);
-      final raw = decoded is Map ? decoded['categories'] : decoded;
-      if (raw is List) {
-        final categories = _normalizeCategories(
-          raw.map((value) => value.toString()),
-        );
-        if (categories.isNotEmpty) return categories;
-      }
-    }
+    final categories = await _readCategoryStore(kind);
+    if (categories != null && categories.isNotEmpty) return categories;
   } catch (_) {
     // Fall through to the default list below.
   }
@@ -224,7 +307,18 @@ double _adminDouble(Map<dynamic, dynamic> json, List<String> keys) {
 
 String _adminStatus(String value) {
   final status = value.toLowerCase().trim();
-  if (['validee', 'validée', 'validated', 'valide'].contains(status)) {
+  if ([
+    'validee',
+    'validée',
+    'validated',
+    'valide',
+    'accepted',
+    'acceptee',
+    'acceptée',
+    'approved',
+    'approuvee',
+    'approuvée',
+  ].contains(status)) {
     return 'validated';
   }
   if (['refusee', 'refusée', 'refused', 'refuse'].contains(status)) {
@@ -1039,6 +1133,12 @@ List<({String label, double amount})> adminRevenueByMonth(
   ];
 }
 
+bool isAcceptedAdminOrder(AdminOrder order) => order.status == 'validated';
+
+double adminAcceptedRevenue(Iterable<AdminOrder> orders) => orders
+    .where(isAcceptedAdminOrder)
+    .fold<double>(0, (sum, order) => sum + order.total);
+
 class _AdminDashboardData {
   _AdminDashboardData({
     required this.users,
@@ -1065,9 +1165,9 @@ class _AdminDashboardData {
   int get pending => orders.where((o) => o.status == 'pending').length;
   int get validated => orders.where((o) => o.status == 'validated').length;
   int get refused => orders.where((o) => o.status == 'refused').length;
-  double get ca => orders.fold<double>(0, (sum, order) => sum + order.total);
+  double get ca => adminAcceptedRevenue(orders);
   List<({String label, double amount})> get revenueByMonth =>
-      adminRevenueByMonth(orders);
+      adminRevenueByMonth(orders.where(isAcceptedAdminOrder).toList());
 }
 
 class _EmptyChart extends StatelessWidget {
@@ -1607,6 +1707,27 @@ class _UtilisateursPageState extends State<UtilisateursPage> {
                 name: result.name,
                 email: result.email,
                 phone: result.phone,
+              ),
+            );
+          }
+          // Editing your own account here (not just another user's) must
+          // also refresh the live session — every screen reads the name,
+          // email, phone and role from CurrentUserSession, not from this
+          // page's own store, so without this it keeps showing stale data
+          // until the next login. Mirrors EditProfileScreen._save().
+          final session = CurrentUserSession.currentUser;
+          if (session != null && session.id == u.id) {
+            CurrentUserSession.signIn(
+              AuthenticatedUser(
+                id: session.id,
+                fullName: result.name,
+                email: result.email,
+                role: result.role,
+                phone: result.phone,
+                theme: session.theme,
+                textSize: session.textSize,
+                autoBrightness: session.autoBrightness,
+                powerSavingMode: session.powerSavingMode,
               ),
             );
           }
@@ -3037,6 +3158,7 @@ class _ClientsPageState extends State<ClientsPage> {
   final _store = ClientStore();
   final _search = TextEditingController();
   ClientStatus? _status;
+  List<String> _categoryOptions = _defaultClientCategories;
 
   @override
   void initState() {
@@ -3045,8 +3167,14 @@ class _ClientsPageState extends State<ClientsPage> {
   }
 
   Future<void> _refresh() async {
+    final categoriesFuture = _loadCategoryOptions(
+      'client',
+      _defaultClientCategories,
+    );
     await _store.load();
-    if (mounted) setState(() {});
+    final categories = await categoriesFuture;
+    if (!mounted) return;
+    setState(() => _categoryOptions = categories);
   }
 
   @override
@@ -3077,40 +3205,47 @@ class _ClientsPageState extends State<ClientsPage> {
                 onFilter: _filter,
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: StatTile(
-                      label: 'Total clients',
-                      value: '${_store.all.length}',
-                      color: kGreen,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: StatTile(
-                      label: 'Actifs',
-                      value: '${_store.count(ClientStatus.visited)}',
-                      color: kGreen,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: StatTile(
-                      label: 'Inactifs',
-                      value: '${_store.count(ClientStatus.inactive)}',
-                      color: kRed,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: StatTile(
-                      label: 'Prospects',
-                      value: '${_store.count(ClientStatus.toVisit)}',
-                      color: kOrange,
-                    ),
-                  ),
-                ],
+              // One tile per configured category (Settings > Catégories
+              // clients) instead of the old fixed Actif/Inactif/Prospect
+              // trio, so a category added later shows up here without a
+              // code change. Scrolls instead of squeezing once there are
+              // more than fit on screen.
+              SizedBox(
+                height: 88,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _categoryOptions.length + 1,
+                  separatorBuilder: (_, _) => const SizedBox(width: 10),
+                  itemBuilder: (_, index) {
+                    if (index == 0) {
+                      return SizedBox(
+                        width: 112,
+                        child: StatTile(
+                          label: 'Total clients',
+                          value: '${_store.all.length}',
+                          color: kGreen,
+                        ),
+                      );
+                    }
+                    final category = _categoryOptions[index - 1];
+                    final (label, color) = categoryStyle(category);
+                    final count = _store.all
+                        .where(
+                          (c) =>
+                              c.category.trim().toLowerCase() ==
+                              category.toLowerCase(),
+                        )
+                        .length;
+                    return SizedBox(
+                      width: 112,
+                      child: StatTile(
+                        label: label,
+                        value: '$count',
+                        color: color,
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 14),
               GreenButton(label: 'Nouveau client', onPressed: _create),
@@ -3228,7 +3363,7 @@ class _ClientsPageState extends State<ClientsPage> {
   }
 
   Widget _clientCard(CommercialClient c) {
-    final (label, color) = clientStatusStyle(c.status);
+    final (label, color) = clientBadgeStyle(c);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: cardBox(),
@@ -3320,29 +3455,40 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   late final _businessTypeOther = TextEditingController(
     text: _businessType == 'Autre' ? (widget.client?.businessType ?? '') : '',
   );
-  late ClientStatus _status = widget.client?.status ?? ClientStatus.toVisit;
+  // Kept as the fallback for custom categories, which have no status of their
+  // own; the form no longer edits it directly.
+  late final ClientStatus _status =
+      widget.client?.status ?? ClientStatus.toVisit;
   int? _commercialId;
   List<MockUserProfile> _commercials = [];
   String? _error;
   String? _emailError;
   List<String> _businessTypeOptions = _commerceTypes;
-  // Bumped once the real category list loads — see the matching comment on
-  // _ProductFormScreenState._categoriesLoaded for why the dropdown needs a
+  late String _category = widget.client?.category ?? '';
+  List<String> _categoryOptions = _defaultClientCategories;
+  // Bumped once the real lists load — see the matching comment on
+  // _ProductFormScreenState._categoriesLoaded for why the dropdowns need a
   // new key rather than just a setState to pick up the change.
-  bool _businessTypesLoaded = false;
+  bool _optionsLoaded = false;
 
-  static const _commerceTypes = [
-    'Épicerie',
-    'Supermarché',
-    'Grossiste',
-    'Café',
-    'Restaurant',
-    'Autre',
-  ];
+  static const _commerceTypes = [..._defaultCommerceTypes, 'Autre'];
 
   static final _emailRegex = RegExp(
     r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
   );
+
+  /// The three built-in categories mirror the statuses the API derives from
+  /// order activity, so filing a client under one keeps the matching status —
+  /// including "Inactif", the one value the API honours instead of
+  /// recomputing. A custom category such as "blacklist" has no equivalent, so
+  /// it leaves the status untouched.
+  static ClientStatus? _statusForCategory(String category) =>
+      switch (category.trim().toLowerCase()) {
+        'prospect' => ClientStatus.toVisit,
+        'actif' => ClientStatus.visited,
+        'inactif' => ClientStatus.inactive,
+        _ => null,
+      };
 
   String _resolveBusinessType() {
     final existing = widget.client?.businessType;
@@ -3360,20 +3506,38 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         ? null
         : widget.client?.commercialId;
     _loadCommercials();
-    _loadCategoryOptions('client', _commerceTypes).then((options) {
-      if (!mounted) return;
-      setState(() {
-        _businessTypeOptions = [
-          for (final option in options)
-            if (option != 'Autre') option,
-          'Autre',
-        ];
-        _businessTypesLoaded = true;
-        if (_businessType != 'Autre' &&
-            !_businessTypeOptions.contains(_businessType)) {
-          _businessType = _businessTypeOptions.first;
-        }
-      });
+    _loadFormOptions();
+  }
+
+  Future<void> _loadFormOptions() async {
+    final commerceTypes = await _loadCategoryOptions(
+      'commerce',
+      _commerceTypes,
+    );
+    final categories = await _loadCategoryOptions(
+      'client',
+      _defaultClientCategories,
+    );
+    if (!mounted) return;
+    setState(() {
+      _businessTypeOptions = [
+        for (final option in commerceTypes)
+          if (option != 'Autre') option,
+        'Autre',
+      ];
+      // Keep a category the client already has even if it was since removed
+      // from the configured list, so editing never silently reassigns it.
+      _categoryOptions = _category.isNotEmpty && !categories.contains(_category)
+          ? [_category, ...categories]
+          : categories;
+      _optionsLoaded = true;
+      if (_businessType != 'Autre' &&
+          !_businessTypeOptions.contains(_businessType)) {
+        _businessType = _businessTypeOptions.first;
+      }
+      if (_category.isEmpty && _categoryOptions.isNotEmpty) {
+        _category = _categoryOptions.first;
+      }
     });
   }
 
@@ -3452,7 +3616,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        key: ValueKey(_businessTypesLoaded),
+                        key: ValueKey('commerce-$_optionsLoaded'),
                         initialValue: _businessType,
                         decoration: const InputDecoration(
                           labelText: 'Type de commerce *',
@@ -3475,32 +3639,29 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Précisez le type de commerce *',
                           ),
-                          onSubmitted: (_) =>
-                              FocusScope.of(context).unfocus(),
+                          onSubmitted: (_) => FocusScope.of(context).unfocus(),
                         ),
                       ],
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<ClientStatus>(
-                        initialValue: _status,
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('category-$_optionsLoaded'),
+                        initialValue: _categoryOptions.contains(_category)
+                            ? _category
+                            : null,
                         decoration: const InputDecoration(
                           labelText: 'Catégorie du client *',
                         ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: ClientStatus.toVisit,
-                            child: Text('Prospect'),
-                          ),
-                          DropdownMenuItem(
-                            value: ClientStatus.visited,
-                            child: Text('Actif'),
-                          ),
-                          DropdownMenuItem(
-                            value: ClientStatus.inactive,
-                            child: Text('Inactif'),
-                          ),
+                        items: [
+                          for (final category in _categoryOptions)
+                            DropdownMenuItem(
+                              value: category,
+                              child: Text(category),
+                            ),
                         ],
-                        onChanged: (s) =>
-                            setState(() => _status = s ?? _status),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() => _category = value);
+                        },
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<int>(
@@ -3655,6 +3816,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         address.isEmpty ||
         city.isEmpty ||
         businessType.isEmpty ||
+        _category.trim().isEmpty ||
         _commercialId == null) {
       setState(() {
         _error = 'Tous les champs obligatoires doivent être renseignés.';
@@ -3672,8 +3834,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
       id: widget.client?.id,
       name: name,
       city: city,
-      category: businessType,
-      status: _status,
+      category: _category.trim(),
+      status: _statusForCategory(_category) ?? _status,
       commercialId: _commercialId ?? 0,
       businessType: businessType,
       address: address,
@@ -5466,7 +5628,7 @@ class CategoryManagerScreen extends StatefulWidget {
     this.loadRows,
     this.readStore,
     this.writeStore,
-  }) : assert(kind == 'client' || kind == 'product');
+  }) : assert(kind == 'client' || kind == 'product' || kind == 'commerce');
   final String title;
   final String kind; // 'client' | 'product'
   final AdminCategoryRowsLoader? loadRows;
@@ -5483,8 +5645,6 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
   bool _saving = false;
   String? _loadError;
 
-  String get _storeName => _categoryStoreName(widget.kind);
-
   @override
   void initState() {
     super.initState();
@@ -5497,13 +5657,25 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
       _loadError = null;
     });
     try {
-      final stored = await (widget.readStore ?? readLocalJson)(_storeName);
+      final stored = await _readCategoryStore(
+        widget.kind,
+        readStore: widget.readStore,
+        writeStore: widget.writeStore,
+      );
       late final List<String> categories;
       if (stored != null) {
-        categories = _decodeCategories(stored);
+        categories = stored;
       } else {
         final rows = await (widget.loadRows ?? _loadSeedRows)();
-        categories = _categoriesFromRows(rows);
+        // Seed additively: curated defaults + whatever's actually in use,
+        // never real-data-alone — real data can be sparser than the
+        // defaults (e.g. only one category actually assigned so far), and
+        // this seed only ever runs once, so a narrow first seed would
+        // silently and permanently drop options everyone expects to see.
+        categories = _normalizeCategories([
+          ..._defaultCategoriesForKind(widget.kind),
+          ..._categoriesFromRows(rows),
+        ]);
         await _writeCategories(categories);
       }
       if (!mounted) return;
@@ -5531,26 +5703,16 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
 
   List<String> _categoriesFromRows(List<dynamic> rows) => _normalizeCategories(
     rows.whereType<Map>().map(
-      (row) => widget.kind == 'product'
-          ? _adminString(row, ['categorie', 'category', 'nom_cat'])
-          : _adminString(row, ['category', 'business_type', 'categorie']),
+      (row) => switch (widget.kind) {
+        'product' => _adminString(row, ['categorie', 'category', 'nom_cat']),
+        'commerce' => _adminString(row, ['business_type', 'categorie']),
+        _ => _adminString(row, ['category']),
+      },
     ),
   );
 
-  List<String> _decodeCategories(String stored) {
-    final decoded = jsonDecode(stored);
-    final rawCategories = decoded is Map ? decoded['categories'] : decoded;
-    if (rawCategories is! List) {
-      throw const FormatException('Le fichier des catégories est invalide.');
-    }
-    return _normalizeCategories(rawCategories.map((value) => value.toString()));
-  }
-
   Future<void> _writeCategories(List<String> values) =>
-      (widget.writeStore ?? writeLocalJson)(
-        _storeName,
-        jsonEncode({'version': 1, 'kind': widget.kind, 'categories': values}),
-      );
+      _writeCategoryStore(widget.kind, values, writeStore: widget.writeStore);
 
   Future<void> _delete(String category) async {
     if (_saving) return;
@@ -6331,124 +6493,359 @@ class _JournalPageState extends State<JournalPage> {
 // Notifications
 // ---------------------------------------------------------------------------
 
-Future<List<dynamic>> _loadAndMarkAdminNotificationsRead() async {
-  final rows = await ApiService.getNotifications();
-  try {
-    await ApiService.markAllNotificationsRead();
-  } catch (error) {
-    debugPrint('[ADMIN][NOTIFICATIONS][MARK_READ][ERROR] $error');
-  }
-  await syncAdminUnreadNotifications();
-  return rows;
+enum _AdminNotificationFilter { all, unread, orders, clients, users, system }
+
+extension _AdminNotificationFilterLabel on _AdminNotificationFilter {
+  String get label => switch (this) {
+    _AdminNotificationFilter.all => 'Toutes',
+    _AdminNotificationFilter.unread => 'Non lues',
+    _AdminNotificationFilter.orders => 'Commandes',
+    _AdminNotificationFilter.clients => 'Clients',
+    _AdminNotificationFilter.users => 'Utilisateurs',
+    _AdminNotificationFilter.system => 'Syst\u00E8me',
+  };
 }
 
-class NotificationsPage extends StatelessWidget {
+String _adminNotificationType(Map<dynamic, dynamic> item) {
+  final raw = _adminString(item, ['type', 'type_action']).toLowerCase();
+  final searchable = '$raw ${_adminString(item, ['titre', 'title'])}'
+      .toLowerCase();
+  if (searchable.contains('commande') || searchable.contains('order')) {
+    return 'commandes';
+  }
+  if (searchable.contains('client') || searchable.contains('prospect')) {
+    return 'clients';
+  }
+  if (searchable.contains('utilisateur') ||
+      searchable.contains('commercial') ||
+      searchable.contains('manager') ||
+      searchable.contains('user')) {
+    return 'utilisateurs';
+  }
+  if (searchable.contains('rapport') || searchable.contains('report')) {
+    return 'rapports';
+  }
+  if (searchable.contains('objectif')) return 'objectifs';
+  return 'systeme';
+}
+
+({IconData icon, Color color}) _adminNotificationStyle(
+  Map<dynamic, dynamic> item,
+) {
+  return switch (_adminNotificationType(item)) {
+    'commandes' => (icon: Icons.receipt_long_rounded, color: kOrange),
+    'clients' => (icon: Icons.people_alt_rounded, color: kGreen),
+    'utilisateurs' => (icon: Icons.manage_accounts_rounded, color: kAccent),
+    'rapports' => (icon: Icons.description_rounded, color: Color(0xFF7C3AED)),
+    'objectifs' => (icon: Icons.gps_fixed_rounded, color: Color(0xFF10A79B)),
+    _ => (icon: Icons.settings_rounded, color: kRed),
+  };
+}
+
+String _adminNotificationTypeLabel(Map<dynamic, dynamic> item) {
+  return switch (_adminNotificationType(item)) {
+    'commandes' => 'Commandes',
+    'clients' => 'Clients',
+    'utilisateurs' => 'Utilisateurs',
+    'rapports' => 'Rapports',
+    'objectifs' => 'Objectifs',
+    _ => 'Syst\u00E8me',
+  };
+}
+
+String _adminNotificationTime(Map<dynamic, dynamic> item) {
+  final raw = _adminString(item, ['created_at', 'date', 'sent_at']);
+  final date = DateTime.tryParse(raw)?.toLocal();
+  if (date == null) return raw.ifEmpty('-');
+  final now = DateTime.now();
+  if (DateUtils.isSameDay(date, now)) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+  if (DateUtils.isSameDay(date, now.subtract(const Duration(days: 1)))) {
+    return 'Hier';
+  }
+  return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+}
+
+class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
 
   @override
+  State<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends State<NotificationsPage> {
+  _AdminNotificationFilter _filter = _AdminNotificationFilter.all;
+  bool _loading = true;
+  String? _error;
+  List<Map<dynamic, dynamic>> _items = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final rows = await ApiService.getNotifications();
+      if (!mounted) return;
+      final items = rows.whereType<Map>().toList()
+        ..sort((a, b) {
+          final aDate = DateTime.tryParse(
+            _adminString(a, ['created_at', 'date', 'sent_at']),
+          );
+          final bDate = DateTime.tryParse(
+            _adminString(b, ['created_at', 'date', 'sent_at']),
+          );
+          return (bDate ?? DateTime(0)).compareTo(aDate ?? DateTime(0));
+        });
+      setState(() {
+        _items = items;
+        _loading = false;
+      });
+      adminUnreadNotifications.value = items
+          .where(isUnreadAdminNotification)
+          .length;
+    } catch (error) {
+      debugPrint('[ADMIN][NOTIFICATIONS][LOAD][ERROR] $error');
+      if (!mounted) return;
+      setState(() {
+        _error = 'Impossible de charger les notifications.';
+        _loading = false;
+      });
+    }
+  }
+
+  List<Map<dynamic, dynamic>> get _visibleItems {
+    return _items.where((item) {
+      final type = _adminNotificationType(item);
+      return switch (_filter) {
+        _AdminNotificationFilter.all => true,
+        _AdminNotificationFilter.unread => isUnreadAdminNotification(item),
+        _AdminNotificationFilter.orders => type == 'commandes',
+        _AdminNotificationFilter.clients => type == 'clients',
+        _AdminNotificationFilter.users => type == 'utilisateurs',
+        _AdminNotificationFilter.system => ![
+          'commandes',
+          'clients',
+          'utilisateurs',
+        ].contains(type),
+      };
+    }).toList();
+  }
+
+  Future<void> _markRead(Map<dynamic, dynamic> notification) async {
+    if (!isUnreadAdminNotification(notification)) return;
+    setState(() {
+      _items = [
+        for (final item in _items)
+          item['id'] == notification['id'] ? {...item, 'is_read': true} : item,
+      ];
+    });
+    adminUnreadNotifications.value = _items
+        .where(isUnreadAdminNotification)
+        .length;
+    try {
+      await ApiService.markNotificationRead(_adminInt(notification, ['id']));
+    } catch (error) {
+      debugPrint('[ADMIN][NOTIFICATIONS][MARK_READ][ERROR] $error');
+      await _load();
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    setState(() {
+      _items = [
+        for (final item in _items) {...item, 'is_read': true},
+      ];
+    });
+    adminUnreadNotifications.value = 0;
+    try {
+      await ApiService.markAllNotificationsRead();
+    } catch (error) {
+      debugPrint('[ADMIN][NOTIFICATIONS][MARK_ALL_READ][ERROR] $error');
+      await _load();
+    }
+  }
+
+  Future<void> _openNotification(Map<dynamic, dynamic> notification) async {
+    await _markRead(notification);
+    if (!mounted) return;
+
+    final style = _adminNotificationStyle(notification);
+    final orderId = _adminInt(notification, ['commande_id', 'order_id']);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => NotificationDetailsSheet(
+        title: _adminString(notification, [
+          'titre',
+          'title',
+        ]).ifEmpty('Notification'),
+        message: _adminString(notification, [
+          'description',
+          'message',
+          'body',
+        ]).ifEmpty('-'),
+        typeLabel: _adminNotificationTypeLabel(notification),
+        timeLabel: _adminNotificationTime(notification),
+        icon: style.icon,
+        iconColor: style.color,
+        action: orderId > 0
+            ? FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  _openOrder(orderId);
+                },
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: const Text('Voir la commande'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: notificationCenterAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+
+  Future<void> _openOrder(int orderId) async {
+    try {
+      final rows = await ApiService.getFactures();
+      final raw = rows.whereType<Map>().firstWhere(
+        (row) => _adminInt(row, ['id', 'commande_id', 'order_id']) == orderId,
+      );
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        phoneRoute(CommandeDetailScreen(order: adminOrderFromJson(raw))),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _snack(
+        context,
+        'Impossible d\u2019ouvrir cette commande.',
+        success: false,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final unread = _items.where(isUnreadAdminNotification).length;
+    final visibleItems = _visibleItems;
     return Scaffold(
-      backgroundColor: kBg,
-      body: Column(
-        children: [
-          AdminHeader(
-            title: 'Notifications',
-            onBack: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: FutureBuilder<List<dynamic>>(
-              future: _loadAndMarkAdminNotificationsRead(),
-              builder: (context, snapshot) {
-                final items =
-                    snapshot.data?.whereType<Map>().toList() ?? const <Map>[];
-                return ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    if (items.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 40),
-                        child: Center(
-                          child: Text(
-                            'Aucune donnée disponible',
-                            style: TextStyle(
-                              color: kMuted,
-                              fontWeight: FontWeight.w700,
+      backgroundColor: notificationCenterSurface,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final phoneWidth = constraints.maxWidth > 600
+                ? 428.0
+                : constraints.maxWidth;
+            return Center(
+              child: SizedBox(
+                width: phoneWidth,
+                height: constraints.maxHeight,
+                child: RefreshIndicator(
+                  onRefresh: _load,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            NotificationCenterHeader(
+                              unreadCount: unread,
+                              onBack: () => Navigator.pop(context),
+                              onMarkAllRead: _markAllRead,
                             ),
-                          ),
+                            const SizedBox(height: 22),
+                            NotificationFilterBar<_AdminNotificationFilter>(
+                              selected: _filter,
+                              options: [
+                                for (final filter
+                                    in _AdminNotificationFilter.values)
+                                  NotificationFilterOption(
+                                    value: filter,
+                                    label: filter.label,
+                                  ),
+                              ],
+                              onChanged: (filter) =>
+                                  setState(() => _filter = filter),
+                            ),
+                            const SizedBox(height: 18),
+                            if (_loading)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 100),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: notificationCenterAccent,
+                                  ),
+                                ),
+                              )
+                            else if (_error != null)
+                              NotificationCenterEmpty(
+                                title: 'Chargement impossible',
+                                message: _error!,
+                                icon: Icons.cloud_off_rounded,
+                              )
+                            else if (visibleItems.isEmpty)
+                              const NotificationCenterEmpty(
+                                message:
+                                    'Les notifications relatives aux commandes, clients, utilisateurs et au système apparaîtront ici.',
+                              )
+                            else
+                              NotificationCenterCardList(
+                                children: [
+                                  for (final item in visibleItems)
+                                    Builder(
+                                      builder: (context) {
+                                        final style = _adminNotificationStyle(
+                                          item,
+                                        );
+                                        return NotificationCenterRow(
+                                          title: _adminString(item, [
+                                            'titre',
+                                            'title',
+                                          ]).ifEmpty('Notification'),
+                                          message: _adminString(item, [
+                                            'description',
+                                            'message',
+                                            'body',
+                                          ]).ifEmpty('-'),
+                                          timeLabel: _adminNotificationTime(
+                                            item,
+                                          ),
+                                          icon: style.icon,
+                                          iconColor: style.color,
+                                          isRead: !isUnreadAdminNotification(
+                                            item,
+                                          ),
+                                          onTap: () => _openNotification(item),
+                                        );
+                                      },
+                                    ),
+                                ],
+                              ),
+                          ]),
                         ),
                       ),
-                    for (final n in items)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: cardBox(),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: kAccent.withValues(alpha: .12),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.notifications_none_rounded,
-                                  color: kAccent,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _adminString(n, [
-                                        'titre',
-                                        'title',
-                                      ]).ifEmpty('Notification'),
-                                      style: const TextStyle(
-                                        color: kInk,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      _adminString(n, [
-                                        'description',
-                                        'message',
-                                      ]).ifEmpty('-'),
-                                      style: const TextStyle(
-                                        color: kMuted,
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                _adminString(n, [
-                                  'created_at',
-                                  'date',
-                                ]).ifEmpty('-'),
-                                style: const TextStyle(
-                                  color: kMuted,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

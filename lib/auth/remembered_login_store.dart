@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../services/local_json_store.dart';
@@ -18,6 +19,19 @@ class RememberedLoginStore {
   static const _secureStorage = FlutterSecureStorage();
 
   static String _passwordKey(String email) => 'remembered_password_$email';
+
+  /// Secure storage can be unavailable (locked keystore, unsupported
+  /// platform, plugin not registered). The remembered email lives in plain
+  /// JSON and must survive that, so a failure here costs the prefilled
+  /// password — never the whole remembered-login list.
+  static Future<String> _readPassword(String email) async {
+    try {
+      return await _secureStorage.read(key: _passwordKey(email)) ?? '';
+    } catch (error) {
+      debugPrint('Mot de passe mémorisé illisible: $error');
+      return '';
+    }
+  }
 
   static List<RememberedLogin> merge(
     List<RememberedLogin> sessions,
@@ -91,11 +105,7 @@ class RememberedLoginStore {
 
       final sessions = <RememberedLogin>[
         for (final email in emails)
-          RememberedLogin(
-            email: email,
-            password:
-                await _secureStorage.read(key: _passwordKey(email)) ?? '',
-          ),
+          RememberedLogin(email: email, password: await _readPassword(email)),
       ];
 
       // Older versions stored passwords in this JSON file. Rewrite legacy
