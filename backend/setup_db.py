@@ -5,6 +5,7 @@ Reads DB_* from backend/.env or the current environment.
 Usage:
     python setup_db.py
     python setup_db.py --seed-only
+    python setup_db.py --wipe   # drop every table and rebuild from schema_export.sql
 """
 import argparse
 import os
@@ -50,6 +51,16 @@ def ensure_database():
     conn.close()
 
 
+def wipe_database():
+    conn = _connect(DB_NAME)
+    conn.autocommit = True
+    cur = conn.cursor()
+    cur.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    cur.close()
+    conn.close()
+    print(f"Wiped all tables in {DB_NAME}")
+
+
 def run_sql_file(path):
     sql = path.read_text(encoding="utf-8")
     conn = _connect(DB_NAME)
@@ -68,9 +79,18 @@ if __name__ == "__main__":
         action="store_true",
         help="Restore additive seed data without reapplying the schema.",
     )
+    parser.add_argument(
+        "--wipe",
+        action="store_true",
+        help="Drop every table first, then rebuild the schema from scratch.",
+    )
     args = parser.parse_args()
 
-    if not args.seed_only:
+    if args.wipe:
+        ensure_database()
+        wipe_database()
+        run_sql_file(HERE / "schema_export.sql")
+    elif not args.seed_only:
         ensure_database()
         run_sql_file(HERE / "schema_export.sql")
     run_sql_file(HERE / "seed_admin.sql")
