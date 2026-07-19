@@ -31,6 +31,18 @@ void _addRuntimeOrderForEmail(String email, CommercialOrder order) {
   orders.insert(0, order);
 }
 
+/// Drops every confirmed order from this email's optimistic cache once a
+/// fresh persisted fetch has happened. The cache only exists to bridge the
+/// gap between "just created locally" and "the next fetch confirms it" — the
+/// instant that fetch lands, it's strictly at least as current (status
+/// changes elsewhere included), so the cached copy is redundant either way.
+void _pruneRuntimeOrdersForEmail(String email) {
+  final key = email.toLowerCase().trim();
+  _runtimeCommercialOrdersByEmail[key]?.removeWhere(
+    (item) => item.orderNumber.isNotEmpty,
+  );
+}
+
 final Map<String, List<CommercialClient>> _runtimeCommercialClientsByEmail = {};
 
 List<CommercialClient> _runtimeClientsForEmail(String email) {
@@ -43,6 +55,15 @@ void _addRuntimeClientForEmail(String email, CommercialClient client) {
   final clients = _runtimeCommercialClientsByEmail.putIfAbsent(key, () => []);
   clients.removeWhere((item) => item.id == client.id);
   clients.insert(0, client);
+}
+
+/// Drops every confirmed client from this email's optimistic cache once a
+/// fresh persisted fetch has happened — same reasoning as
+/// [_pruneRuntimeOrdersForEmail]: the fresh fetch supersedes it regardless of
+/// whether that client was deleted, edited, or is simply still there.
+void _pruneRuntimeClientsForEmail(String email) {
+  final key = email.toLowerCase().trim();
+  _runtimeCommercialClientsByEmail[key]?.removeWhere((item) => item.id > 0);
 }
 
 class _CommercialRanking {
@@ -218,6 +239,7 @@ class _HomeCommercialState extends State<HomeCommercial> {
           .map((item) => _commercialOrderFromApi(item.cast<String, dynamic>()))
           .toList();
       if (!mounted) return;
+      _pruneRuntimeOrdersForEmail(email);
       setState(() => _persistedOrders = orders);
     } catch (error) {
       debugPrint('[COMMERCIAL][COMMANDES][ERROR] $error');
@@ -235,7 +257,11 @@ class _HomeCommercialState extends State<HomeCommercial> {
           .map((item) => _commercialClientFromApi(item.cast<String, dynamic>()))
           .toList();
       if (!mounted) return;
-      setState(() => _persistedClients = clients);
+      _pruneRuntimeClientsForEmail(email);
+      setState(() {
+        _persistedClients = clients;
+        _addedClients.removeWhere((c) => c.id > 0);
+      });
     } catch (error) {
       debugPrint('[COMMERCIAL][CLIENTS][ERROR] $error');
     }

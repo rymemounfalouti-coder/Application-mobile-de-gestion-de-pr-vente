@@ -10,6 +10,7 @@ import '../../data/product_image_assets.dart';
 import '../../l10n/app_locale_controller.dart';
 import '../../settings/app_appearance_controller.dart';
 import '../../services/local_json_store.dart';
+import '../manager/home_manager_screen.dart' show ManagerCommercialsCache;
 import 'admin_screens.dart';
 
 String _money(num v) {
@@ -56,6 +57,46 @@ const List<String> _teaProductCategories = [
   'Thé Vert Premium',
   'Thé Vert Classique',
 ];
+
+List<String> _normalizeCategories(Iterable<String> values) {
+  final result = <String>[];
+  final seen = <String>{};
+  for (final value in values) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || !seen.add(trimmed.toLowerCase())) continue;
+    result.add(trimmed);
+  }
+  result.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return result;
+}
+
+String _categoryStoreName(String kind) => 'admin_categories_${kind}_v1.json';
+
+/// The admin-configured category list for [kind] ('client' | 'product'),
+/// read from the same local store [CategoryManagerScreen] edits. Falls back
+/// to [fallback] if that screen has never been opened (no store yet) or the
+/// stored file can't be read.
+Future<List<String>> _loadCategoryOptions(
+  String kind,
+  List<String> fallback,
+) async {
+  try {
+    final stored = await readLocalJson(_categoryStoreName(kind));
+    if (stored != null) {
+      final decoded = jsonDecode(stored);
+      final raw = decoded is Map ? decoded['categories'] : decoded;
+      if (raw is List) {
+        final categories = _normalizeCategories(
+          raw.map((value) => value.toString()),
+        );
+        if (categories.isNotEmpty) return categories;
+      }
+    }
+  } catch (_) {
+    // Fall through to the default list below.
+  }
+  return fallback;
+}
 
 const String _adminTemporaryPassword = 'Temp@1234';
 
@@ -326,14 +367,36 @@ class HomeAdmin extends StatefulWidget {
 class _HomeAdminState extends State<HomeAdmin> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _accueilKey = GlobalKey<_AccueilPageState>();
+  final _utilisateursKey = GlobalKey<_UtilisateursPageState>();
+  final _produitsKey = GlobalKey<_ProduitsPageState>();
+  final _clientsKey = GlobalKey<_ClientsPageState>();
+  final _commandesKey = GlobalKey<_CommandesPageState>();
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    syncAdminUnreadNotifications();
+  }
 
   void _go(int i) {
     _scaffoldKey.currentState?.closeDrawer();
     setState(() => _index = i);
-    // IndexedStack keeps the dashboard alive, so it never reloads on its own.
-    // Refresh it whenever we return to it (e.g. after adding a user elsewhere).
-    if (i == 0) _accueilKey.currentState?._refresh();
+    // IndexedStack keeps every tab alive, so none of them reload on their
+    // own. Refresh whichever tab we're switching to (e.g. after adding a
+    // user, client, product, or order from elsewhere in the app).
+    switch (i) {
+      case 0:
+        _accueilKey.currentState?._refresh();
+      case 1:
+        _utilisateursKey.currentState?._refresh();
+      case 2:
+        _produitsKey.currentState?._refresh();
+      case 3:
+        _clientsKey.currentState?._refresh();
+      case 4:
+        _commandesKey.currentState?._refresh();
+    }
   }
 
   void _redirect(String route) {
@@ -366,10 +429,10 @@ class _HomeAdminState extends State<HomeAdmin> {
 
     final pages = [
       AccueilPage(key: _accueilKey, onMenu: _menu, onBell: _bell, name: name),
-      UtilisateursPage(onMenu: _menu, onBell: _bell),
-      ProduitsPage(onMenu: _menu, onBell: _bell),
-      ClientsPage(onMenu: _menu, onBell: _bell),
-      CommandesPage(onMenu: _menu, onBell: _bell),
+      UtilisateursPage(key: _utilisateursKey, onMenu: _menu, onBell: _bell),
+      ProduitsPage(key: _produitsKey, onMenu: _menu, onBell: _bell),
+      ClientsPage(key: _clientsKey, onMenu: _menu, onBell: _bell),
+      CommandesPage(key: _commandesKey, onMenu: _menu, onBell: _bell),
       ProfilPage(
         onMenu: _menu,
         onBell: _bell,
@@ -1370,9 +1433,12 @@ class _UtilisateursPageState extends State<UtilisateursPage> {
   @override
   void initState() {
     super.initState();
-    _store.load().then((_) {
-      if (mounted) setState(() {});
-    });
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    await _store.load();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -1534,6 +1600,16 @@ class _UtilisateursPageState extends State<UtilisateursPage> {
           await ApiService.updateUser(u.id, payload);
           await _store.load();
           if (!mounted) return;
+          final cached = ManagerCommercialsCache.byId(u.id);
+          if (cached != null) {
+            ManagerCommercialsCache.put(
+              cached.copyWith(
+                name: result.name,
+                email: result.email,
+                phone: result.phone,
+              ),
+            );
+          }
           setState(() {});
           _snack(context, 'Utilisateur modifié.');
         } catch (e) {
@@ -2250,9 +2326,12 @@ class _ProduitsPageState extends State<ProduitsPage> {
   @override
   void initState() {
     super.initState();
-    _store.load().then((_) {
-      if (mounted) setState(() {});
-    });
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    await _store.load();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -2668,13 +2747,32 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     text: widget.product?.stock.toString() ?? '',
   );
   String? _error;
+  List<String> _categoryOptions = _teaProductCategories;
+  // Bumped once the real category list loads, so the dropdown gets a new
+  // key below — DropdownButtonFormField only reads initialValue when its
+  // field state is first created, so a plain setState alone wouldn't move
+  // the visible selection once the async-loaded list replaces the fallback.
+  bool _categoriesLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    if (!_teaProductCategories.contains(_category.text.trim())) {
-      _category.text = _teaProductCategories.first;
+    if (!_categoryOptions.contains(_category.text.trim())) {
+      _category.text = _categoryOptions.first;
     }
+    _loadCategoryOptions('product', _teaProductCategories).then((options) {
+      if (!mounted) return;
+      final current = widget.product?.category.trim() ?? '';
+      setState(() {
+        _categoryOptions = current.isNotEmpty && !options.contains(current)
+            ? [current, ...options]
+            : options;
+        _categoriesLoaded = true;
+        if (!_categoryOptions.contains(_category.text.trim())) {
+          _category.text = _categoryOptions.first;
+        }
+      });
+    });
   }
 
   Future<void> _pickProductImage() async {
@@ -2738,17 +2836,16 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
+                        key: ValueKey(_categoriesLoaded),
                         initialValue:
-                            _teaProductCategories.contains(
-                              _category.text.trim(),
-                            )
+                            _categoryOptions.contains(_category.text.trim())
                             ? _category.text.trim()
-                            : _teaProductCategories.first,
+                            : _categoryOptions.first,
                         decoration: const InputDecoration(
                           labelText: 'Catégorie *',
                         ),
                         items: [
-                          for (final category in _teaProductCategories)
+                          for (final category in _categoryOptions)
                             DropdownMenuItem(
                               value: category,
                               child: Text(category),
@@ -2944,9 +3041,12 @@ class _ClientsPageState extends State<ClientsPage> {
   @override
   void initState() {
     super.initState();
-    _store.load().then((_) {
-      if (mounted) setState(() {});
-    });
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    await _store.load();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -3216,15 +3316,20 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     text: widget.client == null ? '' : widget.client!.longitude.toString(),
   );
   late final _notes = TextEditingController(text: widget.client?.notes ?? '');
-  late String _businessType =
-      _commerceTypes.contains(widget.client?.businessType)
-      ? widget.client!.businessType
-      : _commerceTypes.first;
+  late String _businessType = _resolveBusinessType();
+  late final _businessTypeOther = TextEditingController(
+    text: _businessType == 'Autre' ? (widget.client?.businessType ?? '') : '',
+  );
   late ClientStatus _status = widget.client?.status ?? ClientStatus.toVisit;
   int? _commercialId;
   List<MockUserProfile> _commercials = [];
   String? _error;
   String? _emailError;
+  List<String> _businessTypeOptions = _commerceTypes;
+  // Bumped once the real category list loads — see the matching comment on
+  // _ProductFormScreenState._categoriesLoaded for why the dropdown needs a
+  // new key rather than just a setState to pick up the change.
+  bool _businessTypesLoaded = false;
 
   static const _commerceTypes = [
     'Épicerie',
@@ -3239,6 +3344,15 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
   );
 
+  String _resolveBusinessType() {
+    final existing = widget.client?.businessType;
+    if (existing == null || existing.isEmpty) {
+      return _businessTypeOptions.first;
+    }
+    if (_businessTypeOptions.contains(existing)) return existing;
+    return 'Autre';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -3246,6 +3360,21 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         ? null
         : widget.client?.commercialId;
     _loadCommercials();
+    _loadCategoryOptions('client', _commerceTypes).then((options) {
+      if (!mounted) return;
+      setState(() {
+        _businessTypeOptions = [
+          for (final option in options)
+            if (option != 'Autre') option,
+          'Autre',
+        ];
+        _businessTypesLoaded = true;
+        if (_businessType != 'Autre' &&
+            !_businessTypeOptions.contains(_businessType)) {
+          _businessType = _businessTypeOptions.first;
+        }
+      });
+    });
   }
 
   Future<void> _loadCommercials() async {
@@ -3282,6 +3411,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
       _latitude,
       _longitude,
       _notes,
+      _businessTypeOther,
     ]) {
       c.dispose();
     }
@@ -3322,12 +3452,13 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
+                        key: ValueKey(_businessTypesLoaded),
                         initialValue: _businessType,
                         decoration: const InputDecoration(
                           labelText: 'Type de commerce *',
                         ),
                         items: [
-                          for (final type in _commerceTypes)
+                          for (final type in _businessTypeOptions)
                             DropdownMenuItem(value: type, child: Text(type)),
                         ],
                         onChanged: (value) {
@@ -3335,6 +3466,19 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                           setState(() => _businessType = value);
                         },
                       ),
+                      if (_businessType == 'Autre') ...[
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _businessTypeOther,
+                          autofocus: true,
+                          textInputAction: TextInputAction.done,
+                          decoration: const InputDecoration(
+                            labelText: 'Précisez le type de commerce *',
+                          ),
+                          onSubmitted: (_) =>
+                              FocusScope.of(context).unfocus(),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       DropdownButtonFormField<ClientStatus>(
                         initialValue: _status,
@@ -3503,11 +3647,14 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     final phone = _phone.text.trim();
     final address = _address.text.trim();
     final email = _email.text.trim();
+    final businessType = _businessType == 'Autre'
+        ? _businessTypeOther.text.trim()
+        : _businessType;
     if (name.isEmpty ||
         phone.isEmpty ||
         address.isEmpty ||
         city.isEmpty ||
-        _businessType.trim().isEmpty ||
+        businessType.isEmpty ||
         _commercialId == null) {
       setState(() {
         _error = 'Tous les champs obligatoires doivent être renseignés.';
@@ -3525,10 +3672,10 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
       id: widget.client?.id,
       name: name,
       city: city,
-      category: _businessType,
+      category: businessType,
       status: _status,
       commercialId: _commercialId ?? 0,
-      businessType: _businessType,
+      businessType: businessType,
       address: address,
       phone: phone,
       email: email,
@@ -5336,7 +5483,7 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
   bool _saving = false;
   String? _loadError;
 
-  String get _storeName => 'admin_categories_${widget.kind}_v1.json';
+  String get _storeName => _categoryStoreName(widget.kind);
 
   @override
   void initState() {
@@ -5397,18 +5544,6 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
       throw const FormatException('Le fichier des catégories est invalide.');
     }
     return _normalizeCategories(rawCategories.map((value) => value.toString()));
-  }
-
-  List<String> _normalizeCategories(Iterable<String> values) {
-    final result = <String>[];
-    final seen = <String>{};
-    for (final value in values) {
-      final trimmed = value.trim();
-      if (trimmed.isEmpty || !seen.add(trimmed.toLowerCase())) continue;
-      result.add(trimmed);
-    }
-    result.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return result;
   }
 
   Future<void> _writeCategories(List<String> values) =>
@@ -5535,30 +5670,9 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
   }
 
   Future<void> _add() async {
-    final controller = TextEditingController();
     final v = await showDialog<String>(
       context: context,
-      builder: (_) => Theme(
-        data: adminInputTheme,
-        child: AlertDialog(
-          title: const Text('Nouvelle catégorie'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(labelText: 'Nom'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: const Text('Ajouter'),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => const _AdminNewCategoryDialog(),
     );
     if (v == null || !mounted) return;
     final category = v.trim();
@@ -5598,6 +5712,54 @@ class _CategoryManagerScreenState extends State<CategoryManagerScreen> {
         success: false,
       );
     }
+  }
+}
+
+/// Owns its [TextEditingController] via the widget lifecycle instead of a
+/// manually-timed dispose call in the caller — disposing right after
+/// `showDialog` returns can race the dialog's own close animation (it's
+/// still mounted while animating out), which crashes with
+/// "TextEditingController was used after being disposed".
+class _AdminNewCategoryDialog extends StatefulWidget {
+  const _AdminNewCategoryDialog();
+
+  @override
+  State<_AdminNewCategoryDialog> createState() =>
+      _AdminNewCategoryDialogState();
+}
+
+class _AdminNewCategoryDialogState extends State<_AdminNewCategoryDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: adminInputTheme,
+      child: AlertDialog(
+        title: const Text('Nouvelle catégorie'),
+        content: TextField(
+          controller: _controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nom'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, _controller.text.trim()),
+            child: const Text('Ajouter'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -6169,6 +6331,17 @@ class _JournalPageState extends State<JournalPage> {
 // Notifications
 // ---------------------------------------------------------------------------
 
+Future<List<dynamic>> _loadAndMarkAdminNotificationsRead() async {
+  final rows = await ApiService.getNotifications();
+  try {
+    await ApiService.markAllNotificationsRead();
+  } catch (error) {
+    debugPrint('[ADMIN][NOTIFICATIONS][MARK_READ][ERROR] $error');
+  }
+  await syncAdminUnreadNotifications();
+  return rows;
+}
+
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});
 
@@ -6184,7 +6357,7 @@ class NotificationsPage extends StatelessWidget {
           ),
           Expanded(
             child: FutureBuilder<List<dynamic>>(
-              future: ApiService.getNotifications(),
+              future: _loadAndMarkAdminNotificationsRead(),
               builder: (context, snapshot) {
                 final items =
                     snapshot.data?.whereType<Map>().toList() ?? const <Map>[];

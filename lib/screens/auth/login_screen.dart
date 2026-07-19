@@ -83,6 +83,9 @@ class _LoginScreenState extends State<LoginScreen> {
       text: session.email,
       selection: TextSelection.collapsed(offset: session.email.length),
     );
+    if (session.password.isNotEmpty) {
+      _passwordController.text = session.password;
+    }
     if (_emailError != null || _passwordError != null) {
       setState(() {
         _emailError = null;
@@ -125,12 +128,12 @@ class _LoginScreenState extends State<LoginScreen> {
       // Authentication already succeeded; storage failures must not block it.
       try {
         if (_rememberMe) {
-          await RememberedLoginStore.save(email: email);
+          await RememberedLoginStore.save(email: email, password: password);
           if (mounted) {
             setState(() {
               _rememberedSessions = RememberedLoginStore.merge(
                 _rememberedSessions,
-                RememberedLogin(email: email),
+                RememberedLogin(email: email, password: password),
               );
             });
           }
@@ -220,8 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Offline accounts are available only in an explicitly enabled demo build.
     final mockUser = MockPreSalesData.userByEmail(email);
     if (mockUser != null) {
-      if (PasswordResetService.passwordFor(email, mockUser.password) !=
-          password) {
+      if (mockUser.password != password) {
         return null;
       }
       return _AuthResult(
@@ -1035,7 +1037,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
     super.dispose();
   }
 
-  void _verify() {
+  Future<void> _verify() async {
     final code = _codeController.text.trim();
     setState(() => _codeError = null);
     if (code.length != 6) {
@@ -1043,8 +1045,13 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
       return;
     }
 
+    setState(() => _isLoading = true);
     try {
-      PasswordResetService.verifyResetCode(email: widget.email, code: code);
+      await PasswordResetService.verifyResetCode(
+        email: widget.email,
+        code: code,
+      );
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -1052,7 +1059,9 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
         ),
       );
     } on PasswordResetException catch (error) {
-      setState(() => _codeError = error.message);
+      if (mounted) setState(() => _codeError = error.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -1195,7 +1204,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
     setState(() => _isLoading = true);
     try {
-      PasswordResetService.resetPassword(
+      await PasswordResetService.resetPassword(
         email: widget.email,
         code: widget.code,
         newPassword: password,

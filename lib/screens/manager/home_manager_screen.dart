@@ -2493,25 +2493,25 @@ class CommerciauxManager extends StatefulWidget {
   State<CommerciauxManager> createState() => _CommerciauxManagerApiState();
 }
 
-class _ManagerCommercialsCache {
-  static final Map<int, _ManagerCommercialView> _items = {};
-  static void replaceAll(List<_ManagerCommercialView> items) {
+class ManagerCommercialsCache {
+  static final Map<int, ManagerCommercialView> _items = {};
+  static void replaceAll(List<ManagerCommercialView> items) {
     _items
       ..clear()
       ..addEntries(items.map((item) => MapEntry(item.id, item)));
   }
 
-  static void put(_ManagerCommercialView item) {
+  static void put(ManagerCommercialView item) {
     _items[item.id] = item;
   }
 
-  static _ManagerCommercialView? byId(int id) => _items[id];
+  static ManagerCommercialView? byId(int id) => _items[id];
 }
 
 enum _ManagerCommercialStatus { all, active, leave, disabled }
 
-class _ManagerCommercialView {
-  const _ManagerCommercialView({
+class ManagerCommercialView {
+  const ManagerCommercialView({
     required this.id,
     required this.name,
     required this.email,
@@ -2549,16 +2549,19 @@ class _ManagerCommercialView {
   final int reportsCount;
   final DateTime? hiredAt;
 
-  _ManagerCommercialView copyWith({
+  ManagerCommercialView copyWith({
+    String? name,
+    String? email,
+    String? phone,
     double? objective,
     int? orderTarget,
     int? reportsCount,
   }) {
-    return _ManagerCommercialView(
+    return ManagerCommercialView(
       id: id,
-      name: name,
-      email: email,
-      phone: phone,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
       city: city,
       address: address,
       matricule: matricule,
@@ -2591,7 +2594,7 @@ class _ManagerCommercialView {
 
 class _ManagerCommercialsData {
   const _ManagerCommercialsData({required this.items});
-  final List<_ManagerCommercialView> items;
+  final List<ManagerCommercialView> items;
 
   int get total => items.length;
   int get active => items
@@ -2807,7 +2810,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
         .whereType<Map>()
         .map((item) => item.cast<String, dynamic>())
         .toList();
-    final items = <_ManagerCommercialView>[];
+    final items = <ManagerCommercialView>[];
     for (final userJson in users) {
       final role = _readString(userJson, ['role', 'type']);
       if (!role.toLowerCase().contains('commercial')) continue;
@@ -2831,7 +2834,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
         return commercialId == null || commercialId == id;
       }).length;
       items.add(
-        _ManagerCommercialView(
+        ManagerCommercialView(
           id: id,
           name: _readUserDisplayName(userJson).ifEmpty('Commercial'),
           email: _readString(userJson, ['email']),
@@ -2867,7 +2870,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
       );
     }
     items.sort((a, b) => b.revenue.compareTo(a.revenue));
-    _ManagerCommercialsCache.replaceAll(items);
+    ManagerCommercialsCache.replaceAll(items);
     return _ManagerCommercialsData(items: items);
   }
 
@@ -2892,7 +2895,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
         order.commercialName.toLowerCase().contains(name.toLowerCase());
   }
 
-  List<_ManagerCommercialView> _visible(List<_ManagerCommercialView> source) {
+  List<ManagerCommercialView> _visible(List<ManagerCommercialView> source) {
     final query = _searchController.text.trim().toLowerCase();
     return source.where((commercial) {
       final matchesStatus =
@@ -2980,7 +2983,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
     });
   }
 
-  void _openCommercialDetail(_ManagerCommercialView commercial) {
+  void _openCommercialDetail(ManagerCommercialView commercial) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -4292,7 +4295,7 @@ class _ManagerReportView {
 class _ManagerReportsData {
   const _ManagerReportsData({required this.items, required this.commercials});
   final List<_ManagerReportView> items;
-  final List<_ManagerCommercialView> commercials;
+  final List<ManagerCommercialView> commercials;
 
   int get sent => items.where((item) => item.sent).length;
   int get read => items.where((item) => item.sent && item.read).length;
@@ -4458,7 +4461,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
     final range = _reportRange(_period, _customRange);
     final users = await _safeApiList(ApiService.getUsers);
     final reportsRaw = await _safeApiList(ApiService.getRapports);
-    final commercials = <_ManagerCommercialView>[];
+    final commercials = <ManagerCommercialView>[];
     for (final userJson in users.whereType<Map>().map(
       (e) => e.cast<String, dynamic>(),
     )) {
@@ -4466,7 +4469,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
       if (!role.toLowerCase().contains('commercial')) continue;
       final id = _readInt(userJson, ['id', 'user_id']);
       commercials.add(
-        _ManagerCommercialView(
+        ManagerCommercialView(
           id: id,
           name: _readUserDisplayName(userJson).ifEmpty('Commercial'),
           email: _readString(userJson, ['email']),
@@ -6645,46 +6648,10 @@ class _ReportDetailScreenState extends State<_ReportDetailScreen> {
 
   Future<void> _addComment() async {
     if (!_hasPersistedReport || _savingComment) return;
-    final controller = TextEditingController();
-    var canSubmit = false;
     final comment = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('Commentaire manager'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            minLines: 3,
-            maxLines: 6,
-            maxLength: 1000,
-            decoration: InputDecoration(
-              hintText: 'Ajouter une note pour le suivi du commercial',
-              border: OutlineInputBorder(),
-            ),
-            onChanged: (value) {
-              final next = value.trim().isNotEmpty;
-              if (next != canSubmit) {
-                setDialogState(() => canSubmit = next);
-              }
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: canSubmit
-                  ? () => Navigator.pop(dialogContext, controller.text.trim())
-                  : null,
-              child: Text('Enregistrer'),
-            ),
-          ],
-        ),
-      ),
+      builder: (dialogContext) => const _ManagerCommentDialog(),
     );
-    controller.dispose();
     if (comment == null || comment.isEmpty || !mounted) return;
 
     setState(() => _savingComment = true);
@@ -6737,6 +6704,65 @@ class _ReportDetailScreenState extends State<_ReportDetailScreen> {
           backgroundColor: error ? Colors.red.shade700 : null,
         ),
       );
+  }
+}
+
+/// Owns its [TextEditingController] via the widget lifecycle instead of a
+/// manually-timed dispose call in the caller — disposing right after
+/// `showDialog` returns races the dialog's own close animation (it's still
+/// mounted while animating out) and crashes with "TextEditingController was
+/// used after being disposed".
+class _ManagerCommentDialog extends StatefulWidget {
+  const _ManagerCommentDialog();
+
+  @override
+  State<_ManagerCommentDialog> createState() => _ManagerCommentDialogState();
+}
+
+class _ManagerCommentDialogState extends State<_ManagerCommentDialog> {
+  final _controller = TextEditingController();
+  bool _canSubmit = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Commentaire manager'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        minLines: 3,
+        maxLines: 6,
+        maxLength: 1000,
+        decoration: InputDecoration(
+          hintText: 'Ajouter une note pour le suivi du commercial',
+          border: OutlineInputBorder(),
+        ),
+        onChanged: (value) {
+          final next = value.trim().isNotEmpty;
+          if (next != _canSubmit) {
+            setState(() => _canSubmit = next);
+          }
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Annuler'),
+        ),
+        FilledButton(
+          onPressed: _canSubmit
+              ? () => Navigator.pop(context, _controller.text.trim())
+              : null,
+          child: Text('Enregistrer'),
+        ),
+      ],
+    );
   }
 }
 
@@ -7095,7 +7121,7 @@ class _ManagerObjectiveChips extends StatelessWidget {
 
 class _ManagerObjectiveCard extends StatelessWidget {
   const _ManagerObjectiveCard({required this.commercial, required this.onTap});
-  final _ManagerCommercialView commercial;
+  final ManagerCommercialView commercial;
   final VoidCallback onTap;
 
   @override
@@ -7630,9 +7656,9 @@ class _ManagerCommercialTop3 extends StatelessWidget {
     required this.onTap,
   });
 
-  final List<_ManagerCommercialView> items;
+  final List<ManagerCommercialView> items;
   final VoidCallback onViewAll;
-  final ValueChanged<_ManagerCommercialView> onTap;
+  final ValueChanged<ManagerCommercialView> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -7763,7 +7789,7 @@ class _ManagerCommercialModernCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final _ManagerCommercialView commercial;
+  final ManagerCommercialView commercial;
   final VoidCallback onTap;
 
   @override
@@ -12841,7 +12867,7 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
       );
   }
 
-  Future<void> _openDefineObjective(_ManagerCommercialView commercial) async {
+  Future<void> _openDefineObjective(ManagerCommercialView commercial) async {
     final saved = await Navigator.push<CommercialObjective>(
       context,
       MaterialPageRoute(
@@ -12849,7 +12875,7 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
       ),
     );
     if (!mounted || saved == null) return;
-    _ManagerCommercialsCache.put(
+    ManagerCommercialsCache.put(
       commercial.copyWith(
         objective: saved.revenueTarget ?? 0,
         orderTarget: saved.orderTarget ?? 0,
@@ -12858,7 +12884,7 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
     setState(() {});
   }
 
-  void _openCommercialOrders(_ManagerCommercialView commercial) {
+  void _openCommercialOrders(ManagerCommercialView commercial) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -12868,7 +12894,7 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
     );
   }
 
-  void _openCommercialReports(_ManagerCommercialView commercial) {
+  void _openCommercialReports(ManagerCommercialView commercial) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -12880,7 +12906,7 @@ class _DetailCommercialScreenState extends State<DetailCommercialScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final apiCommercial = _ManagerCommercialsCache.byId(widget.commercialId);
+    final apiCommercial = ManagerCommercialsCache.byId(widget.commercialId);
     if (apiCommercial != null) {
       return _DetailOrderShell(
         child: _ManagerCommercialApiDetail(
@@ -13010,7 +13036,7 @@ class _ManagerCommercialApiDetail extends StatelessWidget {
     required this.onOpenReports,
   });
 
-  final _ManagerCommercialView commercial;
+  final ManagerCommercialView commercial;
   final VoidCallback onSetObjectives;
   final VoidCallback onOpenOrders;
   final VoidCallback onOpenReports;
@@ -13364,7 +13390,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
         .whereType<Map>()
         .map((item) => item.cast<String, dynamic>())
         .toList();
-    final items = <_ManagerCommercialView>[];
+    final items = <ManagerCommercialView>[];
     for (final userJson in results[0].whereType<Map>().map(
       (e) => e.cast<String, dynamic>(),
     )) {
@@ -13381,7 +13407,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
         id,
       );
       items.add(
-        _ManagerCommercialView(
+        ManagerCommercialView(
           id: id,
           name: _readUserDisplayName(userJson).ifEmpty('Commercial'),
           email: _readString(userJson, ['email']),
@@ -13425,7 +13451,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
       );
     }
     items.sort((a, b) => b.objectiveRate.compareTo(a.objectiveRate));
-    _ManagerCommercialsCache.replaceAll(items);
+    ManagerCommercialsCache.replaceAll(items);
     return _ManagerCommercialsData(items: items);
   }
 
@@ -13446,7 +13472,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
         order.commercialName.toLowerCase().contains(name.toLowerCase());
   }
 
-  List<_ManagerCommercialView> _visible(List<_ManagerCommercialView> source) {
+  List<ManagerCommercialView> _visible(List<ManagerCommercialView> source) {
     final query = _searchController.text.trim().toLowerCase();
     return source.where((item) {
       final hasObjective = item.objective > 0 || item.orderTarget > 0;
@@ -13541,7 +13567,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
   }
 
   Future<void> _openDefineObjective() async {
-    var commercials = _ManagerCommercialsCache._items.values.toList();
+    var commercials = ManagerCommercialsCache._items.values.toList();
     if (commercials.isEmpty) {
       try {
         final data = await (_future ?? _loadData());
@@ -13570,7 +13596,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
     ).then((_) => _refresh());
   }
 
-  void _openObjectiveDetail(_ManagerCommercialView commercial) {
+  void _openObjectiveDetail(ManagerCommercialView commercial) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -13854,7 +13880,7 @@ class _DetailActionChip extends StatelessWidget {
 
 class _ObjectiveDetailScreen extends StatelessWidget {
   const _ObjectiveDetailScreen({required this.commercial});
-  final _ManagerCommercialView commercial;
+  final ManagerCommercialView commercial;
 
   @override
   Widget build(BuildContext context) {
@@ -13993,7 +14019,7 @@ class _ObjectiveDetailScreen extends StatelessWidget {
 
 class _DefineObjectiveScreen extends StatefulWidget {
   const _DefineObjectiveScreen({required this.commercials});
-  final List<_ManagerCommercialView> commercials;
+  final List<ManagerCommercialView> commercials;
 
   @override
   State<_DefineObjectiveScreen> createState() => _DefineObjectiveScreenState();
@@ -14029,7 +14055,7 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
     super.dispose();
   }
 
-  void _fill(_ManagerCommercialView commercial) {
+  void _fill(ManagerCommercialView commercial) {
     _revenueController.text = commercial.objective > 0
         ? commercial.objective.round().toString()
         : '';
@@ -14081,33 +14107,35 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
                     icon: Icons.people_outline,
                     text: 'Aucun commercial disponible.',
                   )
-                else if (_isSingleCommercial) ...[
-                  _ObjectiveCommercialSummary(
-                    commercial: widget.commercials.first,
-                  ),
-                ] else ...[
-                  _ObjectiveCommercialMultiSelect(
-                    commercials: widget.commercials,
-                    selectedIds: _selectedIds,
-                    onToggle: (commercial) {
-                      setState(() {
-                        if (!_selectedIds.remove(commercial.id)) {
-                          _selectedIds.add(commercial.id);
-                        }
-                      });
-                    },
-                    onToggleAll: () {
-                      setState(() {
-                        if (_selectedIds.length == widget.commercials.length) {
-                          _selectedIds.clear();
-                        } else {
-                          _selectedIds
-                            ..clear()
-                            ..addAll(widget.commercials.map((c) => c.id));
-                        }
-                      });
-                    },
-                  ),
+                else ...[
+                  if (_isSingleCommercial)
+                    _ObjectiveCommercialSummary(
+                      commercial: widget.commercials.first,
+                    )
+                  else
+                    _ObjectiveCommercialMultiSelect(
+                      commercials: widget.commercials,
+                      selectedIds: _selectedIds,
+                      onToggle: (commercial) {
+                        setState(() {
+                          if (!_selectedIds.remove(commercial.id)) {
+                            _selectedIds.add(commercial.id);
+                          }
+                        });
+                      },
+                      onToggleAll: () {
+                        setState(() {
+                          if (_selectedIds.length ==
+                              widget.commercials.length) {
+                            _selectedIds.clear();
+                          } else {
+                            _selectedIds
+                              ..clear()
+                              ..addAll(widget.commercials.map((c) => c.id));
+                          }
+                        });
+                      },
+                    ),
                   SizedBox(height: 16),
                   _ObjectiveLabeledField(
                     controller: _revenueController,
@@ -14214,7 +14242,7 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
   }
 
   /// Selected commercials whose existing objective this save would replace.
-  List<_ManagerCommercialView> get _objectivesToReplace => widget.commercials
+  List<ManagerCommercialView> get _objectivesToReplace => widget.commercials
       .where(
         (commercial) =>
             _selectedIds.contains(commercial.id) &&
@@ -14222,7 +14250,7 @@ class _DefineObjectiveScreenState extends State<_DefineObjectiveScreen> {
       )
       .toList();
 
-  Future<bool> _confirmReplace(List<_ManagerCommercialView> existing) async {
+  Future<bool> _confirmReplace(List<ManagerCommercialView> existing) async {
     final many = existing.length > 1;
     final names = existing.map((commercial) => commercial.name).join(', ');
     final confirmed = await showDialog<bool>(
@@ -14323,9 +14351,9 @@ class _ObjectiveCommercialMultiSelect extends StatelessWidget {
     required this.onToggleAll,
   });
 
-  final List<_ManagerCommercialView> commercials;
+  final List<ManagerCommercialView> commercials;
   final Set<int> selectedIds;
-  final ValueChanged<_ManagerCommercialView> onToggle;
+  final ValueChanged<ManagerCommercialView> onToggle;
   final VoidCallback onToggleAll;
 
   @override
@@ -14397,7 +14425,7 @@ class _ObjectiveCommercialCheckRow extends StatelessWidget {
     required this.onTap,
   });
 
-  final _ManagerCommercialView commercial;
+  final ManagerCommercialView commercial;
   final bool selected;
   final VoidCallback onTap;
 
@@ -14586,7 +14614,7 @@ class _ObjectiveLabeledField extends StatelessWidget {
 class _ObjectiveCommercialSummary extends StatelessWidget {
   const _ObjectiveCommercialSummary({required this.commercial});
 
-  final _ManagerCommercialView commercial;
+  final ManagerCommercialView commercial;
 
   @override
   Widget build(BuildContext context) {
@@ -15882,8 +15910,6 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
   }
 
   Future<void> _openRefuseSheet(_ManagerOrderView order) async {
-    final reasonController = TextEditingController();
-    String selected = 'Prix incorrect';
     final reason = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -15891,97 +15917,7 @@ class _ManagerOrderDetailPageState extends State<_ManagerOrderDetailPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              18,
-              18,
-              18,
-              18 + MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Motif du refus',
-                  style: TextStyle(
-                    fontFamily: 'Roboto',
-                    color: _DashboardManagerState.managerText,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: 12),
-                for (final option in [
-                  'Prix incorrect',
-                  'Quantité incorrecte',
-                  'Informations manquantes',
-                  'Autre',
-                ])
-                  _ManagerRefusalReasonTile(
-                    label: option,
-                    selected: selected == option,
-                    onTap: () => setSheetState(() => selected = option),
-                  ),
-                SizedBox(height: 8),
-                TextField(
-                  controller: reasonController,
-                  minLines: 2,
-                  maxLines: 4,
-                  cursorColor: _DashboardManagerState.managerBrand,
-                  style: TextStyle(
-                    color: _DashboardManagerState.managerText,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  decoration: _managerLightInputDecoration(
-                    labelText: selected == 'Autre'
-                        ? 'Motif obligatoire'
-                        : 'Détail du motif',
-                    hintText: 'Précisez le motif si nécessaire',
-                  ),
-                  onChanged: (_) => setSheetState(() {}),
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: _managerSecondaryButtonStyle(),
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('Annuler'),
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _DashboardManagerState.managerRed,
-                          disabledBackgroundColor: _DashboardManagerState
-                              .managerRed
-                              .withValues(alpha: .35),
-                          foregroundColor: Colors.white,
-                          disabledForegroundColor: Colors.white,
-                        ),
-                        onPressed:
-                            selected == 'Autre' &&
-                                reasonController.text.trim().isEmpty
-                            ? null
-                            : () {
-                                final typed = reasonController.text.trim();
-                                Navigator.pop(context, typed.ifEmpty(selected));
-                              },
-                        child: Text('Confirmer le refus'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      builder: (context) => const _ManagerRefuseSheet(),
     );
     if (reason != null) await _updateStatus(order, 'refusee', reason: reason);
   }
@@ -17879,98 +17815,231 @@ bool _managerReportMatchesCommercial(
       (!date.isBefore(range.start) && !date.isAfter(range.end));
 }
 
-Future<String?> _showManagerRefusalReasonDialog(BuildContext context) async {
-  final customController = TextEditingController();
-  var selected = 'Prix incorrect';
-  final result = await showDialog<String>(
-    context: context,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (context, setDialogState) {
-        final customReasonRequired = selected == 'Autre';
-        final canSubmit =
-            !customReasonRequired || customController.text.trim().isNotEmpty;
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
-          title: Text(
-            'Motif de refus',
-            style: TextStyle(
-              color: _DashboardManagerState.managerText,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+/// See [_ManagerCommentDialog] for why the controller lives here instead of
+/// being manually disposed by the caller right after `showModalBottomSheet`
+/// returns.
+class _ManagerRefuseSheet extends StatefulWidget {
+  const _ManagerRefuseSheet();
+
+  @override
+  State<_ManagerRefuseSheet> createState() => _ManagerRefuseSheetState();
+}
+
+class _ManagerRefuseSheetState extends State<_ManagerRefuseSheet> {
+  final _reasonController = TextEditingController();
+  String _selected = 'Prix incorrect';
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          18,
+          18,
+          18,
+          18 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Motif du refus',
+              style: TextStyle(
+                fontFamily: 'Roboto',
+                color: _DashboardManagerState.managerText,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            SizedBox(height: 12),
+            for (final option in [
+              'Prix incorrect',
+              'Quantité incorrecte',
+              'Informations manquantes',
+              'Autre',
+            ])
+              _ManagerRefusalReasonTile(
+                label: option,
+                selected: _selected == option,
+                onTap: () => setState(() => _selected = option),
+              ),
+            SizedBox(height: 8),
+            TextField(
+              controller: _reasonController,
+              minLines: 2,
+              maxLines: 4,
+              cursorColor: _DashboardManagerState.managerBrand,
+              style: TextStyle(
+                color: _DashboardManagerState.managerText,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: _managerLightInputDecoration(
+                labelText: _selected == 'Autre'
+                    ? 'Motif obligatoire'
+                    : 'Détail du motif',
+                hintText: 'Précisez le motif si nécessaire',
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            SizedBox(height: 16),
+            Row(
               children: [
-                for (final reason in [
-                  'Prix incorrect',
-                  'Stock indisponible',
-                  'Informations client incomplètes',
-                  'Doublon',
-                  'Autre',
-                ])
-                  _ManagerRefusalReasonTile(
-                    label: reason,
-                    selected: selected == reason,
-                    onTap: () => setDialogState(() => selected = reason),
+                Expanded(
+                  child: OutlinedButton(
+                    style: _managerSecondaryButtonStyle(),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Annuler'),
                   ),
-                if (customReasonRequired) ...[
-                  SizedBox(height: 10),
-                  TextField(
-                    controller: customController,
-                    autofocus: true,
-                    minLines: 2,
-                    maxLines: 4,
-                    cursorColor: _DashboardManagerState.managerBrand,
-                    style: TextStyle(
-                      color: _DashboardManagerState.managerText,
-                      fontWeight: FontWeight.w600,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _DashboardManagerState.managerRed,
+                      disabledBackgroundColor: _DashboardManagerState
+                          .managerRed
+                          .withValues(alpha: .35),
+                      foregroundColor: Colors.white,
+                      disabledForegroundColor: Colors.white,
                     ),
-                    decoration: _managerLightInputDecoration(
-                      labelText: 'Motif obligatoire',
-                      hintText: 'Précisez le motif du refus',
-                    ),
-                    onChanged: (_) => setDialogState(() {}),
+                    onPressed:
+                        _selected == 'Autre' &&
+                            _reasonController.text.trim().isEmpty
+                        ? null
+                        : () {
+                            final typed = _reasonController.text.trim();
+                            Navigator.pop(context, typed.ifEmpty(_selected));
+                          },
+                    child: Text('Confirmer le refus'),
                   ),
-                ],
+                ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: _DashboardManagerState.managerText,
-              ),
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Annuler'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _DashboardManagerState.managerRed,
-                disabledBackgroundColor: _DashboardManagerState.managerRed
-                    .withValues(alpha: .35),
-                foregroundColor: Colors.white,
-                disabledForegroundColor: Colors.white,
-              ),
-              onPressed: canSubmit
-                  ? () => Navigator.pop(
-                      dialogContext,
-                      customReasonRequired
-                          ? customController.text.trim()
-                          : selected,
-                    )
-                  : null,
-              child: Text('Refuser'),
-            ),
           ],
-        );
-      },
-    ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<String?> _showManagerRefusalReasonDialog(BuildContext context) {
+  return showDialog<String>(
+    context: context,
+    builder: (dialogContext) => const _ManagerRefusalReasonDialog(),
   );
-  customController.dispose();
-  return result;
+}
+
+/// See [_ManagerCommentDialog] for why the controller lives here instead of
+/// being manually disposed by the caller right after `showDialog` returns.
+class _ManagerRefusalReasonDialog extends StatefulWidget {
+  const _ManagerRefusalReasonDialog();
+
+  @override
+  State<_ManagerRefusalReasonDialog> createState() =>
+      _ManagerRefusalReasonDialogState();
+}
+
+class _ManagerRefusalReasonDialogState
+    extends State<_ManagerRefusalReasonDialog> {
+  final _customController = TextEditingController();
+  String _selected = 'Prix incorrect';
+
+  @override
+  void dispose() {
+    _customController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final customReasonRequired = _selected == 'Autre';
+    final canSubmit =
+        !customReasonRequired || _customController.text.trim().isNotEmpty;
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      title: Text(
+        'Motif de refus',
+        style: TextStyle(
+          color: _DashboardManagerState.managerText,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final reason in [
+              'Prix incorrect',
+              'Stock indisponible',
+              'Informations client incomplètes',
+              'Doublon',
+              'Autre',
+            ])
+              _ManagerRefusalReasonTile(
+                label: reason,
+                selected: _selected == reason,
+                onTap: () => setState(() => _selected = reason),
+              ),
+            if (customReasonRequired) ...[
+              SizedBox(height: 10),
+              TextField(
+                controller: _customController,
+                autofocus: true,
+                minLines: 2,
+                maxLines: 4,
+                cursorColor: _DashboardManagerState.managerBrand,
+                style: TextStyle(
+                  color: _DashboardManagerState.managerText,
+                  fontWeight: FontWeight.w600,
+                ),
+                decoration: _managerLightInputDecoration(
+                  labelText: 'Motif obligatoire',
+                  hintText: 'Précisez le motif du refus',
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: _DashboardManagerState.managerText,
+          ),
+          onPressed: () => Navigator.pop(context),
+          child: Text('Annuler'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _DashboardManagerState.managerRed,
+            disabledBackgroundColor: _DashboardManagerState.managerRed
+                .withValues(alpha: .35),
+            foregroundColor: Colors.white,
+            disabledForegroundColor: Colors.white,
+          ),
+          onPressed: canSubmit
+              ? () => Navigator.pop(
+                  context,
+                  customReasonRequired
+                      ? _customController.text.trim()
+                      : _selected,
+                )
+              : null,
+          child: Text('Refuser'),
+        ),
+      ],
+    );
+  }
 }
 
 class _ManagerRefusalReasonTile extends StatelessWidget {

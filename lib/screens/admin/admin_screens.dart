@@ -217,15 +217,80 @@ class AdminHeader extends StatelessWidget {
   }
 }
 
+/// Unread count shown as a badge on [AdminHeader]'s bell icon. Refreshed via
+/// [syncAdminUnreadNotifications], e.g. on admin shell startup and whenever
+/// the notifications page is opened (which also marks everything read).
+final ValueNotifier<int> adminUnreadNotifications = ValueNotifier<int>(0);
+
+bool _isUnreadAdminNotification(Map<dynamic, dynamic> item) {
+  final value = item['is_read'] ?? item['read'] ?? item['lu'];
+  if (value is bool) return !value;
+  if (value is num) return value == 0;
+  if (value is String) {
+    return !['true', '1', 'lu', 'read'].contains(value.toLowerCase());
+  }
+  return true;
+}
+
+Future<void> syncAdminUnreadNotifications() async {
+  try {
+    final notifications = await ApiService.getNotifications();
+    adminUnreadNotifications.value = notifications
+        .whereType<Map>()
+        .where(_isUnreadAdminNotification)
+        .length;
+  } catch (error) {
+    debugPrint('[ADMIN][NOTIFICATIONS][BADGE][ERROR] $error');
+  }
+}
+
 class _BellButton extends StatelessWidget {
   const _BellButton({this.onTap});
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onTap,
-      icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+    return ValueListenableBuilder<int>(
+      valueListenable: adminUnreadNotifications,
+      builder: (context, unread, child) {
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              onPressed: onTap,
+              icon: const Icon(
+                Icons.notifications_none_rounded,
+                color: Colors.white,
+              ),
+            ),
+            if (unread > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  decoration: BoxDecoration(
+                    color: kRed,
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(color: Colors.white, width: 1.4),
+                  ),
+                  child: Center(
+                    child: Text(
+                      unread > 99 ? '99+' : '$unread',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
