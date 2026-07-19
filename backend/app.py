@@ -1,8 +1,11 @@
 from datetime import datetime, timedelta
+from email.mime.text import MIMEText
 from functools import wraps
 import json
 import os
 import re
+import secrets
+import smtplib
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
@@ -367,6 +370,44 @@ def _password_matches(stored_password, candidate):
     if stored.startswith(("pbkdf2:", "scrypt:")):
         return check_password_hash(stored, candidate)
     return stored == candidate
+
+
+def _send_reset_code_email(to_email, code):
+    host = os.getenv("SMTP_HOST")
+    port = int(os.getenv("SMTP_PORT", "587"))
+    user = os.getenv("SMTP_USER")
+    password = os.getenv("SMTP_PASSWORD")
+    sender = os.getenv("SMTP_FROM") or user
+    if not host or not user or not password:
+        raise RuntimeError("Configuration SMTP manquante sur le serveur")
+
+    message = MIMEText(
+        f"Votre code de reinitialisation est : {code}\n\n"
+        "Ce code expire dans 10 minutes."
+    )
+    message["Subject"] = "Code de reinitialisation PreSales"
+    message["From"] = sender
+    message["To"] = to_email
+
+    with smtplib.SMTP(host, port, timeout=10) as server:
+        server.starttls()
+        server.login(user, password)
+        server.sendmail(sender, [to_email], message.as_string())
+
+
+# ponytail: in-memory, single Flask process only; move to a DB table or Redis
+# if reset codes need to survive a restart or run behind multiple workers.
+_password_reset_otps = {}
+
+
+def _check_reset_code(email, code):
+    otp = _password_reset_otps.get(email)
+    if not otp or otp["code"] != code:
+        return "Code de verification incorrect."
+    if datetime.now() > otp["expires_at"]:
+        _password_reset_otps.pop(email, None)
+        return "Code expire. Veuillez demander un nouveau code."
+    return None
 
 
 def _normalize_user_role(role):
@@ -1592,6 +1633,87 @@ def login():
     user["expires_in"] = int(app.config["JWT_ACCESS_TOKEN_EXPIRES"].total_seconds())
     user["password"] = None
     return jsonify(user)
+
+
+@app.route("/auth/forgot-password", methods=["POST"])
+@limiter.limit("5 per minute", key_func=_login_rate_limit_key)
+def forgot_password():
+    data = request.get_json(silent=True) or {}
+    email = str(data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"message": "Adresse e-mail requise"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        cur.execute(
+            """
+            SELECT id, email FROM users
+            WHERE LOWER(email) = LOWER(%s) AND COALESCE(is_active, true) = true
+            LIMIT 1
+            """,
+            (email,),
+        )
+        user = cur.fetchone()
+    finally:
+        cur.close()
+        conn.close()
+
+    if not user:
+        return jsonify({"message": "Aucun compte ne correspond a cette adresse."}), 404
+
+    code = str(secrets.randbelow(900000) + 100000)
+    _password_reset_otps[email] = {
+        "code": code,
+        "expires_at": datetime.now() + timedelta(minutes=10),
+    }
+    try:
+        _send_reset_code_email(user["email"], code)
+    except Exception as exc:
+        return jsonify({"message": f"Envoi du code impossible : {exc}"}), 502
+    return jsonify({"message": "Code envoye"})
+
+
+@app.route("/auth/verify-reset-code", methods=["POST"])
+@limiter.limit("10 per minute", key_func=_login_rate_limit_key)
+def verify_reset_code():
+    data = request.get_json(silent=True) or {}
+    email = str(data.get("email") or "").strip().lower()
+    code = str(data.get("code") or "").strip()
+    error = _check_reset_code(email, code)
+    if error:
+        return jsonify({"message": error}), 400
+    return jsonify({"message": "Code valide"})
+
+
+@app.route("/auth/reset-password", methods=["POST"])
+@limiter.limit("10 per minute", key_func=_login_rate_limit_key)
+def reset_password():
+    data = request.get_json(silent=True) or {}
+    email = str(data.get("email") or "").strip().lower()
+    code = str(data.get("code") or "").strip()
+    new_password = str(data.get("new_password") or "")
+    if len(new_password) < 8:
+        return jsonify({"message": "Le nouveau mot de passe doit contenir au moins 8 caracteres"}), 400
+
+    error = _check_reset_code(email, code)
+    if error:
+        return jsonify({"message": error}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "UPDATE users SET password = %s, updated_at = %s WHERE LOWER(email) = LOWER(%s)",
+            (_hash_password(new_password), datetime.now(), email),
+        )
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+    _password_reset_otps.pop(email, None)
+    return jsonify({"message": "Mot de passe mis a jour"})
 
 
 @app.route("/factures", methods=["GET"])
