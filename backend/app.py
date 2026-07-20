@@ -955,6 +955,11 @@ def update_delete_client(client_id):
         if not row:
             return jsonify({"message": "Client introuvable"}), 404
         return jsonify(row)
+    except psycopg2.errors.ForeignKeyViolation:
+        conn.rollback()
+        return jsonify(
+            {"message": "Client lié à des factures : suppression impossible."}
+        ), 409
     finally:
         cur.close()
         conn.close()
@@ -1099,6 +1104,14 @@ def update_delete_produit(produit_id):
         if not row:
             return jsonify({"message": "Produit introuvable"}), 404
         return jsonify(row)
+    except psycopg2.errors.ForeignKeyViolation:
+        conn.rollback()
+        return jsonify(
+            {
+                "message": "Produit utilisé dans des factures : suppression impossible. "
+                "Passez son statut à inactif."
+            }
+        ), 409
     except psycopg2.IntegrityError as exc:
         conn.rollback()
         return jsonify({"message": "Produit non enregistré", "error": str(exc)}), 400
@@ -1351,6 +1364,14 @@ def update_delete_user(user_id):
             row["statut"] = business_status
             row["etat"] = business_status
         return jsonify(row)
+    except psycopg2.errors.ForeignKeyViolation:
+        conn.rollback()
+        return jsonify(
+            {
+                "message": "Utilisateur lié à des clients ou des factures : "
+                "suppression impossible. Désactivez le compte."
+            }
+        ), 409
     except psycopg2.IntegrityError as exc:
         conn.rollback()
         return jsonify({"message": "Utilisateur non enregistré", "error": str(exc)}), 400

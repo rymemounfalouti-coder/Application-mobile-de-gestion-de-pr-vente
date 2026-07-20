@@ -2847,9 +2847,7 @@ class _CommerciauxManagerApiState extends State<CommerciauxManager> {
             'code',
           ]).ifEmpty('COM-${id.toString().padLeft(3, '0')}'),
           role: 'Commercial',
-          status: _parseCommercialStatus(
-            _readString(userJson, ['status', 'statut', 'etat']),
-          ),
+          status: _parseCommercialStatus(userJson),
           revenue: validated.fold(0, (sum, order) => sum + order.total),
           objective: objective?.revenueTarget ?? 0,
           orderTarget: objective?.orderTarget ?? 0,
@@ -4482,9 +4480,7 @@ class _ReportsManagerApiScreenState extends State<ReportsManagerScreen> {
             'code',
           ]).ifEmpty('COM-${id.toString().padLeft(3, '0')}'),
           role: 'Commercial',
-          status: _parseCommercialStatus(
-            _readString(userJson, ['status', 'statut', 'etat']),
-          ),
+          status: _parseCommercialStatus(userJson),
           revenue: 0,
           objective: 0,
           orderTarget: 0,
@@ -9085,17 +9081,34 @@ _OrderStatusStyle _commercialStatusStyle(_ManagerCommercialStatus status) {
   };
 }
 
-_ManagerCommercialStatus _parseCommercialStatus(String raw) {
-  final value = raw.toLowerCase().trim();
+/// Whether the account is enabled lives in `is_active` — the flag the admin
+/// toggles. `status`/`statut`/`etat` look like they say the same thing but
+/// don't: the backend overwrites them on every GET /users with a business
+/// metric ("actif" only once the commercial has produced an order), so reading
+/// those alone showed every brand-new commercial as "Désactivé".
+_ManagerCommercialStatus _parseCommercialStatus(Map<dynamic, dynamic> user) {
+  final value = _readString(user, [
+    'status',
+    'statut',
+    'etat',
+  ]).toLowerCase().trim();
   if (value.contains('cong')) return _ManagerCommercialStatus.leave;
-  if (value.contains('des') ||
-      value.contains('inact') ||
-      value.contains('inactive') ||
-      value == '0' ||
-      value == 'false') {
-    return _ManagerCommercialStatus.disabled;
+
+  final active = user['is_active'] ?? user['actif'] ?? user['enabled'];
+  if (active == null) {
+    // No flag in the payload (demo data): fall back to reading the text.
+    if (value.contains('des') || value.contains('inact') || value == '0') {
+      return _ManagerCommercialStatus.disabled;
+    }
+    return _ManagerCommercialStatus.active;
   }
-  return _ManagerCommercialStatus.active;
+  final disabled =
+      active == false ||
+      active == 0 ||
+      (active is String && ['false', '0', 'non'].contains(active.toLowerCase()));
+  return disabled
+      ? _ManagerCommercialStatus.disabled
+      : _ManagerCommercialStatus.active;
 }
 
 // ignore: unused_element
@@ -13420,9 +13433,7 @@ class _ObjectifsManagerScreenState extends State<ObjectifsManagerScreen> {
             'code',
           ]).ifEmpty('COM-${id.toString().padLeft(3, '0')}'),
           role: 'Commercial',
-          status: _parseCommercialStatus(
-            _readString(userJson, ['status', 'statut', 'etat']),
-          ),
+          status: _parseCommercialStatus(userJson),
           revenue: validated.fold(0, (sum, order) => sum + order.total),
           objective: objective?.revenueTarget ?? 0,
           orderTarget: objective?.orderTarget ?? 0,

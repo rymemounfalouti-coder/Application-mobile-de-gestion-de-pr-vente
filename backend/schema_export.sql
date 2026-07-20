@@ -492,11 +492,43 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: activites_recentes activites_recentes_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activites_recentes
+    ADD CONSTRAINT activites_recentes_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+
+
+--
+-- Name: activites_recentes activites_recentes_commande_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activites_recentes
+    ADD CONSTRAINT activites_recentes_commande_id_fkey FOREIGN KEY (commande_id) REFERENCES public.factures(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_commande_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_commande_id_fkey FOREIGN KEY (commande_id) REFERENCES public.factures(id) ON DELETE CASCADE;
+
+
+--
 -- Name: clients clients_commercial_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clients
-    ADD CONSTRAINT clients_commercial_id_fkey FOREIGN KEY (commercial_id) REFERENCES public.users(id);
+    ADD CONSTRAINT clients_commercial_id_fkey FOREIGN KEY (commercial_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -520,7 +552,7 @@ ALTER TABLE ONLY public.details_facture
 --
 
 ALTER TABLE ONLY public.factures
-    ADD CONSTRAINT factures_commercial_id_fkey FOREIGN KEY (commercial_id) REFERENCES public.users(id);
+    ADD CONSTRAINT factures_commercial_id_fkey FOREIGN KEY (commercial_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -528,7 +560,7 @@ ALTER TABLE ONLY public.factures
 --
 
 ALTER TABLE ONLY public.factures
-    ADD CONSTRAINT factures_id_client_fkey FOREIGN KEY (id_client) REFERENCES public.clients(id);
+    ADD CONSTRAINT factures_id_client_fkey FOREIGN KEY (id_client) REFERENCES public.clients(id) ON DELETE CASCADE;
 
 
 --
@@ -536,7 +568,7 @@ ALTER TABLE ONLY public.factures
 --
 
 ALTER TABLE ONLY public.factures
-    ADD CONSTRAINT factures_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.users(id);
+    ADD CONSTRAINT factures_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --

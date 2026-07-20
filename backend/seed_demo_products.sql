@@ -1,11 +1,22 @@
 -- Restore the 20-product TeaSud catalog used by the Flutter demo.
 --
 -- This seed is intentionally additive and idempotent:
---   * existing products are matched by reference/ref/code and left untouched;
+--   * existing products are matched by reference/ref/code;
+--   * known category text and links are repaired when stale or misencoded;
 --   * missing products receive fresh sequence-backed IDs;
 --   * rerunning the file does not create duplicates.
 
 BEGIN;
+
+-- Repair legacy rows where UTF-8 text was decoded and encoded a second time.
+-- Matching the stable suffix avoids carrying the corrupt byte sequence forward.
+UPDATE public.categories
+SET nom_cat = 'Thé vert en filaments'
+WHERE LOWER(nom_cat) LIKE '%vert en filaments';
+
+UPDATE public.categories
+SET nom_cat = 'Thé vert en grains Gunpowder'
+WHERE LOWER(nom_cat) LIKE '%vert en grains gunpowder';
 
 INSERT INTO public.categories (nom_cat)
 SELECT seed.nom_cat
@@ -106,6 +117,46 @@ WHERE NOT EXISTS (
        OR LOWER(COALESCE(existing.ref, '')) = LOWER(catalog.reference)
        OR LOWER(COALESCE(existing.code, '')) = LOWER(catalog.reference)
 );
+
+-- Existing products are not reinserted, but their duplicated category fields
+-- still need to be canonicalized and linked to the repaired category row.
+WITH category_repairs (reference, category) AS (
+    VALUES
+        ('41022-200',  'Thé vert en filaments'),
+        ('41022-250',  'Thé vert en filaments'),
+        ('41022-500',  'Thé vert en filaments'),
+        ('41022-1000', 'Thé vert en filaments'),
+        ('41022-2000', 'Thé vert en filaments'),
+        ('9305-200',   'Thé vert en filaments'),
+        ('9305-250',   'Thé vert en filaments'),
+        ('9305-500',   'Thé vert en filaments'),
+        ('9305-1000',  'Thé vert en filaments'),
+        ('9305-2000',  'Thé vert en filaments'),
+        ('ALP-200',    'Thé vert en grains Gunpowder'),
+        ('ALP-250',    'Thé vert en grains Gunpowder'),
+        ('ALP-500',    'Thé vert en grains Gunpowder'),
+        ('ALP-1000',   'Thé vert en grains Gunpowder'),
+        ('ALP-2000',   'Thé vert en grains Gunpowder'),
+        ('ALC-200',    'Thé vert en grains Gunpowder'),
+        ('ALC-250',    'Thé vert en grains Gunpowder'),
+        ('ALC-500',    'Thé vert en grains Gunpowder'),
+        ('ALC-1000',   'Thé vert en grains Gunpowder'),
+        ('ALC-2000',   'Thé vert en grains Gunpowder')
+)
+UPDATE public.produits product
+SET categorie = repair.category,
+    category = repair.category,
+    id_cat = (
+        SELECT category_row.id
+        FROM public.categories category_row
+        WHERE LOWER(category_row.nom_cat) = LOWER(repair.category)
+        ORDER BY category_row.id
+        LIMIT 1
+    )
+FROM category_repairs repair
+WHERE LOWER(COALESCE(product.reference, '')) = LOWER(repair.reference)
+   OR LOWER(COALESCE(product.ref, '')) = LOWER(repair.reference)
+   OR LOWER(COALESCE(product.code, '')) = LOWER(repair.reference);
 
 SELECT setval(
     pg_get_serial_sequence('public.produits', 'id'),

@@ -8847,9 +8847,15 @@ class _SelectedOrderClientCard extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 8),
-                        _ClientStatusBadge(
-                          status: data.uiStatus,
-                          category: data.client.category,
+                        // ponytail: fixed cap rather than a LayoutBuilder —
+                        // the card sits in a phone-width column, so the space
+                        // left here is ~130px at the narrowest.
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: 120),
+                          child: _ClientStatusBadge(
+                            status: data.uiStatus,
+                            category: data.client.category,
+                          ),
                         ),
                       ],
                     ),
@@ -12568,29 +12574,33 @@ class _ClientStatusBadge extends StatelessWidget {
   final _ClientUiStatus status;
   final String category;
 
-  /// The client's category when one is set (including custom ones like
-  /// "blacklist", which have no status equivalent), falling back to the
-  /// order-derived status for clients that have never been assigned one.
-  (String, Color) get _style {
+  /// Returns a separate category badge when it contains business information.
+  /// Built-in status categories are omitted because the status badge already
+  /// communicates the same value.
+  (String, Color)? get _categoryStyle {
     final trimmed = category.trim();
-    if (trimmed.isEmpty) return (status.label, status.color);
+    if (trimmed.isEmpty) return null;
     return switch (trimmed.toLowerCase()) {
-      'prospect' => (
-        _ClientUiStatus.prospect.label,
-        _ClientUiStatus.prospect.color,
-      ),
-      'actif' => (_ClientUiStatus.active.label, _ClientUiStatus.active.color),
-      'inactif' => (
-        _ClientUiStatus.inactive.label,
-        _ClientUiStatus.inactive.color,
-      ),
+      'prospect' || 'actif' || 'inactif' => null,
       _ => (trimmed, _HomeCommercialState.textMuted),
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = _style;
+    final categoryStyle = _categoryStyle;
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        if (categoryStyle != null)
+          _badge(categoryStyle.$1, categoryStyle.$2),
+        _badge(status.label, status.color),
+      ],
+    );
+  }
+
+  Widget _badge(String label, Color color) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -12599,6 +12609,8 @@ class _ClientStatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: color,
           fontSize: 11,

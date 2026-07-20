@@ -14,6 +14,21 @@ class InvalidCredentialsException implements Exception {
 }
 
 class ApiService {
+  /// Throws the server's `message` when the body carries one (e.g. the 409 sent
+  /// when a product/client/user is still referenced by invoices), otherwise
+  /// [fallback]. The UI shows the exception text directly.
+  static Never _apiError(List<int> bodyBytes, String fallback) {
+    try {
+      final decoded = jsonDecode(utf8.decode(bodyBytes));
+      if (decoded is Map && decoded['message'] is String) {
+        throw Exception(decoded['message'] as String);
+      }
+    } on FormatException {
+      // ponytail: corps non-JSON -> message par défaut
+    }
+    throw Exception(fallback);
+  }
+
   // 127.0.0.1 works for web and iOS simulators, but the Android emulator only
   // reaches the host machine's loopback via 10.0.2.2. For a physical device,
   // pass --dart-define=API_BASE_URL=http://<your-PC-LAN-IP>:5000.
@@ -780,7 +795,7 @@ class ApiService {
       final decoded = jsonDecode(response.body);
       return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
     }
-    throw Exception('Erreur suppression utilisateur');
+    _apiError(response.bodyBytes, 'Erreur suppression utilisateur');
   }
 
   static Future<Map<String, dynamic>> changePassword(
@@ -979,7 +994,7 @@ class ApiService {
       final decoded = jsonDecode(response.body);
       return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
     }
-    throw Exception('Erreur suppression produit');
+    _apiError(response.bodyBytes, 'Erreur suppression produit');
   }
 
   static Future<Map<String, dynamic>> updateClient(
@@ -1015,7 +1030,7 @@ class ApiService {
       final decoded = jsonDecode(response.body);
       return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
     }
-    throw Exception('Erreur suppression client');
+    _apiError(response.bodyBytes, 'Erreur suppression client');
   }
 
   static Future<Map<String, dynamic>> login(

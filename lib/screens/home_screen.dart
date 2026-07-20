@@ -219,7 +219,9 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text(AppLocalizations.globalText('Supprimer le client')),
-          content: Text('Supprimer ${client.fullName} ?'),
+          content: Text(
+            'Supprimer ${client.fullName} ? Ses factures seront supprimées aussi.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),

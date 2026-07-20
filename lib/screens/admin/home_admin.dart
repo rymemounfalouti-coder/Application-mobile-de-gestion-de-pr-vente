@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -466,11 +467,26 @@ class _HomeAdminState extends State<HomeAdmin> {
   final _clientsKey = GlobalKey<_ClientsPageState>();
   final _commandesKey = GlobalKey<_CommandesPageState>();
   int _index = 0;
+  Timer? _badgePoll;
 
   @override
   void initState() {
     super.initState();
     syncAdminUnreadNotifications();
+    // The badge counts rows the server creates, and most of them come from
+    // someone else's device — a commercial registering a client or an order.
+    // Refreshing only after our own writes would never show those, so poll.
+    // ponytail: 15s poll; move to push only if the request volume hurts.
+    _badgePoll = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => syncAdminUnreadNotifications(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _badgePoll?.cancel();
+    super.dispose();
   }
 
   void _go(int i) {
@@ -1785,7 +1801,8 @@ class _UtilisateursPageState extends State<UtilisateursPage> {
           context,
           title: "Supprimer l'utilisateur ?",
           message:
-              'Cette action supprimera définitivement ${u.name} et ne peut pas être annulée.',
+              'Cette action supprimera définitivement ${u.name}. Ses clients et '
+              'factures sont conservés, mais se retrouvent sans responsable.',
         );
         if (!confirmed || !mounted) return;
         try {
@@ -3302,6 +3319,9 @@ class _ClientsPageState extends State<ClientsPage> {
     try {
       await _store.add(c);
       await _store.load();
+      // The server files a "Nouveau client ajouté" notification for this, so
+      // light the bell now instead of on the next poll tick.
+      unawaited(syncAdminUnreadNotifications());
       if (!mounted) return;
       setState(() {});
       _snack(context, 'Client créé avec succès.');
@@ -3331,7 +3351,8 @@ class _ClientsPageState extends State<ClientsPage> {
         context,
         title: 'Supprimer le client ?',
         message:
-            'Cette action supprimera définitivement ${client.name} et ne peut pas être annulée.',
+            'Cette action supprimera définitivement ${client.name}, ainsi que toutes '
+            'ses factures et leurs lignes. Elle ne peut pas être annulée.',
       );
       if (!confirmed || !mounted) return;
     }
